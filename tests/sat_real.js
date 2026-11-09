@@ -75,7 +75,8 @@ const typeable = k => /^-?(\d+|\d*\.\d+|\d+\.|\d+\/\d+)$/.test(k) && k.length <=
   }
   // Questions tab: SPR keys stay text (3/4 must not become a date)
   const Q = G.table('Questions').filter(r => FORMS.includes(r.form_id));
-  check(Q.length === 98 * FORMS.length && Q.every(r => !(r.key instanceof Date) && String(r.key) !== '') && Q.some(r => r.type === 'spr' && /\//.test(String(r.key))), `Questions tab: ${Q.length} rows, SPR keys kept as text (e.g. ${Q.find(r => r.type === 'spr' && /\//.test(String(r.key))).key})`);
+  const frac = Q.find(r => r.type === 'spr' && /\//.test(String(r.key))); // a form may have no fraction key (09B alone)
+  check(Q.length === 98 * FORMS.length && Q.every(r => !(r.key instanceof Date) && String(r.key) !== ''), `Questions tab: ${Q.length} rows, SPR keys kept as text` + (frac ? ` (e.g. ${frac.key})` : ''));
   H.englishOnly(E);
   H.summary(); await E.close();
 })().catch(e => { console.error(e); process.exit(1); });
