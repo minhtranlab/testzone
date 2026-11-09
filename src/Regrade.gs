@@ -19,7 +19,8 @@ function answerText_(v, hint) {
   hint = hint === undefined || hint === null ? '' : String(hint);
   if (Object.prototype.toString.call(v) === '[object Date]') {
     if (isNaN(v.getTime())) return hint || '';
-    var md = (v.getMonth() + 1) + '/' + v.getDate(), dm = v.getDate() + '/' + (v.getMonth() + 1);
+    var mmdd = fmtDate_(v, 'MM/dd').split('/').map(Number); // the Sheet's day, in the script time zone
+    var md = mmdd[0] + '/' + mmdd[1], dm = mmdd[1] + '/' + mmdd[0];
     if (hint && (hint === md || hint === dm)) return hint;
     return sheetDayFirst_() ? dm : md;
   }
