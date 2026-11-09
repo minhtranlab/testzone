@@ -187,6 +187,62 @@ function importQuestions_() {
   return msg;
 }
 
+/** Questions tab ↔ data files, after a data round renumbered items (#15). For each form that already has rows:
+ *  a Sheet row is kept as it is (Minh's edits) only when its qid still holds the SAME item (identity below);
+ *  otherwise the row is rebuilt from the data file. Rows for qids no longer in the data are dropped.
+ *  A key Minh changed on an item that moved to a new qid follows the item (only when the identity is unique).
+ *  Forms whose rows already match are not touched; forms with no rows yet are left to importQuestions_. */
+function questionIdent_(r) {
+  return ['orig_module', 'orig_no', 'key_source', 'type', 'topic'].map(function (k) {
+    var v = r[k]; if (k === 'type' && (v === '' || v === undefined || v === null)) v = 'mcq';
+    return String(v === undefined || v === null ? '' : v).replace(/^'/, '').trim();
+  }).join('|');
+}
+function keepCell_(v) { // a value read back from the Sheet, written again as the same text
+  return (typeof v === 'string' && (/^[=+\-]/.test(v) || /^[\d.\/\s:]+$/.test(v))) ? "'" + v : v;
+}
+function resyncQuestions_() {
+  var t = readTable_('Questions'), byForm = {};
+  t.rows.forEach(function (r) { var f = String(r.form_id).trim(); (byForm[f] = byForm[f] || []).push(r); });
+  var changed = {}, out = [], log = [];
+  formIds_().forEach(function (fid) {
+    var rows = byForm[fid] || [];
+    if (!rows.length) return;
+    var byQid = {}, byIdent = {}, dataQids = {}, stale = false, kept = 0, rebuilt = 0, carried = 0, dropped = 0, mine = [];
+    rows.forEach(function (r) {
+      byQid[String(r.qid).trim()] = r;
+      var id = questionIdent_(r); byIdent[id] = byIdent.hasOwnProperty(id) ? null : r;
+    });
+    formDataRaw_(fid).questions.forEach(function (q) {
+      dataQids[q.qid] = true;
+      var want = questionRow_(fid, q), r = byQid[q.qid];
+      if (r && questionIdent_(r) === questionIdent_(want)) {
+        var o = {}; t.headers.forEach(function (h) { if (h) o[h] = keepCell_(r[h]); });
+        mine.push(o); kept++; return;
+      }
+      stale = true; rebuilt++;
+      var old = byIdent[questionIdent_(want)];
+      var oldKey = old ? String(old.key).replace(/^'/, '').trim() : '';
+      if (old && oldKey !== '' && !(old.key instanceof Date) && oldKey !== String(want.key).replace(/^'/, '')) {
+        want.key = txt_(oldKey); carried++; log.push(fid + ': key ' + oldKey + ' kept for ' + old.qid + ' → ' + q.qid);
+      }
+      mine.push(want);
+    });
+    rows.forEach(function (r) { if (!dataQids[String(r.qid).trim()]) { stale = true; dropped++; } });
+    if (rows.length !== mine.length) stale = true;
+    if (!stale) return;
+    changed[fid] = true; out = out.concat(mine);
+    log.unshift(fid + ': ' + kept + ' rows kept, ' + rebuilt + ' rebuilt from the data file, ' + dropped + ' dropped, ' + carried + ' Sheet keys carried');
+  });
+  var forms = Object.keys(changed);
+  if (!forms.length) return 'Questions: every form matches its data file';
+  rewriteTable_('Questions', function (r) { return !changed[String(r.form_id).trim()]; }, out);
+  _sheetKeys = null; _formCache = {};
+  var msg = 'Questions resynced for ' + forms.length + ' form(s):\n' + log.join('\n');
+  console.log(msg);
+  return msg;
+}
+
 function questionRow_(fid, q) {
   var t = q.tags || {};
   return {

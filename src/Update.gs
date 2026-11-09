@@ -8,6 +8,8 @@
  *   ensureSettingsRows_ → Settings rows the code needs (teacher_code), values never changed
  *   syncSheetTexts_     → README / Interpretation / Dictionary / Settings meanings from SheetText.gs
  *   ensureScoreScale_   → Score_Scale tab created once from ScoreScale.gs (then Minh's to edit)
+ *   resyncQuestions_    → after a data round renumbered items: rows whose qid now holds another item are rebuilt
+ *                         from the data file (Minh's edits kept where the qid still holds the same item; Setup.gs)
  *   importQuestions_    → Questions-tab rows for forms that are new; existing rows (Minh's edits) are left as they are
  *   rebuildAll_         → recompute Topic_Summary / Student_Report / Report-tab list (script-built tabs only)
  *   checkSheet_         → read-only check, result in the log
@@ -63,7 +65,7 @@ function doUpdate_() {
     ['settings', ensureSettingsRows_],
     ['texts', syncSheetTexts_],
     ['score scale', ensureScoreScale_],
-    ['questions', importQuestions_],
+    ['questions', function () { return resyncQuestions_() + '\n' + importQuestions_(); }],
     ['reports', rebuildAll_],
     ['check', checkSheet_]
   ];
@@ -74,7 +76,10 @@ function doUpdate_() {
       log.push('[' + s[0] + '] ' + msg);
       if (['headers', 'forms', 'settings', 'score scale'].indexOf(s[0]) >= 0) notes.push(msg);
       if (s[0] === 'columns') notes.push(/Nothing to add/.test(msg) ? 'columns OK' : 'columns added: ' + (msg.match(/added column/g) || []).length);
-      if (s[0] === 'questions') { var m = /Imported (\d+)/.exec(msg); notes.push('questions added: ' + (m ? m[1] : '?')); }
+      if (s[0] === 'questions') {
+        var m = /Imported (\d+)/.exec(msg), rs = /resynced for (\d+)/.exec(msg);
+        notes.push('questions added: ' + (m ? m[1] : '?') + (rs ? ', resynced forms: ' + rs[1] : ''));
+      }
       if (s[0] === 'reports') notes.push('reports rebuilt');
       if (s[0] === 'check') { var p = /→ (\d+) problem/.exec(msg); notes.push(p ? 'checkSheet: ' + p[1] + ' problem(s), see log' : 'checkSheet: all good'); }
     } catch (err) {

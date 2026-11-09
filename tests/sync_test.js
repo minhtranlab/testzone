@@ -70,4 +70,41 @@ qrows.find(x => x[iq] === spr.qid)[ik] = new Date('2026-07-02T00:00:00Z'); fresh
 check(JSON.stringify(G.ctx.formData_('MOCK-SAT98').questions.find(q => q.qid === spr.qid).key) === JSON.stringify(spr.key), 'a key cell Sheets turned into a date is ignored (data key used)');
 const cs = G.ctx.checkSheet_();
 check(/Key changed in the Sheet \(the Sheet key is used/.test(cs) && !/KEY DIFFERS/.test(cs), 'checkSheet lists key changes as information, not as a problem');
+console.log('[data round renumbers items (#15): Questions resync]');
+qrows.find(x => x[iq] === spr.qid)[ik] = "'" + JSON.stringify(spr.key).replace(/[\[\]"]/g, '').replace(/,/g, '|'); // back to the data key
+const file98 = path.join(DRIVE, 'MOCK-SAT98.json'), d98 = JSON.parse(fs.readFileSync(file98, 'utf8'));
+const rw2 = d98.questions.filter(q => q.part === 'RW2');
+const [qa, qb] = rw2;                               // swap RW2 items 1 and 2 (block re-order: qids follow the slot)
+const ia = d98.questions.indexOf(qa), ib = d98.questions.indexOf(qb);
+const keyA = qa.key, keyB = qb.key, qidA = qa.qid, qidB = qb.qid;
+d98.questions[ia] = Object.assign({}, qb, { qid: qidA, display_no: qa.display_no });
+d98.questions[ib] = Object.assign({}, qa, { qid: qidB, display_no: qb.display_no });
+const m2last = d98.questions.filter(q => q.part === 'M2').pop();   // an item replaced by a new one (new identity, same qid)
+const repl = d98.questions.indexOf(m2last);
+d98.questions[repl] = Object.assign({}, m2last, { orig_module: 'Oct Form B M2', orig_no: 8, key_source: m2last.type === 'spr' ? ['-1'] : 'B', key: m2last.type === 'spr' ? ['-1'] : 'B' });
+const stay = d98.questions.find(q => q.part === 'M1' && q.type !== 'spr' && q.qid !== mcq.qid);   // unchanged item, Minh's key stays
+fs.writeFileSync(file98, JSON.stringify(d98)); fs.utimesSync(file98, new Date(), new Date(Date.now() + 5000));
+const qByQid = id => G.table('Questions').find(q => q.qid === id);
+const otherA = ['A', 'B', 'C', 'D'].find(l => l !== keyA);
+qrows.find(x => x[iq] === qidA)[ik] = otherA;                       // Minh changed the key of item A (now at qidB)
+const stayKey = ['A', 'B', 'C', 'D'].find(l => l !== stay.key);
+qrows.find(x => x[iq] === stay.qid)[ik] = stayKey;
+qrows.push(qrows.find(x => x[iq] === stay.qid).map((v, i) => i === iq ? 'MOCK-SAT98-RW1-99' : v));   // a qid that is no longer in the data
+const apBefore = G.table('Questions').filter(q => q.form_id === 'MOCK-APCAB').map(q => JSON.stringify(Object.assign({}, q, { _row: 0 }))).join();
+G.ctx.APP_BUILD = 'after-12'; G.ctx._rawCache = {}; fresh();
+const r3 = G.ctx.doGet({ parameter: { update: '1' } }).getContent();
+check(/^Test Zone update: done/.test(r3) && /resynced forms: 1/.test(G.table('Settings').find(s => s.key === 'code_version').meaning), 'update ran, 1 form resynced: ' + r3);
+const qs98 = G.table('Questions').filter(q => q.form_id === 'MOCK-SAT98');
+check(qs98.length === 98 && !qByQid('MOCK-SAT98-RW1-99') && new Set(qs98.map(q => q.qid)).size === 98, 'MOCK-SAT98 still 98 rows, the stale qid dropped, no duplicates');
+check(String(qByQid(qidB).key) === otherA && String(qByQid(qidA).key) === keyB && String(qByQid(qidA).orig_no) === String(qb.orig_no), 'moved items: rows follow the item; Minh\'s key follows item A to its new qid');
+check(String(qByQid(stay.qid).key) === stayKey, 'unchanged item keeps Minh\'s key');
+check(String(qByQid(m2last.qid).orig_module) === 'Oct Form B M2' && String(qByQid(m2last.qid).key) === (m2last.type === 'spr' ? '-1' : 'B'), 'replaced item: row rebuilt from the data file (new key)');
+check(G.table('Questions').filter(q => q.form_id === 'MOCK-APCAB').map(q => JSON.stringify(Object.assign({}, q, { _row: 0 }))).join() === apBefore, 'other forms\' rows unchanged');
+const fd2 = G.ctx.formData_('MOCK-SAT98');
+check(fd2.questions.find(q => q.qid === qidA).key === keyB && fd2.questions.find(q => q.qid === qidB).key === otherA, 'grading uses the right key for each new qid');
+const spr2 = qs98.find(q => q.type === 'spr' && /\//.test(String(q.key)));
+check(!spr2 || typeof spr2.key === 'string', 'SPR fraction keys stay text after the rewrite' + (spr2 ? ' (' + spr2.key + ')' : ''));
+G.ctx.APP_BUILD = 'after-12b'; fresh();
+G.ctx.doGet({ parameter: { update: '1' } });
+check(/every form matches/.test(G.ctx.resyncQuestions_()) && G.table('Questions').filter(q => q.form_id === 'MOCK-SAT98').length === 98, 'next run: nothing to resync (idempotent)');
 console.log(`\nsync_test: ${P} passed, ${F} failed`); process.exit(F ? 1 : 0);

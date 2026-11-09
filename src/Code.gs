@@ -139,9 +139,8 @@ function rewriteTable_(name, keep, newObjs) {
   var kept = t.rows.filter(keep).map(function (o) {
     return headers.map(function (h) {
       var v = h in o ? o[h] : '';
-      // text that looks like a number (e.g. topic "6.10") must stay text when written back
-      if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v)) return "'" + v;
-      return v;
+      // text that looks like a number / fraction / formula (topic "6.10", SPR key "3/4") must stay text when written back
+      return keepCell_(v);
     });
   });
   var all = kept.concat(rowsFor_(headers, newObjs));
