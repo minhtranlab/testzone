@@ -47,8 +47,20 @@ function onEdit(e) {
   if (!r || typeof r.getSheet !== 'function') return;
   var sh = r.getSheet();
   if (sh.getName() !== REPORT_TAB || r.getRow() !== 2 || r.getColumn() !== 2) return;
-  try { renderSelected_(sh); }
-  catch (err) { console.error('REPORT RENDER FAILED: ' + (err && err.stack || err)); sh.getRange(RPT_FIRST, 2).setValue('Could not draw the report: ' + err.message); }
+  drawPick_(sh);
+}
+
+/** Draw the attempt picked in B2. It needs no Drive access (tags come from the Questions tab when the form file cannot be
+ *  read), so it works in the simple trigger too (B1, #21). If it still fails, the old drawing is removed — it must never
+ *  look like the picked attempt — and an English line says what to do. */
+function drawPick_(sh) {
+  try { return renderSelected_(sh); }
+  catch (err) {
+    console.error('REPORT RENDER FAILED: ' + (err && err.stack || err));
+    try { clearReport_(sh); } catch (e) {}
+    sh.getRange(RPT_FIRST, 2).setValue('Could not draw this attempt. Use the menu Test Zone → Refresh report.');
+    return null;
+  }
 }
 
 /** Menu: refresh the dropdown list and redraw the selected attempt. */
@@ -113,6 +125,9 @@ function refreshReportList_() {
     return [label, String(s.session_id)];
   });
   var old = Math.max(sh.getLastRow(), 2);
+  // N2 (#21): the label holds the score, so a re-grade changes it — remember WHICH attempt is picked (by session id)
+  var pickedSid = null, pick = String(sh.getRange(2, 2).getValue() || '');
+  if (pick) sh.getRange(2, RPT_LIST_COL, old, 2).getValues().forEach(function (v) { if (!pickedSid && String(v[0]) === pick) pickedSid = String(v[1]); });
   ensureGrid_(sh, rows.length + 2, RPT_LIST_COL + 1);
   sh.getRange(2, RPT_LIST_COL, old, 2).clearContent();
   if (rows.length) sh.getRange(2, RPT_LIST_COL, rows.length, 2).setValues(rows);
@@ -121,6 +136,7 @@ function refreshReportList_() {
     .requireValueInRange(sh.getRange(2, RPT_LIST_COL, Math.max(1, rows.length), 1), true)
     .setAllowInvalid(false).build();
   sh.getRange(2, 2).setDataValidation(rule);
+  if (pickedSid) { var nw = rows.filter(function (r) { return r[1] === pickedSid; })[0]; if (nw && nw[0] !== pick) sh.getRange(2, 2).setValue(nw[0]); }
   return rows.length;
 }
 

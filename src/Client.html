@@ -149,7 +149,7 @@
     });
   }
   function showHome() {
-    A.profile = null;
+    A.profile = null; stopLoops(); clearTimeout(A.subT); // nothing of a test runs behind My Tests
     show('scr-home');
     $('#home-name').textContent = A.student.name;
     $('#home-list').innerHTML = '<div class="spinner"></div>';
@@ -254,6 +254,8 @@
   }
   function setupTest0(res) {
     A.test = res; A.profile = res.profile; A.parts = {}; A.qs = {}; A.ending = false;
+    A.copy = res.copy || ''; A.dead = false; // N1: this window's copy token (the server keeps only the newest)
+    setSaveDot('');                          // N3: no "Saved hh:mm" left over from another attempt
     $('#tool-annot span').textContent = res.profile.annotate_label || 'Annotate';
     $('#scr-test').classList.toggle('serif', res.profile.question_font === 'serif'); // SAT: question text + choices in a serif face (Bluebook look)
     res.profile.parts.forEach(function (p) { A.parts[p.part] = p; A.qs[p.part] = []; });
@@ -319,7 +321,7 @@
 
   /* ================= persistence + autosave ================= */
   function persist(extra) {
-    if (!A.st) return;
+    if (!A.st || A.dead) return; // a stopped copy (N1) never overwrites the live window's saved state
     A.st.seq = (A.st.seq || 0) + 1;
     var o = { state: A.st, events: A.events, evBase: A.evBase, acked: A.acked };
     if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
@@ -335,11 +337,11 @@
   }
   function payload() {
     var from = Math.max(A.acked, A.evBase);
-    if (A.evBase === 0) return { state: A.st, events: A.events.slice(from), ev_from: from };
-    return { state: A.st, events: A.events.slice(from - A.evBase), ev_from: from };
+    if (A.evBase === 0) return { state: A.st, events: A.events.slice(from), ev_from: from, copy: A.copy };
+    return { state: A.st, events: A.events.slice(from - A.evBase), ev_from: from, copy: A.copy };
   }
   function autosave(extra) {
-    if (!A.st || A.saving) return Promise.resolve(null);
+    if (!A.st || A.saving || A.dead) return Promise.resolve(null);
     A.saving = true;
     if (!extra || !extra.route_part) log('autosave', null, null);
     persist();
@@ -348,6 +350,7 @@
     var t0 = Date.now();
     return call('autosave', A.code, A.st.session_id, pl).then(function (r) {
       A.saving = false;
+      if (r && r.other_copy) { onOtherCopy(); return r; }
       if (r && r.closed) { onClosed(r); return r; }
       if (r && r.ok) {
         A.offset = r.server_now + (Date.now() - t0) / 2 - Date.now();
@@ -361,6 +364,17 @@
       }
       return r;
     }).catch(function () { A.saving = false; setSaveDot('Offline — answers kept on this device'); return null; });
+  }
+  /** N1: another window opened this attempt later — this one stops for good (timer frozen, no auto-start, no submit)
+   *  and leaves the saved copy on this device alone (the other window may be in this same browser). */
+  function onOtherCopy() {
+    A.dead = true; A.ending = true;
+    stopLoops(); clearTimeout(A.subT);
+    show('scr-test'); view('v-wait');
+    $('#v-wait').innerHTML = '<div class="page center"><h1 style="font-size:24px">This test is open in another window. Close this one.</h1>' +
+      '<p class="lead">Your test goes on in the window where you opened it last. Nothing more is saved from this window.</p>' +
+      '<button class="btn-outline" id="btn-oc-home" type="button">Back to My Tests</button></div>';
+    $('#btn-oc-home').onclick = function () { showHome(); };
   }
   function onClosed(r) {
     stopLoops(); LS.del(lsKey()); LS.del('tz_active');
@@ -831,6 +845,7 @@
     var attempt = function () {
       var pl = payload(); pl.device = deviceStr();
       call('submit', A.code, A.st.session_id, pl).then(function (res) {
+        if (res && res.other_copy) { onOtherCopy(); return; }
         LS.del(lsKey()); LS.del('tz_active');
         A.ending = false;
         renderResult(res);

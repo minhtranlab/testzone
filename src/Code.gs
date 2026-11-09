@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.7 (2026-11-09, QA fixes)';
+var APP_VERSION = 'v1.8 (2026-11-10, re-test fixes)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -221,8 +221,8 @@ var _driveIdx = null;
 function driveFormIndex_() {
   if (_driveIdx) return _driveIdx;
   var cache = CacheService.getScriptCache(), hit = cache.get('tz_drive_idx');
-  if (hit) return (_driveIdx = JSON.parse(hit));
-  var idx = {};
+  if (hit) { var h = JSON.parse(hit); if (h && Object.keys(h).length) return (_driveIdx = h); } // an empty index is never trusted
+  var idx = {}, ok = false;
   try {
     var it = DriveApp.getFolderById(FORM_FILES_FOLDER_ID).getFiles();
     while (it.hasNext()) {
@@ -231,6 +231,7 @@ function driveFormIndex_() {
       var t = f.getLastUpdated().getTime();  // two files with one name → the newest wins
       if (!idx[m[1]] || t > Number(idx[m[1]].split(':')[1])) idx[m[1]] = f.getId() + ':' + t;
     }
+    ok = true;
   } catch (err) { console.error('FORM FILES FOLDER NOT READABLE: ' + err); }
   // Forms.data_file_id typed by hand (e.g. a file in another account's folder shared with the script owner) wins
   try {
@@ -241,6 +242,9 @@ function driveFormIndex_() {
       catch (e2) { console.error('Forms.data_file_id of ' + f + ' not readable: ' + e2); }
     });
   } catch (e3) { /* no Forms tab / column yet */ }
+  // B1 (#21): a failed or empty read (e.g. a simple trigger without Drive rights) is NEVER cached or kept — the next call
+  // tries Drive again; otherwise one bad read made every form "not available" for 10 minutes.
+  if (!ok || !Object.keys(idx).length) return idx;
   cache.put('tz_drive_idx', JSON.stringify(idx), 600);
   return (_driveIdx = idx);
 }
@@ -318,9 +322,11 @@ function sheetKeys_(formId) {
 
 /** Profile = registry profile (question counts included), with n / time / calculator / title overridden by the Forms tab.
  *  Does not parse the form's data file. */
-function profileFor_(formId) {
-  var e = regEntry_(formId);
-  if (!e) return null;
+/** noDrive = true: the profile from the code registry even when the form file cannot be read here (the Report tab's
+ *  simple trigger has no Drive rights — B1, #21). Otherwise null when the form has no data file (= not available). */
+function profileFor_(formId, noDrive) {
+  var e = noDrive ? formRegistry_()[formId] : regEntry_(formId);
+  if (!e || !e.profile) return null;
   var p = JSON.parse(JSON.stringify(e.profile));
   var rows = [];
   try { rows = readTable_('Forms').rows.filter(function (r) { return String(r.form_id).trim() === formId; }); } catch (e2) {}
@@ -377,8 +383,9 @@ function findStudent_(code) {
 
 function requireStudent_(code) {
   var keys = loginKeys_(code, '');
-  if (loginLocked_(keys)) throw new Error('LOGIN: ' + LOCK_MSG);
   var st = findStudent_(code);
+  if (!st && loginLockedAll_()) throw new Error('LOGIN: ' + LOCK_ALL_MSG); // a student already signed in keeps working
+  if (loginLocked_(keys)) throw new Error('LOGIN: ' + LOCK_MSG);
   if (!st) loginFailed_(keys);
   if (!st || !isYes_(st.active)) throw new Error('LOGIN: This code is not valid or is locked. Ask your teacher.');
   return st;
@@ -398,23 +405,35 @@ function failTimes_(cache, key, now) {
   var v = []; try { v = JSON.parse(cache.get(key) || '[]'); } catch (e) {}
   return (Array.isArray(v) ? v : []).filter(function (t) { return now - Number(t) < LOGIN_WINDOW_MS; });
 }
+/* #21 m8: plus a script-wide limit — 30 wrong codes in 15 minutes from anywhere (a new device id each try is still
+   counted) → every sign-in waits 5 minutes. Per-code and per-device limits stay. */
+var LOGIN_ALL_MAX = 30, LOGIN_ALL_WAIT_MS = 5 * 60 * 1000, ALL_KEY = 'tz_lf_all', ALL_LOCK_KEY = 'tz_lf_all_lock';
+var LOCK_ALL_MSG = 'Too many wrong codes were tried. Sign-in is paused for 5 minutes. Please try again later.';
+function loginLockedAll_() {
+  var until = Number(CacheService.getScriptCache().get(ALL_LOCK_KEY)) || 0;
+  return Date.now() < until;
+}
 function loginLocked_(keys) {
   var cache = CacheService.getScriptCache(), now = Date.now();
   return keys.some(function (k) { return failTimes_(cache, k, now).length >= LOGIN_MAX_FAILS; });
 }
 function loginFailed_(keys) {
   var cache = CacheService.getScriptCache(), now = Date.now();
+  var all = failTimes_(cache, ALL_KEY, now); all.push(now);
+  try { cache.put(ALL_KEY, JSON.stringify(all.slice(-(LOGIN_ALL_MAX + 5))), 1800); } catch (e) {}
+  if (all.length >= LOGIN_ALL_MAX) { try { cache.put(ALL_LOCK_KEY, String(now + LOGIN_ALL_WAIT_MS), 600); cache.put(ALL_KEY, '[]', 1800); } catch (e) {} console.warn('LOGIN: ' + all.length + ' wrong codes in 15 min → all sign-ins wait 5 min'); }
   keys.forEach(function (k) { var t = failTimes_(cache, k, now); t.push(now); try { cache.put(k, JSON.stringify(t.slice(-50)), 1800); } catch (e) {} });
 }
 
 function login(code, deviceId) {
   var keys = loginKeys_(code, deviceId);
+  if (loginLockedAll_()) return { ok: false, locked: true, msg: LOCK_ALL_MSG };
   if (loginLocked_(keys)) return { ok: false, locked: true, msg: LOCK_MSG };
   if (isTeacherCode_(code)) return { ok: true, teacher: true, app_name: getSettings_().app_name, version: APP_VERSION };
   var st = findStudent_(code);
   if (!st) {
     loginFailed_(keys);
-    return { ok: false, msg: loginLocked_(keys) ? LOCK_MSG : 'Code not found. Check it or ask your teacher.' };
+    return { ok: false, msg: loginLockedAll_() ? LOCK_ALL_MSG : loginLocked_(keys) ? LOCK_MSG : 'Code not found. Check it or ask your teacher.' };
   }
   if (!isYes_(st.active)) return { ok: false, msg: 'This code is locked. Ask your teacher.' };
   var s = getSettings_();
@@ -538,7 +557,7 @@ function getTest(code, formId, opts) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  var session, state = null, resumed = false;
+  var session, state = null, resumed = false, copy = '';
   try {
     var t = readTable_('Sessions');
     var mine = t.rows.filter(function (r) { return normCode_(r.student_code) === codeN && String(r.form_id) === formId; });
@@ -548,17 +567,19 @@ function getTest(code, formId, opts) {
       open.forEach(function (r) { updateRow_('Sessions', r._row, { status: 'abandoned', last_saved_at: nowIso_() }); });
       open = [];
     }
+    copy = newCopyToken_();
     if (open.length) {
       session = open[open.length - 1];
       state = parseState_(session);
       resumed = true;
+      updateRow_('Sessions', session._row, { copy_token: copy }); // this window is now the live copy; older ones stop (N1)
     } else {
       var attemptNo = mine.reduce(function (m, r) { return Math.max(m, Number(r.attempt_no) || 0); }, 0) + 1;
       var sid = 'S-' + fmtDate_(new Date(), 'yyyyMMdd') + '-' + codeN + '-' + formId + '-' + attemptNo;
       session = {
         session_id: sid, student_code: codeN, form_id: formId, attempt_no: attemptNo,
         started_at: nowIso_(), status: 'in_progress', total_questions: fd.questions.length,
-        device: String(opts.device || '').slice(0, 60), events_saved: 0, last_saved_at: nowIso_()
+        device: txt_(String(opts.device || '').slice(0, 60)), events_saved: 0, last_saved_at: nowIso_(), copy_token: copy // m6: text (#21)
       };
       appendObjects_('Sessions', [session]);
     }
@@ -572,6 +593,7 @@ function getTest(code, formId, opts) {
                student_name: String(st.name || ''), events_saved: Number(session.events_saved) || 0 },
     resumed: resumed,
     state: state,
+    copy: copy,
     server_now: Date.now(),
     profile: profile,
     questions: fd.questions.map(clientQuestion_),
@@ -746,6 +768,30 @@ function cleanAnswers_(formId, state) {
   if (dropped.length) console.warn('ANSWERS DROPPED (not a valid answer): ' + dropped.join(', '));
   return state;
 }
+/** Answer events (select / change) carry only a valid answer (else ''), so first_answer / changes can't hold junk (#21 m6). */
+function cleanEvents_(formId, events) {
+  if (!Array.isArray(events)) return events;
+  var fd = formDataRaw_(formId), qm = {};
+  if (fd) fd.questions.forEach(function (q) { qm[q.qid] = q; });
+  events.forEach(function (e) {
+    if (!e || (e.type !== 'select' && e.type !== 'change')) return;
+    var v = cleanAnswer_(qm[String(e.qid)], e.value);
+    e.value = v === null ? '' : v;
+  });
+  return events;
+}
+
+/* ---- one live copy per attempt (#21 N1) ----
+   getTest gives each opened window a new copy token (Sessions.copy_token). autosave / submit from a window whose token is
+   not the current one are refused: that window shows "This test is open in another window" and stops (timer frozen,
+   no auto-start, no time-up). A page from before v1.8 sends no token and is still accepted. */
+function newCopyToken_() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+function staleCopy_(session, payload) {
+  var cur = String(session.copy_token || ''), mine = payload && payload.copy ? String(payload.copy) : '';
+  return !!(cur && mine && cur !== mine);
+}
+function otherCopy_() { return { ok: false, other_copy: true, msg: 'This test is open in another window. Close this one.', server_now: Date.now() }; }
+
 function choiceLetters_(q) {
   var l = (q.choices || []).map(function (c) { return String(c.label).toUpperCase(); });
   return l.length ? l : ['A', 'B', 'C', 'D'];
@@ -767,6 +813,16 @@ function sprValid_(s) {
   s = String(s);
   if (s.length > (s.charAt(0) === '-' ? 6 : 5)) return false;
   return /^-?\d*([.\/]\d*)?$/.test(s) && /\d/.test(s);
+}
+
+function qRowsTags_(formId, map) {
+  try {
+    readTable_('Questions').rows.forEach(function (r) {
+      if (String(r.form_id) !== formId || !r.qid) return;
+      map[String(r.qid)] = { unit: r.unit, topic: r.topic === '' ? '' : String(r.topic), topic_name: r.topic_name, difficulty: r.difficulty };
+    });
+  } catch (e) {}
+  return map;
 }
 
 function limitsFor_(formId) {
@@ -827,6 +883,8 @@ function autosave(code, sessionId, payload) {
     if (!isOpenStatus_(session.status)) {
       return { ok: false, closed: true, status: String(session.status), server_now: Date.now() };
     }
+    if (staleCopy_(session, payload)) return otherCopy_(); // N1: nothing from an older window is taken (no answers, part start, time-up, pause)
+    cleanEvents_(String(session.form_id), payload.events);
     var nowMs = Date.now();
     var serverState = parseState_(session);
     var limits = limitsFor_(String(session.form_id));
@@ -930,6 +988,8 @@ function sprParse_(s) {
 function tagMap_(formId) {
   var fd = formData_(formId);
   var map = {};
+  // no form file (Drive not readable here, e.g. the Report tab's simple trigger): the Questions tab has every tag (B1, #21)
+  if (!fd) { qRowsTags_(formId, map); return map; }
   fd.questions.forEach(function (q) {
     var t = q.tags || {};
     map[q.qid] = { unit: t.unit, topic: t.topic, topic_name: t.topic_name, difficulty: t.difficulty };
@@ -1114,6 +1174,8 @@ function submit(code, sessionId, payload) {
     if (String(session.status) === 'completed' || String(session.status) === 'timeout') {
       return resultView_(session, responsesOf_(sessionId), false);
     }
+    if (staleCopy_(session, payload)) return otherCopy_();
+    cleanEvents_(String(session.form_id), payload.events);
     var nowMs = Date.now();
     var prevState = parseState_(session);
     var limits = limitsFor_(String(session.form_id));

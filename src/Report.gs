@@ -119,7 +119,7 @@ function topicNames_(formId) {
 /** Everything about one completed attempt. session = Sessions row, rows = its Responses rows. */
 function analyse_(session, rows, S, studentName) {
   var formId = String(session.form_id);
-  var profile = profileFor_(formId);
+  var profile = profileFor_(formId, true); // works without Drive (Report tab simple trigger, #21 B1)
   var sat = isSat_(profile);
   var types = typesFor_(sat);
   var tags = tagMap_(formId);

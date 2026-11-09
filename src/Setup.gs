@@ -44,7 +44,9 @@ var EXPECTED_HEADERS = {
              // added in fix round 1 / 2:
              'reliable', 'n_sittings',
              // added in the SAT round (sections; AP keeps score_A/B, time_used_A/B):
-             'score_RW', 'score_Math', 'time_used_RW_min', 'time_used_Math_min'],
+             'score_RW', 'score_Math', 'time_used_RW_min', 'time_used_Math_min',
+             // #21 N1: which open copy (browser tab / device) of the attempt is the live one
+             'copy_token'],
   Part_Log: ['session_id', 'student_code', 'form_id', 'attempt_no', 'part', 'started_at', 'ended_at', 'end_reason', 'time_used_min', 'sitting_no'],
   Report: null,
   Responses: ['session_id', 'student_code', 'form_id', 'attempt_no', 'qid', 'part', 'display_no', 'unit', 'topic', 'final_answer',

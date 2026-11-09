@@ -8,6 +8,8 @@ run node no_leak_test.js                         # repo holds no question data /
 run node drive_test.js                           # forms from Drive JSON + Sheet update once per version
 run node score_test.js                           # SAT estimated score vs SC's agreed examples
 run node qa16_test.js                           # #16 QA fixes: answers as text, re-grade, lock-out, answer check, Report tab
+run node qa21_test.js                           # #21: Report pick without Drive (B1), pick kept (N2), m6 rest, sign-in limit, copy token
+run node copies_test.js                         # #21 N1: two windows of one attempt (QA case)
 run node sync_test.js                            # per-deploy Sheet update on the old Sheet layout + Questions-tab keys
 run node spr_test.js
 run node guard_test.js

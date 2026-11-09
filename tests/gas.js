@@ -167,12 +167,13 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
     CacheService: { getScriptCache: () => cache },
     DriveApp: {
       getFolderById(id) {
+        if (driveState.denied) throw new Error('You do not have permission to call DriveApp.getFolderById. Required permissions: https://www.googleapis.com/auth/drive.readonly');
         if (!opts.driveDir || id !== opts.folderId) throw new Error('Drive: no access to folder ' + id);
         const names = fs.readdirSync(opts.driveDir).filter(f => !f.startsWith('.'));
         let i = 0;
         return { getFiles: () => ({ hasNext: () => i < names.length, next: () => driveFile(names[i++]) }) };
       },
-      getFileById(id) { const n = fs.readdirSync(opts.driveDir || '.').find(f => 'DRV_' + f === id); if (!n) throw new Error('Drive: no file ' + id); return driveFile(n); }
+      getFileById(id) { if (driveState.denied) throw new Error('Exception: The script does not have permission to perform that action. Required permissions: (https://www.googleapis.com/auth/drive.readonly) not sufficient to call DriveApp.getFileById'); const n = fs.readdirSync(opts.driveDir || '.').find(f => 'DRV_' + f === id); if (!n) throw new Error('Drive: no file ' + id); return driveFile(n); }
     },
     ContentService: { MimeType: { TEXT: 'TEXT' }, createTextOutput: t => ({ setMimeType() { return this; }, getContent: () => t }) },
     Utilities: { formatDate: fmtDate },
@@ -180,6 +181,7 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
     ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/TEST/exec' }) },
     HtmlService: { XFrameOptionsMode: { DEFAULT: 0, ALLOWALL: 1 } }
   };
+  const driveState = { denied: false }; // true = DriveApp throws like in a simple trigger (no authorization)
   const store = new Map(), cstats = { gets: 0, puts: 0 }, dstats = { reads: 0 };
   const cache = {
     get(k) { cstats.gets++; return store.has(k) ? store.get(k) : null; },
@@ -199,7 +201,7 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
     .concat([opts.registry || path.join(dataDir, 'Forms_Registry.gs')]);
   files.forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f }));
   return {
-    ctx, sheets, order, cache: store, cstats, dstats,
+    ctx, sheets, order, cache: store, cstats, dstats, drive: driveState,
     calls() { return CALLS; }, resetCalls() { CALLS = 0; },
     admin(fn) { return ctx[fn + '_'](); },
     call(fn, args) { if (typeof ctx[fn] !== 'function' || fn.endsWith('_')) throw new Error('No such server function: ' + fn); return ctx[fn](...args); },

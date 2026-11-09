@@ -69,13 +69,22 @@ cp dist/Forms_Registry.gs src/                                    # profiles onl
 The server finds `<form_id>.json` by name in the Form Files folder, caches it (CacheService, ≤ 10 min to pick up a replaced file) and never sends keys to the browser.
 A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive shows as "Coming soon".
 
-## What the app does (v1.6)
+## What the app does (v1.8)
 - Students sign in with their code (Students tab) → My Tests → AP Calc AB 2012 and the SAT forms (SAT · August 2026, September 2026 A / B, October 2026, November 2026; a form without its Drive file shows "Coming soon").
 - Result page (all exams, English, never a key): score, estimated SAT score range (Score_Scale tab, SC's formula), results by section → domain → skill (AP: unit → topic), types of mistakes, "What to practise first", 2-sittings note, and a read-only review of every question (own answer, right / wrong, time).
 - Teacher mode: sign in with `Settings → teacher_code` → students → attempts → the same result page → each question with the student's answer; **Show answer** fetches that one key only when pressed.
 - SAT break: 10:00 countdown, Math Module 1 starts by itself at 0:00; "Save and Continue Later" only on the break screen.
 - Keys: the Questions-tab `key` overrides the data file (grading, reports). SPR: accepted answers separated by `|`; a rounded decimal key (e.g. 0.651 next to 441/677) only matches as typed text.
 - The Sheet is English: README / Interpretation / Dictionary / Settings meanings are written from `src/SheetText.gs` on every deploy (edit them there).
+- Every Sheet update (and menu **Re-grade after a key change**) re-grades submitted attempts from the current keys (`src/Regrade.gs`).
+- One live window per attempt: each opening gets a new copy token (`Sessions.copy_token`); an older window is told "This test is open in another window. Close this one." and stops.
+- Sign-in lock-out: 10 wrong codes in 15 min per code / per device → wait 15 min; 30 wrong codes in 15 min in total → every sign-in waits 5 min.
+- Report tab: picking an attempt in B2 works without Drive (the simple trigger has no Drive rights; tags come from the Questions tab). The Drive form list is only cached after a successful read.
+
+## How to test live
+- Use the test student **Minh (test)** only; never a real student's code. Never write the teacher code in a file, report, log or commit.
+- **Close the test tab when you are done.** A tab left open on an attempt is a second window of that attempt (it is stopped now, but it was the cause of QA N1 in #20).
+- Opening a form creates an attempt in Sessions; say in your report which test attempts you left (in progress / completed).
 
 ## Layout
 

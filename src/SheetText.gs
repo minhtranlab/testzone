@@ -127,6 +127,7 @@ var DICTIONARY_ROWS_ = [
   ['Sessions', 'events_saved', 'Events already written to the Events tab', '214'],
   ['Sessions', 'state_json', 'Saved test state (answers, marks, crossed-out choices…) to resume after a reload or lost connection. Do not edit', '{"parts":{…}}'],
   ['Sessions', 'reliable', 'Yes = a real attempt that can be used. No = not reliable (too little time, many answers under 15 s, or many blanks; see Interpretation). No = left out of Topic_Summary', 'No'],
+  ['Sessions', 'copy_token', 'Set by the app each time the attempt is opened: only the most recently opened window may save or submit (another open window of the same attempt is stopped)', 'k3x9…'],
   ['Sessions', 'n_sittings', '1 = done in one go; 2+ = continued later (Save and Continue Later, or back after more than 30 minutes)', '2'],
   ['Sessions', 'score_RW / score_Math', 'SAT: right answers in Reading and Writing (of 54) / Math (of 44). AP: empty', '41'],
   ['Sessions', 'time_used_RW_min / time_used_Math_min', 'SAT: minutes used in Reading and Writing (of 64) / Math (of 70)', '58.5'],
