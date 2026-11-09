@@ -310,7 +310,7 @@ function studentView_(a, profile) {
     valid: a.valid, reasons: a.reasons, n_sittings: a.n_sittings,
     sittings_note: a.n_sittings > 1 ? STUDENT_SITTINGS_NOTE_ : ''
   };
-  if (a.estimate && (a.estimate.RW || a.estimate.Math)) {
+  if (a.valid && a.estimate && (a.estimate.RW || a.estimate.Math)) { // no estimate from an attempt that cannot be used
     var e = a.estimate, pick = function (x) { return x ? { score: x.score, low: x.low, high: x.high, note: x.note } : null; };
     out.estimate = { total: e.total, RW: pick(e.RW), Math: pick(e.Math), note: ESTIMATE_NOTE_ };
   }
