@@ -23,6 +23,14 @@ var TYPE_EN_ = {
   WRONG: { t: 'Wrong', m: 'Wrong in normal time: the timing does not show why — go over it with the student.' },
   BLANK: { t: 'Blank', m: 'No answer. Wrong answers cost nothing on the AP exam, so always answer.' }
 };
+/* The same types on the student's own result page: spoken to the student (#16 m7). The teacher wording above stays in the Sheet. */
+var TYPE_STUDENT_M_ = {
+  RIGHT: 'Right, in normal time.',
+  SLOW_RIGHT: 'Right, but you took more than 1.5 × the standard time. On the real test this costs time.',
+  FAST_WRONG: 'Wrong in less than half the standard time: you may have skimmed the question or fallen for a trap.',
+  SLOW_WRONG: 'You spent a long time and it was still wrong: this skill needs more practice.',
+  WRONG: 'Wrong in normal time. Open these questions in the review below and find out what went wrong.'
+};
 var UNIT_STATUS_ = { BAD: 'Needs reteaching', SLOW: 'Slow', OK: 'OK', FEW: 'Too few to judge' };
 
 /* SAT: domains (= "unit" tag) and skills (= "topic" tag), from data/taxonomy/sat_skills.csv */
@@ -295,7 +303,8 @@ function topicCmp_(a, b) {
 
 /* ============================== result page (student app + teacher mode) ============================== */
 
-var STUDENT_SITTINGS_NOTE_ = 'You took this test in 2 sessions on different days. Your score on the real test may be lower than this result.';
+/** "You took this test in 2 sittings." (#16 m4: no "on different days" — the sittings can be on the same day) */
+function studentSittingsNote_(n) { return 'You took this test in ' + n + ' sittings. Your score on the real test may be lower than this result.'; }
 var ESTIMATE_NOTE_ = 'Estimated from public score charts for the real SAT (hard Module 2 route). This is a practice form, so your real score can differ.';
 
 /** The result page of one attempt — same content for the student and for the teacher (teacher adds nothing secret here).
@@ -308,7 +317,7 @@ function studentView_(a, profile) {
     parts: a.parts.map(function (p) { return { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; }),
     sections: a.sections.map(function (s) { return { id: s.id, title: s.title || SECTION_EN_[s.id] || s.id, right: s.right, n: s.n }; }),
     valid: a.valid, reasons: a.reasons, n_sittings: a.n_sittings,
-    sittings_note: a.n_sittings > 1 ? STUDENT_SITTINGS_NOTE_ : ''
+    sittings_note: a.n_sittings > 1 ? studentSittingsNote_(a.n_sittings) : ''
   };
   if (a.valid && a.estimate && (a.estimate.RW || a.estimate.Math)) { // no estimate from an attempt that cannot be used
     var e = a.estimate, pick = function (x) { return x ? { score: x.score, low: x.low, high: x.high, note: x.note } : null; };
@@ -325,7 +334,7 @@ function studentView_(a, profile) {
   });
   // error types (plain English)
   out.types = ['FAST_WRONG', 'SLOW_WRONG', 'WRONG', 'SLOW_RIGHT', 'BLANK'].map(function (k) {
-    return { type: k, label: a.types[k].t, n: a.counts[k] || 0, meaning: a.types[k].m };
+    return { type: k, label: a.types[k].t, n: a.counts[k] || 0, meaning: TYPE_STUDENT_M_[k] || a.types[k].m }; // BLANK: the exam-specific text
   });
   // what to practise first (≤ 4): quick wins (easy/medium missed) → weakest skills → habits
   var practise = [];
@@ -488,11 +497,14 @@ function studentReportRow_(s, a, S) {
   };
 }
 
-/** Rebuild Topic_Summary + Student_Report for every student (e.g. after changing thresholds in Settings). */
+/** Re-grade every attempt from the current keys (Regrade.gs), then rebuild Topic_Summary + Student_Report for every
+ *  student (e.g. after changing a key in the Questions tab or thresholds in Settings). */
 function rebuildAll_() {
+  var rg = '';
+  try { rg = regradeAll_() + '. '; } catch (e) { console.error('REGRADE FAILED: ' + (e && e.stack || e)); throw e; }
   var codes = {};
   readTable_('Sessions').rows.forEach(function (r) { codes[normCode_(r.student_code)] = 1; });
   Object.keys(codes).forEach(function (c) { rebuildStudent_(c); });
   var n = refreshReportList_(); // also creates the Report tab the first time
-  return 'Rebuilt ' + Object.keys(codes).length + ' students; Report tab list: ' + n + ' attempts';
+  return rg + 'Rebuilt ' + Object.keys(codes).length + ' students; Report tab list: ' + n + ' attempts';
 }

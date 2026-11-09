@@ -41,7 +41,7 @@ const FORM = 'MOCK-SAT98', MIN = 60000;
   await page.waitForSelector('#scr-result.on .score-total', { timeout: 30000 });
   const res = E.st.rpcLog.filter(r => r.fn === 'submit').map(r => JSON.parse(r.res).result).pop();
   const e = res.estimate;
-  check(e && e.RW && e.Math && e.total && e.total.score === Math.round((e.RW.score + e.Math.score) / 10) * 10 || (e && Math.abs(e.total.score - e.RW.score - e.Math.score) <= 10), 'estimate: RW + Math + total');
+  check(e && e.RW && e.Math && e.total && e.total.score === e.RW.score + e.Math.score, 'estimate: total = shown RW + shown Math');
   check(/Estimated SAT score/.test(await page.textContent('.est')) && new RegExp(e.total.low + '–' + e.total.high).test(await page.textContent('.est')), 'result page shows the estimated score range ' + e.total.low + '–' + e.total.high);
   check(e.RW.score === G.ctx.satSectionEstimate_('RW', 22, 20).score && e.Math.score === G.ctx.satSectionEstimate_('Math', 18, 15).score, `estimate = SC formula (RW 22+20 → ${e.RW.score}, Math 18+15 → ${e.Math.score})`);
   check(/Results by skill/.test(await page.textContent('#result-body')) && /Reading and Writing/.test(await page.textContent('.skill-card')), 'skills grouped by section → domain');

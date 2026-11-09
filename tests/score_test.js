@@ -7,8 +7,9 @@ for (const f of ['ScoreScale.gs', 'Score.gs']) vm.runInContext(fs.readFileSync(p
 let F = 0, P = 0; const check = (c, m) => { if (c) P++; else { F++; console.log('  ✗ FAIL: ' + m); } };
 const sec = (s, a, b) => ctx.satSectionEstimate_(s, a, b);
 // worked examples: [RW M1, M2, RW score, Math M1, M2, Math score, total, note RW?, note Math?]
+// #16 m1 (Brain): total = shown RW + shown Math → SC case 1 is now 740 + 740 = 1480 (was round10(est) = 1470)
 const cases = [
-  ['1 Strong', 26, 22, 740, 21, 18, 740, 1470], ['2 M2 collapses', 25, 7, 550, 20, 5, 550, 1100],
+  ['1 Strong', 26, 22, 740, 21, 18, 740, 1480], ['2 M2 collapses', 25, 7, 550, 20, 5, 550, 1100],
   ['3 Weak M1', 14, 12, 450, 10, 8, 420, 870], ['4 Good M1 weak M2', 24, 10, 530, 18, 7, 530, 1060],
   ['5 Middle', 20, 15, 540, 16, 12, 550, 1090], ['6 M1 just below', 18, 20, 590, 14, 15, 570, 1160], ['Minh 8 wrong RW', 23, 23, 720, 20, 17, 700, 1420]];
 for (const [name, r1, r2, rs, m1, m2, ms, tot] of cases) {
@@ -17,6 +18,8 @@ for (const [name, r1, r2, rs, m1, m2, ms, tot] of cases) {
   check(e.Math.score === ms, `${name}: Math ${m1}+${m2} → ${ms} (got ${e.Math.score})`);
   check(e.total.score === tot && e.total.low === tot - 30 && e.total.high === tot + 30, `${name}: total ${tot} (${tot - 30}–${tot + 30}) (got ${e.total.score})`);
 }
+const qa = ctx.satEstimate_({ RW1: 19, RW2: 9, M1: 15, M2: 7 });
+check(qa.total.score === qa.RW.score + qa.Math.score, `QA m1: total = shown RW + shown Math (${qa.RW.score} + ${qa.Math.score} = ${qa.total.score})`);
 check(/Module 2/.test(sec('RW', 25, 7).note) && /not counted/.test(sec('RW', 25, 7).method), 'case 2: "Module 2 not counted"');
 check(/capped/.test(sec('RW', 14, 12).method) && /capped/.test(sec('Math', 10, 8).method), 'case 3: Module 1 below hard-route level, capped');
 check(/capped/.test(sec('RW', 18, 20).method) && sec('RW', 24, 10).note === '', 'case 6 capped note; case 4 no note');

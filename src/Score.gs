@@ -7,7 +7,7 @@
  *   if M1 < m1_good[s]: est = min(est, m1_weak_cap)      note "Module 1 below the hard-route level"
  *   else if M2 < m2_floor[s]:                            note "Module 2 not counted"
  *   shown = round10(est), range shown ± half_width_section (clamped 200..800)
- * total = round10(est_RW + est_Math) ± half_width_total (clamped 400..1600)
+ * total = shown RW + shown Math (no separate rounding: the student sees RW + Math = total; #16 m1) ± half_width_total (clamped 400..1600)
  *
  * Numbers come from the Sheet tab Score_Scale (Minh may edit): the scale table (route, section, raw, scaled_est …) in
  * columns A:L and the rules (key, value, meaning) in columns N:P. ScoreScale.gs holds the same content as a fallback and
@@ -84,7 +84,7 @@ function satEstimate_(mods) {
   var m = (mods.M1 !== undefined && mods.M2 !== undefined) ? satSectionEstimate_('Math', mods.M1, mods.M2) : null;
   var out = { RW: rw, Math: m, total: null };
   if (rw && m) {
-    var t = round10_(rw.est + m.est), hw = R.half_width_total;
+    var t = rw.score + m.score, hw = R.half_width_total; // = the two numbers shown (QA m1, Brain 2026-11-09)
     out.total = { score: t, low: clamp_(t - hw, 400, 1600), high: clamp_(t + hw, 400, 1600) };
   }
   return out;

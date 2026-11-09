@@ -11,7 +11,9 @@
  *   resyncQuestions_    → after a data round renumbered items: rows whose qid now holds another item are rebuilt
  *                         from the data file (Minh's edits kept where the qid still holds the same item; Setup.gs)
  *   importQuestions_    → Questions-tab rows for forms that are new; existing rows (Minh's edits) are left as they are
- *   rebuildAll_         → recompute Topic_Summary / Student_Report / Report-tab list (script-built tabs only)
+ *   rebuildAll_         → re-grade attempts from the current keys + repair answer cells (Regrade.gs), then recompute
+ *                         Topic_Summary / Student_Report / Report-tab list (script-built tabs only)
+ *   redrawReportTab_    → the Report tab shows the attempt in B2 drawn by THIS version (or an English placeholder)
  *   checkSheet_         → read-only check, result in the log
  * Then Settings row `code_version` = the stamp, and its `meaning` cell = when it ran + a one-line result.
  *
@@ -67,6 +69,7 @@ function doUpdate_() {
     ['score scale', ensureScoreScale_],
     ['questions', function () { return resyncQuestions_() + '\n' + importQuestions_(); }],
     ['reports', rebuildAll_],
+    ['report tab', redrawReportTab_],
     ['check', checkSheet_]
   ];
   var notes = [], failed = 0, log = [];
@@ -80,7 +83,8 @@ function doUpdate_() {
         var m = /Imported (\d+)/.exec(msg), rs = /resynced for (\d+)/.exec(msg);
         notes.push('questions added: ' + (m ? m[1] : '?') + (rs ? ', resynced forms: ' + rs[1] : ''));
       }
-      if (s[0] === 'reports') notes.push('reports rebuilt');
+      if (s[0] === 'reports') { var rg = /Re-graded (\d+) answers \(key changes\) in (\d+) attempts; repaired (\d+)/.exec(msg); notes.push('reports rebuilt' + (rg ? ' (re-graded ' + rg[1] + ' answers in ' + rg[2] + ' attempts, ' + rg[3] + ' rows repaired)' : '')); }
+      if (s[0] === 'report tab') notes.push(msg);
       if (s[0] === 'check') { var p = /→ (\d+) problem/.exec(msg); notes.push(p ? 'checkSheet: ' + p[1] + ' problem(s), see log' : 'checkSheet: all good'); }
     } catch (err) {
       failed++;
@@ -92,6 +96,21 @@ function doUpdate_() {
   var line = nowIso_() + ' · ' + notes.join(' · ');
   if (!failed) writeStamp_(line);   // a failed step leaves the old stamp → the next ping / menu click tries again
   return { status: failed ? 'FAILED (' + failed + ' step(s), see Apps Script Executions log)' : 'done', line: line };
+}
+
+/** After a new version the Report tab must not keep a drawing made by the old code (QA m5): redraw the attempt in B2,
+ *  or clear the body with an English placeholder when B2 is empty / no longer in the list. */
+function redrawReportTab_() {
+  var sh = ss_().getSheetByName(REPORT_TAB);
+  if (!sh) return 'report tab: none yet';
+  try {
+    var a = renderSelected_(sh);
+    if (a) return 'report tab: redrawn';
+  } catch (e) { console.error('REPORT REDRAW FAILED: ' + (e && e.stack || e)); }
+  clearReport_(sh);
+  try { sh.getRange(2, 2).clearContent(); } catch (e) {}
+  sh.getRange(RPT_FIRST, 2).setValue('Pick an attempt in cell B2.');
+  return 'report tab: cleared (pick an attempt in B2)';
 }
 
 function writeStamp_(line) {

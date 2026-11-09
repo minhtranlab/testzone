@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.6 (2026-11-09, SAT round 2)';
+var APP_VERSION = 'v1.7 (2026-11-09, QA fixes)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -119,6 +119,7 @@ function updateRow_(name, rowNum, fields) {
   var headers = headers_(name);
   var cur = sh.getRange(rowNum, 1, 1, headers.length).getValues()[0];
   var changed = false;
+  cur = cur.map(keepCell_); // cells not in `fields` are written back as they were (text stays text, #16 M1)
   headers.forEach(function (h, i) {
     if (h in fields && fields[h] !== undefined) { cur[i] = fields[h] === null ? '' : fields[h]; changed = true; }
   });
@@ -375,15 +376,46 @@ function findStudent_(code) {
 }
 
 function requireStudent_(code) {
+  var keys = loginKeys_(code, '');
+  if (loginLocked_(keys)) throw new Error('LOGIN: ' + LOCK_MSG);
   var st = findStudent_(code);
+  if (!st) loginFailed_(keys);
   if (!st || !isYes_(st.active)) throw new Error('LOGIN: This code is not valid or is locked. Ask your teacher.');
   return st;
 }
 
-function login(code) {
+/* ---- login lock-out (#16 m8): 10 wrong codes in 15 minutes → that code AND that device wait 15 minutes ---- */
+var LOGIN_MAX_FAILS = 10, LOGIN_WINDOW_MS = 15 * 60 * 1000;
+var LOCK_MSG = 'Too many wrong codes. Wait 15 minutes, then try again.';
+function loginKeys_(code, deviceId) {
+  var c = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '_').slice(0, 60);
+  var d = String(deviceId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
+  var k = ['tz_lf_c_' + c];
+  if (d) k.push('tz_lf_d_' + d);
+  return k;
+}
+function failTimes_(cache, key, now) {
+  var v = []; try { v = JSON.parse(cache.get(key) || '[]'); } catch (e) {}
+  return (Array.isArray(v) ? v : []).filter(function (t) { return now - Number(t) < LOGIN_WINDOW_MS; });
+}
+function loginLocked_(keys) {
+  var cache = CacheService.getScriptCache(), now = Date.now();
+  return keys.some(function (k) { return failTimes_(cache, k, now).length >= LOGIN_MAX_FAILS; });
+}
+function loginFailed_(keys) {
+  var cache = CacheService.getScriptCache(), now = Date.now();
+  keys.forEach(function (k) { var t = failTimes_(cache, k, now); t.push(now); try { cache.put(k, JSON.stringify(t.slice(-50)), 1800); } catch (e) {} });
+}
+
+function login(code, deviceId) {
+  var keys = loginKeys_(code, deviceId);
+  if (loginLocked_(keys)) return { ok: false, locked: true, msg: LOCK_MSG };
   if (isTeacherCode_(code)) return { ok: true, teacher: true, app_name: getSettings_().app_name, version: APP_VERSION };
   var st = findStudent_(code);
-  if (!st) return { ok: false, msg: 'Code not found. Check it or ask your teacher.' };
+  if (!st) {
+    loginFailed_(keys);
+    return { ok: false, msg: loginLocked_(keys) ? LOCK_MSG : 'Code not found. Check it or ask your teacher.' };
+  }
   if (!isYes_(st.active)) return { ok: false, msg: 'This code is locked. Ask your teacher.' };
   var s = getSettings_();
   return { ok: true, student: { code: normCode_(st.student_code), name: String(st.name || ''), track: String(st.track || '') },
@@ -682,6 +714,61 @@ function acceptInTime_(base, client, part, limitMs, delta) {
   return out;
 }
 
+/** Server-side check of what the browser sent (#16 m6): per part, answers only for that part's questions —
+ *  MCQ = one of the question's choice letters, SPR = what fits the SAT answer box (sprValid_); eliminated = choice letters;
+ *  marks = true. Anything else is dropped (and logged), so no answer text can carry a formula or junk into the Sheet. */
+function cleanAnswers_(formId, state) {
+  if (!state || !state.parts) return state;
+  var fd = formDataRaw_(formId);
+  if (!fd) return state;
+  var byPart = {};
+  fd.questions.forEach(function (q) { (byPart[q.part] = byPart[q.part] || {})[q.qid] = q; });
+  var dropped = [];
+  Object.keys(state.parts).forEach(function (p) {
+    var ps = state.parts[p];
+    if (!ps || typeof ps !== 'object' || !byPart[p]) { delete state.parts[p]; return; }
+    var qs = byPart[p];
+    var ans = {}, elim = {}, mark = {};
+    Object.keys(ps.ans || {}).forEach(function (qid) {
+      var q = qs[qid], v = cleanAnswer_(q, ps.ans[qid]);
+      if (v === null) { dropped.push(qid); return; }
+      if (v !== '') ans[qid] = v;
+    });
+    Object.keys(ps.elim || {}).forEach(function (qid) {
+      var q = qs[qid];
+      if (!q || (q.type || 'mcq') !== 'mcq' || !Array.isArray(ps.elim[qid])) return;
+      var ok = choiceLetters_(q);
+      elim[qid] = ps.elim[qid].map(function (l) { return String(l).toUpperCase(); }).filter(function (l, i, a) { return ok.indexOf(l) >= 0 && a.indexOf(l) === i; });
+    });
+    Object.keys(ps.mark || {}).forEach(function (qid) { if (qs[qid] && ps.mark[qid]) mark[qid] = true; });
+    ps.ans = ans; ps.elim = elim; ps.mark = mark;
+  });
+  if (dropped.length) console.warn('ANSWERS DROPPED (not a valid answer): ' + dropped.join(', '));
+  return state;
+}
+function choiceLetters_(q) {
+  var l = (q.choices || []).map(function (c) { return String(c.label).toUpperCase(); });
+  return l.length ? l : ['A', 'B', 'C', 'D'];
+}
+/** The answer as it is stored, '' = blank, null = not a valid answer for this question. */
+function cleanAnswer_(q, v) {
+  if (!q) return null;
+  if (v === null || v === undefined || v === '') return '';
+  if (typeof v !== 'string' && typeof v !== 'number') return null;
+  var s = String(v).trim();
+  if (!s) return '';
+  if ((q.type || 'mcq') === 'spr') { s = s.replace(/\u2212/g, '-'); return sprValid_(s) ? s : null; }
+  s = s.toUpperCase();
+  return choiceLetters_(q).indexOf(s) >= 0 ? s : null;
+}
+/** What the SAT answer box accepts (same rule as the app's input): digits, at most one "." or "/", "-" only first,
+ *  5 characters (6 with "-"), at least one digit. */
+function sprValid_(s) {
+  s = String(s);
+  if (s.length > (s.charAt(0) === '-' ? 6 : 5)) return false;
+  return /^-?\d*([.\/]\d*)?$/.test(s) && /\d/.test(s);
+}
+
 function limitsFor_(formId) {
   var l = {};
   try { profileFor_(formId).parts.forEach(function (p) { l[p.part] = p.time_limit_sec; }); } catch (e) {}
@@ -700,8 +787,10 @@ function eventRows_(sessionId, events) {
   return events.map(function (e) {
     var val = e.value;
     if (val !== null && val !== undefined && typeof val === 'object') val = JSON.stringify(val);
-    return { session_id: sessionId, part: e.part || '', t_ms: Math.round(Number(e.t_ms) || 0), qid: e.qid || '',
-             type: e.type || '', value: (val === null || val === undefined) ? '' : String(val).slice(0, 500), logged_at: logged };
+    // every text from the browser is written as TEXT: "6/5" must not become a date, "=…" never a formula (#16 M1, m6)
+    return { session_id: sessionId, part: txt_(String(e.part || '').slice(0, 20)), t_ms: Math.round(Number(e.t_ms) || 0),
+             qid: txt_(String(e.qid || '').slice(0, 60)), type: txt_(String(e.type || '').slice(0, 30)),
+             value: (val === null || val === undefined) ? '' : txt_(String(val).slice(0, 500)), logged_at: logged };
   });
 }
 
@@ -742,6 +831,7 @@ function autosave(code, sessionId, payload) {
     var serverState = parseState_(session);
     var limits = limitsFor_(String(session.form_id));
     var state = mergeState_(serverState, payload.state, sessionStartMs_(session), nowMs, limits, payload.events);
+    cleanAnswers_(String(session.form_id), state);
     var logRows = trackSittings_(session, serverState, state, payload.events, nowMs, limits, !!payload.pause);
     var evSaved = storeEvents_(session, payload);
     var route = null;
@@ -997,7 +1087,7 @@ function gradeSession_(session, state, events) {
       responses.push({
         session_id: session.session_id, student_code: session.student_code, form_id: formId, attempt_no: session.attempt_no,
         qid: q.qid, part: partId, display_no: q.display_no, unit: tg.unit, topic: txt_(tg.topic),
-        final_answer: fin, correct: corr === null ? '' : (corr ? 1 : 0), first_answer: first, n_changes: nCh,
+        final_answer: txt_(fin), correct: corr === null ? '' : (corr ? 1 : 0), first_answer: txt_(first), n_changes: nCh, // text (#16 M1)
         change_pattern: pattern, eliminated: elim.join(','), ever_marked: !!(mm.ever_marked || (ps.mark && ps.mark[q.qid])),
         final_marked: !!(ps.mark && ps.mark[q.qid]), visits: mm.visits, time_total_sec: round_(timeSec, 1),
         time_first_visit_sec: mm.first_visit_ms === null ? 0 : round_(mm.first_visit_ms / 1000, 1),
@@ -1028,6 +1118,7 @@ function submit(code, sessionId, payload) {
     var prevState = parseState_(session);
     var limits = limitsFor_(String(session.form_id));
     var state = mergeState_(prevState, payload.state, sessionStartMs_(session), nowMs, limits, payload.events);
+    cleanAnswers_(String(session.form_id), state);
     var all = fullEvents_(session, payload);
     var logRows = trackSittings_(session, prevState, state, all, nowMs, limits, false);
     var evSaved = storeEvents_(session, payload);
@@ -1054,7 +1145,7 @@ function submit(code, sessionId, payload) {
     fields.percent = n ? round_(total / n, 4) : 0;
     fields.n_blank = g.responses.filter(function (r) { return r.profile === 'BLANK'; }).length;
     fields.n_flagged = g.responses.filter(function (r) { return r.final_marked; }).length;
-    if (payload.device) fields.device = String(payload.device).slice(0, 60);
+    if (payload.device) fields.device = txt_(String(payload.device).slice(0, 60));
     var v = validity_(g.responses, g.partTimes, profileFor_(String(session.form_id)), getSettings_());
     fields.reliable = v.reliable ? 'Yes' : 'No';
     updateRow_('Sessions', session._row, fields);
@@ -1104,7 +1195,7 @@ function reviewData_(session, rows) {
   });
   var qs = fd.questions.filter(function (q) { return by[q.qid]; }).map(function (q) {
     var r = by[q.qid], o = clientQuestion_(q);
-    o.answer = String(r.final_answer === undefined ? '' : r.final_answer);
+    o.answer = answerText_(r.final_answer);
     o.status = String(r.profile) === 'BLANK' || o.answer === '' ? 'blank' : (Number(r.correct) === 1 ? 'right' : 'wrong');
     o.time_s = Math.round(Number(r.time_total_sec) || 0);
     return o;

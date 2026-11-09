@@ -149,7 +149,8 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
   const sheets = {}, order = [];
   Object.keys(tabs).forEach(n => { sheets[n] = new Sheet(n, tabs[n].map(r => r.map(convert))); order.push(n); });
   const ss = strict({
-    getId: () => 'MOCK_ID', getSheetByName: n => sheets[n] ? sheets[n]._proxy : null,
+    getId: () => 'MOCK_ID', getSpreadsheetLocale: () => 'vi_VN', // convert() reads "3/8" day-first like vi_VN
+    getSheetByName: n => sheets[n] ? sheets[n]._proxy : null,
     insertSheet(n, idx) { sheets[n] = new Sheet(n, []); if (idx === undefined) order.push(n); else order.splice(idx, 0, n); return sheets[n]._proxy; },
     getSheets: () => order.map(n => sheets[n]._proxy)
   }, 'Spreadsheet');

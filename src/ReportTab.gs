@@ -25,7 +25,20 @@ var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (more
 
 function onOpen() {
   try { SpreadsheetApp.getUi().createMenu('Test Zone').addItem('Refresh report', 'refreshReport')
+      .addItem('Re-grade after a key change', 'regradeFromMenu')
       .addSeparator().addItem('Update after new version', 'updateAfterNewVersion').addToUi(); } catch (e) {}
+}
+
+/** Menu: a key was changed in the Questions tab → grade submitted attempts again, rebuild the summaries, redraw B2. */
+function regradeFromMenu() {
+  requireEditor_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var msg = rebuildAll_();
+    redrawReportTab_();
+    try { SpreadsheetApp.getActive().toast(msg, 'Test Zone', 10); } catch (e) {}
+  } finally { lock.releaseLock(); }
 }
 
 /** Simple trigger: only reacts to Report!B2. Must stay fast (reads only what one attempt needs). */

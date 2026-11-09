@@ -30,7 +30,21 @@
       r[fn].apply(r, args);
     });
   }
-  function errMsg(e) { var m = (e && e.message) || String(e); return m.replace(/^(Error|Exception):\s*/, '').replace(/^(LOGIN|SESSION|FORM):\s*/, ''); }
+  /** Text for the student: only the app's own English messages ("LOGIN: …", "SESSION: …", "FORM: …"). Anything else
+   *  (network / library / browser text, often in the browser's language) → one plain English line (#16 m3). */
+  var NET_MSG = 'Could not reach the server. Check your internet connection and try again.';
+  function errMsg(e) {
+    var m = String((e && e.message) || e || '').replace(/^(Error|Exception):\s*/, '');
+    try { console.warn('server call failed: ' + m); } catch (x) {}
+    var k = /^(LOGIN|SESSION|FORM):\s*/.exec(m);
+    return k ? m.slice(k[0].length) : NET_MSG;
+  }
+  /** A random id for this browser (login lock-out counts wrong codes per device; #16 m8). */
+  function deviceId() {
+    var d = LS.get('tz_dev');
+    if (!d) { d = 'D' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); LS.set('tz_dev', d); }
+    return d;
+  }
 
   /* ---------------- app state ---------------- */
   var A = {
@@ -108,7 +122,7 @@
     code = String(code || '').trim().toUpperCase();
     if (!code) { $('#login-err').textContent = 'Enter your code.'; return; }
     $('#login-btn').disabled = true; $('#login-err').textContent = auto ? 'Signing in…' : '';
-    call('login', code).then(function (r) {
+    call('login', code, deviceId()).then(function (r) {
       $('#login-btn').disabled = false;
       if (!r.ok) { $('#login-err').textContent = r.msg; LS.del('tz_code'); return; }
       if (r.teacher) { // teacher mode: the code is never stored on the device
@@ -822,7 +836,7 @@
         renderResult(res);
       }).catch(function (e) {
         var m = $('#sub-msg');
-        if (m) m.innerHTML = 'Could not reach the server. <b>Your answers are safe on this device.</b><br>Retrying automatically… (' + esc(errMsg(e)) + ')';
+        if (m) m.innerHTML = 'Could not reach the server. <b>Your answers are safe on this device.</b><br>Retrying automatically…'; errMsg(e); // raw error text only in the console (#16 m3)
         var r = $('#sub-retry');
         if (r && !r.firstChild) { var b = el('button', { class: 'btn-blue', type: 'button' }, 'Try again now'); b.onclick = function () { clearTimeout(A.subT); attempt(); }; r.appendChild(b); }
         clearTimeout(A.subT); A.subT = setTimeout(attempt, 10000);

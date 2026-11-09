@@ -62,7 +62,7 @@ const real = run('LAN-8K2', 'MOCK-SAT98', realPlan, used,
   { RW1: now - 3 * DAY, RW2: now - 3 * DAY + 32 * MIN, M1: now - DAY, M2: now - DAY + 35 * MIN });
 check(real.res.sections && real.res.sections.map(x => x.id + ':' + x.n).join() === 'RW:54,Math:44', 'student result carries section scores RW /54, Math /44');
 check(real.res.estimate && real.res.estimate.total && real.res.estimate.total.high - real.res.estimate.total.low === 60 && real.res.estimate.RW.score % 10 === 0, 'student result: estimated score ' + JSON.stringify(real.res.estimate && real.res.estimate.total));
-check(real.res.sittings_note === 'You took this test in 2 sessions on different days. Your score on the real test may be lower than this result.', 'student result: 2-sittings note');
+check(real.res.sittings_note === 'You took this test in 2 sittings. Your score on the real test may be lower than this result.', 'student result: 2-sittings note');
 check(!/"key"|key_source/.test(JSON.stringify(real.res)) && real.res.review.length === 4 && real.res.review[0].questions.length === 27, 'student result: review list (4 modules), no key');
 // unreliable: Math rushed (whole Math in 6 minutes, answers chosen in seconds); RW normal
 const fastPlan = q => q.part[0] === 'M' ? { p: q.display_no % 2 ? 'R' : 'W', s: 8 } : { p: 'R', s: 65 };
