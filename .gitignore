@@ -10,6 +10,7 @@ reports/
 /*.json
 !/package.json
 !/.clasp.json
+__pycache__/
 .clasprc.json
 *.pem
 *.p12

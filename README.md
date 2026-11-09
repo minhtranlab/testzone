@@ -4,7 +4,7 @@ Bluebook-style mock-test web app for Minh's SAT / AP students. Google Apps Scrip
 
 | What | Where |
 |---|---|
-| **Live app (students)** | _set after the first deploy (see `.deployment`)_ |
+| **Live app (students)** | https://script.google.com/macros/s/AKfycbxCLbgQdFZ0ykhVx5q0vw5dpTtwi4zSUnaWUrc59-7wQIhmyXIi3EWfQ19WOD84cm1D/exec |
 | Deployment id | in [`.deployment`](.deployment) — every deploy is a new version of this one deployment, so the link never changes |
 | Sheet "Test Zone – Data" | `1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY` (Google account minhtranipad@gmail.com, private) |
 | Apps Script project (bound to the Sheet) | script id in [`.clasp.json`](.clasp.json) |
