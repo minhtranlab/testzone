@@ -1,0 +1,22 @@
+# PUBLIC REPO — code only. Question data, keys, figures and secrets never go in here.
+dist/
+data/
+Materials/
+Sample Test/
+qa/
+reports/
+**/Data_*.gs
+**/Questions_*.csv
+/*.json
+!/package.json
+!/.clasp.json
+.clasprc.json
+*.pem
+*.p12
+.env*
+# test harness: generated build, screenshots, downloads
+tests/.work/
+tests/node_modules/
+tests/desmos.js
+node_modules/
+.DS_Store

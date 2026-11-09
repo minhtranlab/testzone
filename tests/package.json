@@ -1,0 +1,8 @@
+{
+  "name": "testzone-tests",
+  "private": true,
+  "description": "Local harness for Test Zone: Apps Script mock (gas.js) + Playwright browser tests. See tests/README.md.",
+  "dependencies": {
+    "mathjax": "3.2.2"
+  }
+}

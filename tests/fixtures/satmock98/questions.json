@@ -1,0 +1,3772 @@
+{
+ "form_id": "MOCK-SAT98",
+ "source_pdf": "(mock — made up for the harness)",
+ "questions": [
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on river ferries often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "durable"
+    },
+    {
+     "label": "B",
+     "html": "rigorous"
+    },
+    {
+     "label": "C",
+     "html": "careful"
+    },
+    {
+     "label": "D",
+     "html": "novel"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-01",
+   "part": "RW1",
+   "display_no": 1,
+   "orig_no": 1,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on bird migration often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "careful"
+    },
+    {
+     "label": "B",
+     "html": "subtle"
+    },
+    {
+     "label": "C",
+     "html": "tentative"
+    },
+    {
+     "label": "D",
+     "html": "brisk"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-02",
+   "part": "RW1",
+   "display_no": 2,
+   "orig_no": 2,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>The following text is from a poem written in the early 1900s.</p><p class=\"poem\">Over the hill the evening comes,<br>slow as a cart on a ______ road,<br>and every window, one by one,<br>takes up its lamp and its quiet load.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "novel"
+    },
+    {
+     "label": "B",
+     "html": "tentative"
+    },
+    {
+     "label": "C",
+     "html": "brisk"
+    },
+    {
+     "label": "D",
+     "html": "subtle"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-03",
+   "part": "RW1",
+   "display_no": 3,
+   "orig_no": 3,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on tidal marshes often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "robust"
+    },
+    {
+     "label": "B",
+     "html": "novel"
+    },
+    {
+     "label": "C",
+     "html": "tentative"
+    },
+    {
+     "label": "D",
+     "html": "careful"
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-04",
+   "part": "RW1",
+   "display_no": 4,
+   "orig_no": 4,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on glacier melt often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that glacier melt depends on careful local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that glacier melt depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that glacier melt depends on durable local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that glacier melt depends on vivid local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW1-05",
+   "part": "RW1",
+   "display_no": 5,
+   "orig_no": 5,
+   "orig_module": "RW1",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.TSP",
+    "topic_name": "Text Structure and Purpose",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on paper money often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best states the main idea of the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that paper money depends on novel local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that paper money depends on robust local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that paper money depends on vivid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that paper money depends on subtle local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-06",
+   "part": "RW1",
+   "display_no": 6,
+   "orig_no": 6,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.TSP",
+    "topic_name": "Text Structure and Purpose",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p><b>Text 1</b></p><p>Some historians argue that bird migration changed slowly because local workers resisted new methods.</p><p><b>Text 2</b></p><p>Recent records suggest the opposite: workers adopted new methods quickly whenever the cost of tools fell.</p>",
+   "stem_html": "Based on the texts, how would the author of Text 2 most likely respond to the historians in Text 1?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that bird migration depends on robust local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that bird migration depends on candid local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that bird migration depends on tentative local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that bird migration depends on modest local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-07",
+   "part": "RW1",
+   "display_no": 7,
+   "orig_no": 7,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.CTC",
+    "topic_name": "Cross-Text Connections",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on paper money often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best states the main idea of the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that paper money depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that paper money depends on novel local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that paper money depends on robust local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that paper money depends on careful local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-08",
+   "part": "RW1",
+   "display_no": 8,
+   "orig_no": 8,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.CID",
+    "topic_name": "Central Ideas and Details",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on library design often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that library design depends on subtle local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that library design depends on rigorous local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that library design depends on modest local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that library design depends on scarce local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-09",
+   "part": "RW1",
+   "display_no": 9,
+   "orig_no": 9,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.CID",
+    "topic_name": "Central Ideas and Details",
+    "difficulty": "E",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on coral spawning often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that coral spawning depends on tentative local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that coral spawning depends on durable local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that coral spawning depends on brisk local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that coral spawning depends on novel local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-10",
+   "part": "RW1",
+   "display_no": 10,
+   "orig_no": 10,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-T",
+    "topic_name": "Command of Evidence: Textual",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on river ferries often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that river ferries depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that river ferries depends on scarce local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that river ferries depends on vivid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that river ferries depends on novel local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-11",
+   "part": "RW1",
+   "display_no": 11,
+   "orig_no": 11,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-T",
+    "topic_name": "Command of Evidence: Textual",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [
+    {
+     "file": "figures/MOCK-SAT98-RW1-12_f1.png",
+     "alt": "bar graph of rooftop gardens registered per year, 2019–2022",
+     "position": "before_stem"
+    }
+   ],
+   "passage_html": "<p>A city council report tracked the number of rooftop gardens registered in the city each year. The council argued that a grant program started in 2020 helped increase registrations.</p>",
+   "stem_html": "Which choice most effectively uses data from the graph to support the council’s argument?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that early printing presses depends on modest local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that early printing presses depends on durable local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that early printing presses depends on scarce local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that early printing presses depends on rigorous local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-12",
+   "part": "RW1",
+   "display_no": 12,
+   "orig_no": 12,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-Q",
+    "topic_name": "Command of Evidence: Quantitative",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<table class=\"tz-table\"><tr><th>Site</th><th>Plants per m²</th><th>Soil moisture (%)</th></tr><tr><td>North</td><td>14</td><td>22</td></tr><tr><td>South</td><td>31</td><td>38</td></tr><tr><td>East</td><td>9</td><td>17</td></tr></table><p>A student studying library design claims that plant density rises with soil moisture.</p>",
+   "stem_html": "Which choice best describes data from the table that support the student’s claim?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that library design depends on novel local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that library design depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that library design depends on robust local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that library design depends on modest local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-13",
+   "part": "RW1",
+   "display_no": 13,
+   "orig_no": 13,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-Q",
+    "topic_name": "Command of Evidence: Quantitative",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on salt harvesting often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that salt harvesting depends on modest local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that salt harvesting depends on robust local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that salt harvesting depends on scarce local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that salt harvesting depends on candid local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-14",
+   "part": "RW1",
+   "display_no": 14,
+   "orig_no": 14,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.INF",
+    "topic_name": "Inferences",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on coral spawning often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that coral spawning depends on scarce local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that coral spawning depends on candid local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that coral spawning depends on novel local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that coral spawning depends on careful local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-15",
+   "part": "RW1",
+   "display_no": 15,
+   "orig_no": 15,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.INF",
+    "topic_name": "Inferences",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of coral spawning have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-16",
+   "part": "RW1",
+   "display_no": 16,
+   "orig_no": 16,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of river ferries have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-17",
+   "part": "RW1",
+   "display_no": 17,
+   "orig_no": 17,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of glacier melt have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-18",
+   "part": "RW1",
+   "display_no": 18,
+   "orig_no": 18,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of radio astronomy have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-19",
+   "part": "RW1",
+   "display_no": 19,
+   "orig_no": 19,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of early printing presses have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-20",
+   "part": "RW1",
+   "display_no": 20,
+   "orig_no": 20,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of library design have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW1-21",
+   "part": "RW1",
+   "display_no": 21,
+   "orig_no": 21,
+   "orig_module": "RW1",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on early printing presses often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that early printing presses depends on tentative local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that early printing presses depends on candid local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that early printing presses depends on brisk local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that early printing presses depends on careful local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW1-22",
+   "part": "RW1",
+   "display_no": 22,
+   "orig_no": 22,
+   "orig_module": "RW1",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on coral spawning often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that coral spawning depends on vivid local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that coral spawning depends on careful local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that coral spawning depends on durable local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that coral spawning depends on rigorous local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW1-23",
+   "part": "RW1",
+   "display_no": 23,
+   "orig_no": 23,
+   "orig_module": "RW1",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on early printing presses often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that early printing presses depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that early printing presses depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that early printing presses depends on robust local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that early printing presses depends on careful local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-24",
+   "part": "RW1",
+   "display_no": 24,
+   "orig_no": 24,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied desert lichens for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that desert lichens depends on rigorous local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that desert lichens depends on brisk local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that desert lichens depends on novel local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that desert lichens depends on scarce local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW1-25",
+   "part": "RW1",
+   "display_no": 25,
+   "orig_no": 25,
+   "orig_module": "RW1",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied tidal marshes for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that tidal marshes depends on tentative local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that tidal marshes depends on novel local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that tidal marshes depends on brisk local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that tidal marshes depends on scarce local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW1-26",
+   "part": "RW1",
+   "display_no": 26,
+   "orig_no": 26,
+   "orig_module": "RW1",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied urban beekeeping for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that urban beekeeping depends on modest local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that urban beekeeping depends on robust local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that urban beekeeping depends on careful local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that urban beekeeping depends on novel local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW1-27",
+   "part": "RW1",
+   "display_no": 27,
+   "orig_no": 27,
+   "orig_module": "RW1",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on bird migration often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "durable"
+    },
+    {
+     "label": "B",
+     "html": "subtle"
+    },
+    {
+     "label": "C",
+     "html": "novel"
+    },
+    {
+     "label": "D",
+     "html": "modest"
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW2-01",
+   "part": "RW2",
+   "display_no": 1,
+   "orig_no": 1,
+   "orig_module": "RW2",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on glacier melt often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "robust"
+    },
+    {
+     "label": "B",
+     "html": "rigorous"
+    },
+    {
+     "label": "C",
+     "html": "durable"
+    },
+    {
+     "label": "D",
+     "html": "vivid"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-02",
+   "part": "RW2",
+   "display_no": 2,
+   "orig_no": 2,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>The following text is from a poem written in the early 1900s.</p><p class=\"poem\">Over the hill the evening comes,<br>slow as a cart on a ______ road,<br>and every window, one by one,<br>takes up its lamp and its quiet load.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "novel"
+    },
+    {
+     "label": "B",
+     "html": "brisk"
+    },
+    {
+     "label": "C",
+     "html": "scarce"
+    },
+    {
+     "label": "D",
+     "html": "robust"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-03",
+   "part": "RW2",
+   "display_no": 3,
+   "orig_no": 3,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on radio astronomy often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "vivid"
+    },
+    {
+     "label": "B",
+     "html": "novel"
+    },
+    {
+     "label": "C",
+     "html": "durable"
+    },
+    {
+     "label": "D",
+     "html": "candid"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-04",
+   "part": "RW2",
+   "display_no": 4,
+   "orig_no": 4,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.WIC",
+    "topic_name": "Words in Context",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on radio astronomy often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best states the main idea of the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that radio astronomy depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that radio astronomy depends on durable local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that radio astronomy depends on subtle local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that radio astronomy depends on careful local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-05",
+   "part": "RW2",
+   "display_no": 5,
+   "orig_no": 5,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.TSP",
+    "topic_name": "Text Structure and Purpose",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on early printing presses often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that early printing presses depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that early printing presses depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that early printing presses depends on careful local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that early printing presses depends on candid local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW2-06",
+   "part": "RW2",
+   "display_no": 6,
+   "orig_no": 6,
+   "orig_module": "RW2",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.TSP",
+    "topic_name": "Text Structure and Purpose",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p><b>Text 1</b></p><p>Some historians argue that salt harvesting changed slowly because local workers resisted new methods.</p><p><b>Text 2</b></p><p>Recent records suggest the opposite: workers adopted new methods quickly whenever the cost of tools fell.</p>",
+   "stem_html": "Based on the texts, how would the author of Text 2 most likely respond to the historians in Text 1?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that salt harvesting depends on vivid local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that salt harvesting depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that salt harvesting depends on modest local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that salt harvesting depends on durable local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-07",
+   "part": "RW2",
+   "display_no": 7,
+   "orig_no": 7,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "CAS",
+    "topic": "CAS.CTC",
+    "topic_name": "Cross-Text Connections",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on glacier melt often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best states the main idea of the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that glacier melt depends on subtle local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that glacier melt depends on brisk local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that glacier melt depends on candid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that glacier melt depends on modest local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-08",
+   "part": "RW2",
+   "display_no": 8,
+   "orig_no": 8,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.CID",
+    "topic_name": "Central Ideas and Details",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on glacier melt often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that glacier melt depends on rigorous local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that glacier melt depends on tentative local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that glacier melt depends on candid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that glacier melt depends on subtle local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-09",
+   "part": "RW2",
+   "display_no": 9,
+   "orig_no": 9,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.CID",
+    "topic_name": "Central Ideas and Details",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on salt harvesting often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that salt harvesting depends on careful local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that salt harvesting depends on brisk local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that salt harvesting depends on vivid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that salt harvesting depends on scarce local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-10",
+   "part": "RW2",
+   "display_no": 10,
+   "orig_no": 10,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-T",
+    "topic_name": "Command of Evidence: Textual",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on salt harvesting often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best describes the function of the underlined sentence?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that salt harvesting depends on robust local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that salt harvesting depends on modest local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that salt harvesting depends on scarce local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that salt harvesting depends on candid local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW2-11",
+   "part": "RW2",
+   "display_no": 11,
+   "orig_no": 11,
+   "orig_module": "RW2",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-T",
+    "topic_name": "Command of Evidence: Textual",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<table class=\"tz-table\"><tr><th>Site</th><th>Plants per m²</th><th>Soil moisture (%)</th></tr><tr><td>North</td><td>14</td><td>22</td></tr><tr><td>South</td><td>31</td><td>38</td></tr><tr><td>East</td><td>9</td><td>17</td></tr></table><p>A student studying glacier melt claims that plant density rises with soil moisture.</p>",
+   "stem_html": "Which choice best describes data from the table that support the student’s claim?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that glacier melt depends on novel local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that glacier melt depends on tentative local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that glacier melt depends on scarce local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that glacier melt depends on candid local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-12",
+   "part": "RW2",
+   "display_no": 12,
+   "orig_no": 12,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-Q",
+    "topic_name": "Command of Evidence: Quantitative",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<table class=\"tz-table\"><tr><th>Site</th><th>Plants per m²</th><th>Soil moisture (%)</th></tr><tr><td>North</td><td>14</td><td>22</td></tr><tr><td>South</td><td>31</td><td>38</td></tr><tr><td>East</td><td>9</td><td>17</td></tr></table><p>A student studying glacier melt claims that plant density rises with soil moisture.</p>",
+   "stem_html": "Which choice best describes data from the table that support the student’s claim?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that glacier melt depends on scarce local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that glacier melt depends on robust local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that glacier melt depends on candid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that glacier melt depends on careful local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-13",
+   "part": "RW2",
+   "display_no": 13,
+   "orig_no": 13,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.COE-Q",
+    "topic_name": "Command of Evidence: Quantitative",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on library design often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that library design depends on modest local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that library design depends on candid local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that library design depends on novel local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that library design depends on robust local conditions."
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-14",
+   "part": "RW2",
+   "display_no": 14,
+   "orig_no": 14,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.INF",
+    "topic_name": "Inferences",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on radio astronomy often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that radio astronomy depends on durable local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that radio astronomy depends on rigorous local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that radio astronomy depends on modest local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that radio astronomy depends on novel local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-15",
+   "part": "RW2",
+   "display_no": 15,
+   "orig_no": 15,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "INI",
+    "topic": "INI.INF",
+    "topic_name": "Inferences",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of desert lichens have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-16",
+   "part": "RW2",
+   "display_no": 16,
+   "orig_no": 16,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of tidal marshes have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-17",
+   "part": "RW2",
+   "display_no": 17,
+   "orig_no": 17,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of library design have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-18",
+   "part": "RW2",
+   "display_no": 18,
+   "orig_no": 18,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.BOU",
+    "topic_name": "Boundaries",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of tidal marshes have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-19",
+   "part": "RW2",
+   "display_no": 19,
+   "orig_no": 19,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of desert lichens have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-RW2-20",
+   "part": "RW2",
+   "display_no": 20,
+   "orig_no": 20,
+   "orig_module": "RW2",
+   "key_source": "B",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Studies of coral spawning have long puzzled scientists. In 2023, a team of researchers ______ a new way to measure the changes over a full year.</p>",
+   "stem_html": "Which choice completes the text so that it conforms to the conventions of Standard English?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "develops"
+    },
+    {
+     "label": "B",
+     "html": "developed"
+    },
+    {
+     "label": "C",
+     "html": "have developed"
+    },
+    {
+     "label": "D",
+     "html": "developing"
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-21",
+   "part": "RW2",
+   "display_no": 21,
+   "orig_no": 21,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "SEC",
+    "topic": "SEC.FSS",
+    "topic_name": "Form, Structure, and Sense",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on paper money often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice most logically completes the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that paper money depends on rigorous local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that paper money depends on durable local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that paper money depends on careful local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that paper money depends on modest local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-22",
+   "part": "RW2",
+   "display_no": 22,
+   "orig_no": 22,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on paper money often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice completes the text with the most logical and precise word or phrase?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that paper money depends on durable local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that paper money depends on subtle local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that paper money depends on brisk local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that paper money depends on candid local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-23",
+   "part": "RW2",
+   "display_no": 23,
+   "orig_no": 23,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>Writers on early printing presses often describe it in broad terms, but a closer look shows a more ______ picture: small local differences explain most of what observers report, and the larger pattern appears only over many decades.</p>",
+   "stem_html": "Which choice best states the main idea of the text?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that early printing presses depends on robust local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that early printing presses depends on careful local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that early printing presses depends on durable local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that early printing presses depends on brisk local conditions."
+    }
+   ],
+   "key": "D",
+   "qid": "MOCK-SAT98-RW2-24",
+   "part": "RW2",
+   "display_no": 24,
+   "orig_no": 24,
+   "orig_module": "RW2",
+   "key_source": "D",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.TRA",
+    "topic_name": "Transitions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied bird migration for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that bird migration depends on brisk local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that bird migration depends on novel local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that bird migration depends on subtle local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that bird migration depends on careful local conditions."
+    }
+   ],
+   "key": "C",
+   "qid": "MOCK-SAT98-RW2-25",
+   "part": "RW2",
+   "display_no": 25,
+   "orig_no": 25,
+   "orig_module": "RW2",
+   "key_source": "C",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied library design for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that library design depends on subtle local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that library design depends on brisk local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that library design depends on candid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that library design depends on scarce local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW2-26",
+   "part": "RW2",
+   "display_no": 26,
+   "orig_no": 26,
+   "orig_module": "RW2",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "type": "mcq",
+   "figures": [],
+   "passage_html": "<p>While researching a topic, a student has taken the following notes:</p><ul><li>Researchers studied paper money for six years.</li><li>They recorded changes every spring.</li><li>The changes were largest near the coast.</li><li>The team published its results in 2024.</li></ul>",
+   "stem_html": "The student wants to emphasize where the changes were largest. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "It shows that paper money depends on careful local conditions."
+    },
+    {
+     "label": "B",
+     "html": "It shows that paper money depends on tentative local conditions."
+    },
+    {
+     "label": "C",
+     "html": "It shows that paper money depends on candid local conditions."
+    },
+    {
+     "label": "D",
+     "html": "It shows that paper money depends on vivid local conditions."
+    }
+   ],
+   "key": "A",
+   "qid": "MOCK-SAT98-RW2-27",
+   "part": "RW2",
+   "display_no": 27,
+   "orig_no": 27,
+   "orig_module": "RW2",
+   "key_source": "A",
+   "tags": {
+    "section": "RW",
+    "unit": "EOI",
+    "topic": "EOI.SYN",
+    "topic_name": "Rhetorical Synthesis",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "Which expression is equivalent to \\(3(x+19)-2x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+57\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(3x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{3}{19}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(57\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-01",
+   "part": "M1",
+   "display_no": 1,
+   "orig_no": 1,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.A",
+    "topic_name": "Equivalent expressions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "The line \\(y=3x+17\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+51\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(3x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{3}{17}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(51\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-02",
+   "part": "M1",
+   "display_no": 2,
+   "orig_no": 2,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.C",
+    "topic_name": "One-variable data: distributions and measures of center and spread",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "The line \\(y=6x+17\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+102\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{17}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(102\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-03",
+   "part": "M1",
+   "display_no": 3,
+   "orig_no": 3,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.C",
+    "topic_name": "Right triangles and trigonometry",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "What is the solution to the system \\(x+y=26\\) and \\(x-y=14\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+120\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{20}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(120\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-04",
+   "part": "M1",
+   "display_no": 4,
+   "orig_no": 4,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.D",
+    "topic_name": "Systems of two linear equations in two variables",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "3/4",
+    ".75",
+    "0.75"
+   ],
+   "stem_html": "If \\(4x - 16 = -4\\), what is the value of \\(x\\)?",
+   "qid": "MOCK-SAT98-M1-05",
+   "part": "M1",
+   "display_no": 5,
+   "orig_no": 5,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "3/4",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.A",
+    "topic_name": "Ratios, rates, proportional relationships, and units",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "12"
+   ],
+   "stem_html": "A tank holds \\(68\\) liters of water. What fraction of the tank is full after \\(17\\) liters are used?",
+   "qid": "MOCK-SAT98-M1-06",
+   "part": "M1",
+   "display_no": 6,
+   "orig_no": 6,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "12",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.A",
+    "topic_name": "Area and volume",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [
+    {
+     "file": "figures/MOCK-SAT98-M1-07_f1.png",
+     "alt": "right triangle with legs 9 and 12 and hypotenuse x",
+     "position": "before_stem"
+    }
+   ],
+   "type": "mcq",
+   "stem_html": "In the right triangle shown, what is the value of \\(x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    }
+   ],
+   "key": "B",
+   "qid": "MOCK-SAT98-M1-07",
+   "part": "M1",
+   "display_no": 7,
+   "orig_no": 7,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.B",
+    "topic_name": "Linear functions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "A store sells 8 pens for \\$5. At this rate, how much do 24 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+40\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(8x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{8}{5}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(40\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-08",
+   "part": "M1",
+   "display_no": 8,
+   "orig_no": 8,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.B",
+    "topic_name": "Nonlinear equations in one variable and systems of equations in two variables",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "The line \\(y=3x+7\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(3x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{3}{7}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-09",
+   "part": "M1",
+   "display_no": 9,
+   "orig_no": 9,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.D",
+    "topic_name": "Two-variable data: models and scatterplots",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "The line \\(y=6x+7\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+42\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{7}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(42\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-10",
+   "part": "M1",
+   "display_no": 10,
+   "orig_no": 10,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.D",
+    "topic_name": "Circles",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "The line \\(y=3x+15\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+45\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(3x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{3}{15}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(45\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-11",
+   "part": "M1",
+   "display_no": 11,
+   "orig_no": 11,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.E",
+    "topic_name": "Linear inequalities in one or two variables",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "-5"
+   ],
+   "stem_html": "<table class=\"tz-table\"><tr><th>\\(x\\)</th><th>\\(y\\)</th></tr><tr><td>1</td><td>8</td></tr><tr><td>3</td><td>18</td></tr></table>The table shows two values of a linear function. What is the slope of the line?",
+   "qid": "MOCK-SAT98-M1-12",
+   "part": "M1",
+   "display_no": 12,
+   "orig_no": 12,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "-5",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.B",
+    "topic_name": "Percentages",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "2/3",
+    ".6666",
+    ".6667",
+    "0.666",
+    "0.667"
+   ],
+   "stem_html": "<table class=\"tz-table\"><tr><th>\\(x\\)</th><th>\\(y\\)</th></tr><tr><td>1</td><td>13</td></tr><tr><td>3</td><td>29</td></tr></table>The table shows two values of a linear function. What is the slope of the line?",
+   "qid": "MOCK-SAT98-M1-13",
+   "part": "M1",
+   "display_no": 13,
+   "orig_no": 13,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "2/3",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.B",
+    "topic_name": "Lines, angles, and triangles",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(5(x+14)-4x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+70\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{14}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(70\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-14",
+   "part": "M1",
+   "display_no": 14,
+   "orig_no": 14,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.C",
+    "topic_name": "Linear equations in two variables",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "What is the solution to the system \\(x+y=10\\) and \\(x-y=-4\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{7}{3}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-15",
+   "part": "M1",
+   "display_no": 15,
+   "orig_no": 15,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.C",
+    "topic_name": "Nonlinear functions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "A store sells 9 pens for \\$3. At this rate, how much do 27 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+27\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(9x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{9}{3}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(27\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-16",
+   "part": "M1",
+   "display_no": 16,
+   "orig_no": 16,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.E",
+    "topic_name": "Probability and conditional probability",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "A",
+   "stem_html": "Which expression is equivalent to \\(6(x+19)-5x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+114\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{19}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(114\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-17",
+   "part": "M1",
+   "display_no": 17,
+   "orig_no": 17,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "A",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.A",
+    "topic_name": "Linear equations in one variable",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "A",
+   "stem_html": "A store sells 5 pens for \\$6. At this rate, how much do 15 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+30\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{6}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(30\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-18",
+   "part": "M1",
+   "display_no": 18,
+   "orig_no": 18,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "A",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.A",
+    "topic_name": "Equivalent expressions",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "7/2",
+    "3.5"
+   ],
+   "stem_html": "The function \\(f\\) is defined by \\(f(x)=6x^2-4\\). What is the value of \\(f(2)\\)?",
+   "qid": "MOCK-SAT98-M1-19",
+   "part": "M1",
+   "display_no": 19,
+   "orig_no": 19,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "7/2",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.C",
+    "topic_name": "One-variable data: distributions and measures of center and spread",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "15"
+   ],
+   "stem_html": "<table class=\"tz-table\"><tr><th>\\(x\\)</th><th>\\(y\\)</th></tr><tr><td>1</td><td>7</td></tr><tr><td>3</td><td>19</td></tr></table>The table shows two values of a linear function. What is the slope of the line?",
+   "qid": "MOCK-SAT98-M1-20",
+   "part": "M1",
+   "display_no": 20,
+   "orig_no": 20,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "15",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.C",
+    "topic_name": "Right triangles and trigonometry",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "What is the solution to the system \\(x+y=21\\) and \\(x-y=9\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+90\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{15}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(90\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-21",
+   "part": "M1",
+   "display_no": 21,
+   "orig_no": 21,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.D",
+    "topic_name": "Systems of two linear equations in two variables",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(7(x+5)-6x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+35\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{7}{5}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(35\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M1-22",
+   "part": "M1",
+   "display_no": 22,
+   "orig_no": 22,
+   "orig_module": "M1",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.A",
+    "topic_name": "Ratios, rates, proportional relationships, and units",
+    "difficulty": "M",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "A",
+   "stem_html": "A store sells 4 pens for \\$16. At this rate, how much do 12 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+64\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(4x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{4}{16}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(64\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-01",
+   "part": "M2",
+   "display_no": 1,
+   "orig_no": 1,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "A",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.A",
+    "topic_name": "Ratios, rates, proportional relationships, and units",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(2(x+5)-1x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+10\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(2x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{2}{5}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(10\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-02",
+   "part": "M2",
+   "display_no": 2,
+   "orig_no": 2,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.A",
+    "topic_name": "Area and volume",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(5(x+5)-4x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+25\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{5}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(25\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-03",
+   "part": "M2",
+   "display_no": 3,
+   "orig_no": 3,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.B",
+    "topic_name": "Linear functions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "-1/3",
+    "-.3333",
+    "-0.333"
+   ],
+   "stem_html": "A tank holds \\(12\\) liters of water. What fraction of the tank is full after \\(3\\) liters are used?",
+   "qid": "MOCK-SAT98-M2-04",
+   "part": "M2",
+   "display_no": 4,
+   "orig_no": 4,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "-1/3",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.B",
+    "topic_name": "Nonlinear equations in one variable and systems of equations in two variables",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "Which expression is equivalent to \\(8(x+11)-7x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+88\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(8x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{8}{11}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(88\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-05",
+   "part": "M2",
+   "display_no": 5,
+   "orig_no": 5,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.D",
+    "topic_name": "Two-variable data: models and scatterplots",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "A store sells 5 pens for \\$6. At this rate, how much do 15 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+30\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{6}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(30\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-06",
+   "part": "M2",
+   "display_no": 6,
+   "orig_no": 6,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.D",
+    "topic_name": "Circles",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "A store sells 2 pens for \\$8. At this rate, how much do 6 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+16\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(2x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{2}{8}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(16\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-07",
+   "part": "M2",
+   "display_no": 7,
+   "orig_no": 7,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.E",
+    "topic_name": "Linear inequalities in one or two variables",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "48"
+   ],
+   "stem_html": "The function \\(f\\) is defined by \\(f(x)=6x^2-19\\). What is the value of \\(f(2)\\)?",
+   "qid": "MOCK-SAT98-M2-08",
+   "part": "M2",
+   "display_no": 8,
+   "orig_no": 8,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "48",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.B",
+    "topic_name": "Percentages",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "B",
+   "stem_html": "A store sells 6 pens for \\$17. At this rate, how much do 18 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+102\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(6x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{6}{17}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(102\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-09",
+   "part": "M2",
+   "display_no": 9,
+   "orig_no": 9,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "B",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.B",
+    "topic_name": "Lines, angles, and triangles",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": [
+     "dup_in_form"
+    ]
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(7(x+3)-6x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{7}{3}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-10",
+   "part": "M2",
+   "display_no": 10,
+   "orig_no": 10,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.C",
+    "topic_name": "Linear equations in two variables",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "1/8",
+    ".125",
+    "0.125"
+   ],
+   "stem_html": "The function \\(f\\) is defined by \\(f(x)=2x^2-3\\). What is the value of \\(f(2)\\)?",
+   "qid": "MOCK-SAT98-M2-11",
+   "part": "M2",
+   "display_no": 11,
+   "orig_no": 11,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "1/8",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.C",
+    "topic_name": "Nonlinear functions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "Which expression is equivalent to \\(9(x+10)-8x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+90\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(9x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{9}{10}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(90\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-12",
+   "part": "M2",
+   "display_no": 12,
+   "orig_no": 12,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.E",
+    "topic_name": "Probability and conditional probability",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "D",
+   "stem_html": "A store sells 8 pens for \\$18. At this rate, how much do 24 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+144\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(8x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{8}{18}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(144\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-13",
+   "part": "M2",
+   "display_no": 13,
+   "orig_no": 13,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "D",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.A",
+    "topic_name": "Linear equations in one variable",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "The line \\(y=5x+10\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+50\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{10}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(50\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-14",
+   "part": "M2",
+   "display_no": 14,
+   "orig_no": 14,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.A",
+    "topic_name": "Equivalent expressions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "Which expression is equivalent to \\(4(x+15)-3x\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+60\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(4x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{4}{15}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(60\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-15",
+   "part": "M2",
+   "display_no": 15,
+   "orig_no": 15,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.C",
+    "topic_name": "One-variable data: distributions and measures of center and spread",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "A",
+   "stem_html": "A store sells 4 pens for \\$3. At this rate, how much do 12 pens cost?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+12\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(4x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{4}{3}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(12\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-16",
+   "part": "M2",
+   "display_no": 16,
+   "orig_no": 16,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "A",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.C",
+    "topic_name": "Right triangles and trigonometry",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "9"
+   ],
+   "stem_html": "If \\(8x - 8 = 16\\), what is the value of \\(x\\)?",
+   "qid": "MOCK-SAT98-M2-17",
+   "part": "M2",
+   "display_no": 17,
+   "orig_no": 17,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "9",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.D",
+    "topic_name": "Systems of two linear equations in two variables",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "0"
+   ],
+   "stem_html": "A tank holds \\(60\\) liters of water. What fraction of the tank is full after \\(15\\) liters are used?",
+   "qid": "MOCK-SAT98-M2-18",
+   "part": "M2",
+   "display_no": 18,
+   "orig_no": 18,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "0",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.A",
+    "topic_name": "Ratios, rates, proportional relationships, and units",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "A",
+   "stem_html": "What is the solution to the system \\(x+y=17\\) and \\(x-y=7\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+60\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(5x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{5}{12}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(60\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-19",
+   "part": "M2",
+   "display_no": 19,
+   "orig_no": 19,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "A",
+   "tags": {
+    "section": "Math",
+    "unit": "S",
+    "topic": "S.A",
+    "topic_name": "Area and volume",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "What is the solution to the system \\(x+y=12\\) and \\(x-y=4\\)?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+32\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(4x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{4}{8}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(32\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-20",
+   "part": "M2",
+   "display_no": 20,
+   "orig_no": 20,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "H",
+    "topic": "H.B",
+    "topic_name": "Linear functions",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "spr",
+   "choices": [],
+   "key": [
+    "2.5",
+    "5/2"
+   ],
+   "stem_html": "A tank holds \\(44\\) liters of water. What fraction of the tank is full after \\(11\\) liters are used?",
+   "qid": "MOCK-SAT98-M2-21",
+   "part": "M2",
+   "display_no": 21,
+   "orig_no": 21,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "2.5",
+   "tags": {
+    "section": "Math",
+    "unit": "P",
+    "topic": "P.B",
+    "topic_name": "Nonlinear equations in one variable and systems of equations in two variables",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  },
+  {
+   "figures": [],
+   "type": "mcq",
+   "key": "C",
+   "stem_html": "The line \\(y=7x+20\\) is graphed in the \\(xy\\)-plane. What is the \\(y\\)-intercept?",
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(x+140\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7x\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(\\frac{7}{20}\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(140\\)"
+    }
+   ],
+   "qid": "MOCK-SAT98-M2-22",
+   "part": "M2",
+   "display_no": 22,
+   "orig_no": 22,
+   "orig_module": "M2",
+   "passage_html": "",
+   "key_source": "C",
+   "tags": {
+    "section": "Math",
+    "unit": "Q",
+    "topic": "Q.D",
+    "topic_name": "Two-variable data: models and scatterplots",
+    "difficulty": "H",
+    "tag_status": "est",
+    "flags": []
+   }
+  }
+ ]
+}

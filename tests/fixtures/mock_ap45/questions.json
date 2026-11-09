@@ -1,0 +1,1942 @@
+{
+ "form_id": "MOCK-AP45",
+ "source_pdf": "(mock — made up for engine tests)",
+ "key_pdf": "",
+ "questions": [
+  {
+   "qid": "MOCK-AP45-A01",
+   "part": "A",
+   "display_no": 1,
+   "orig_no": 1,
+   "source_page": 0,
+   "stem_html": "Mock question A01: what is \\(2 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(6\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(8\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(10\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 2,
+    "topic": "2.8",
+    "topic_name": "The Product Rule",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A02",
+   "part": "A",
+   "display_no": 2,
+   "orig_no": 2,
+   "source_page": 0,
+   "stem_html": "Mock question A02: what is \\(3 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(14\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(15\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 5,
+    "topic": "5.3",
+    "topic_name": "Determining Intervals on Which a Function Is Increasing or Decreasing",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A03",
+   "part": "A",
+   "display_no": 3,
+   "orig_no": 3,
+   "source_page": 0,
+   "stem_html": "Mock question A03: what is \\(4 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(19\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(20\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(22\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 6,
+    "topic": "6.8",
+    "topic_name": "Finding Antiderivatives and Indefinite Integrals: Basic Rules and Notation",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A04",
+   "part": "A",
+   "display_no": 4,
+   "orig_no": 4,
+   "source_page": 0,
+   "stem_html": "Mock question A04: what is \\(5 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(28\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(29\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(30\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(31\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 2,
+    "topic": "2.7",
+    "topic_name": "Derivatives of cos x, sin x, e^x, and ln x",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A05",
+   "part": "A",
+   "display_no": 5,
+   "orig_no": 5,
+   "source_page": 0,
+   "stem_html": "Mock question A05: what is \\(6 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(38\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(39\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(40\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(41\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(42\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 1,
+    "topic": "1.3",
+    "topic_name": "Estimating Limit Values from Graphs",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A06",
+   "part": "A",
+   "display_no": 6,
+   "orig_no": 6,
+   "source_page": 0,
+   "stem_html": "Mock question A06: what is \\(7 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(22\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(23\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(25\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 8,
+    "topic": "8.2",
+    "topic_name": "Connecting Position, Velocity, and Acceleration of Functions Using Integrals",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A07",
+   "part": "A",
+   "display_no": 7,
+   "orig_no": 7,
+   "source_page": 0,
+   "stem_html": "Mock question A07: what is \\(8 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(31\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(32\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(33\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(34\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(35\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 3,
+    "topic": "3.1",
+    "topic_name": "The Chain Rule",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A08",
+   "part": "A",
+   "display_no": 8,
+   "orig_no": 8,
+   "source_page": 0,
+   "stem_html": "Mock question A08: what is \\(2 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(8\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(12\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 6,
+    "topic": "6.2",
+    "topic_name": "Approximating Areas with Riemann Sums",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A09",
+   "part": "A",
+   "display_no": 9,
+   "orig_no": 9,
+   "source_page": 0,
+   "stem_html": "Mock question A09: what is \\(3 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(16\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(19\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 1,
+    "topic": "1.13",
+    "topic_name": "Removing Discontinuities",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A10",
+   "part": "A",
+   "display_no": 10,
+   "orig_no": 10,
+   "source_page": 0,
+   "stem_html": "Mock question A10: what is \\(4 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(25\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(26\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(28\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 8,
+    "topic": "8.4",
+    "topic_name": "Finding the Area Between Curves Expressed as Functions of x",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A11",
+   "part": "A",
+   "display_no": 11,
+   "orig_no": 11,
+   "source_page": 0,
+   "stem_html": "Mock question A11: what is \\(5 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(16\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(19\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 2,
+    "topic": "2.4",
+    "topic_name": "Connecting Differentiability and Continuity: Determining When Derivatives Do and Do Not Exist",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A12",
+   "part": "A",
+   "display_no": 12,
+   "orig_no": 12,
+   "source_page": 0,
+   "stem_html": "Mock question A12: what is \\(6 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(23\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(25\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(26\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(27\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 6,
+    "topic": "6.9",
+    "topic_name": "Integrating Using Substitution",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A13",
+   "part": "A",
+   "display_no": 13,
+   "orig_no": 13,
+   "source_page": 0,
+   "stem_html": "Mock question A13: what is \\(7 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(33\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(34\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(35\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(36\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(37\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 6,
+    "topic": "6.6",
+    "topic_name": "Applying Properties of Definite Integrals",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A14",
+   "part": "A",
+   "display_no": 14,
+   "orig_no": 14,
+   "source_page": 0,
+   "stem_html": "Mock question A14: what is \\(8 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(45\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(46\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(47\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(48\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(49\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 3,
+    "topic": "3.1",
+    "topic_name": "The Chain Rule",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A15",
+   "part": "A",
+   "display_no": 15,
+   "orig_no": 15,
+   "source_page": 0,
+   "stem_html": "Mock question A15: what is \\(2 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(14\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 6,
+    "topic": "6.4",
+    "topic_name": "The Fundamental Theorem of Calculus and Accumulation Functions",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A16",
+   "part": "A",
+   "display_no": 16,
+   "orig_no": 16,
+   "source_page": 0,
+   "stem_html": "Mock question A16: what is \\(3 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(13\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 4,
+    "topic": "4.2",
+    "topic_name": "Straight-Line Motion: Connecting Position, Velocity, and Acceleration",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A17",
+   "part": "A",
+   "display_no": 17,
+   "orig_no": 17,
+   "source_page": 0,
+   "stem_html": "Mock question A17: what is \\(4 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(16\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(19\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 6,
+    "topic": "6.4",
+    "topic_name": "The Fundamental Theorem of Calculus and Accumulation Functions",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A18",
+   "part": "A",
+   "display_no": 18,
+   "orig_no": 18,
+   "source_page": 0,
+   "stem_html": "Mock question A18: what is \\(5 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(23\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(25\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(26\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(27\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 2,
+    "topic": "2.2",
+    "topic_name": "Defining the Derivative of a Function and Using Derivative Notation",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A19",
+   "part": "A",
+   "display_no": 19,
+   "orig_no": 19,
+   "source_page": 0,
+   "stem_html": "Mock question A19: what is \\(6 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(33\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(34\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(35\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(36\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(37\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 2,
+    "topic": "2.9",
+    "topic_name": "The Quotient Rule",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A20",
+   "part": "A",
+   "display_no": 20,
+   "orig_no": 20,
+   "source_page": 0,
+   "stem_html": "Mock question A20: what is \\(7 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(45\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(46\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(47\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(48\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(49\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 3,
+    "topic": "3.3",
+    "topic_name": "Differentiating Inverse Functions",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A21",
+   "part": "A",
+   "display_no": 21,
+   "orig_no": 21,
+   "source_page": 0,
+   "stem_html": "Mock question A21: what is \\(8 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(25\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(26\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(28\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 1,
+    "topic": "1.15",
+    "topic_name": "Connecting Limits at Infinity and Horizontal Asymptotes",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A22",
+   "part": "A",
+   "display_no": 22,
+   "orig_no": 22,
+   "source_page": 0,
+   "stem_html": "Mock question A22: what is \\(2 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(7\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(8\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(11\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 5,
+    "topic": "5.4",
+    "topic_name": "Using the First Derivative Test to Determine Relative (Local) Extrema",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A23",
+   "part": "A",
+   "display_no": 23,
+   "orig_no": 23,
+   "source_page": 0,
+   "stem_html": "Mock question A23: what is \\(3 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(14\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(16\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(17\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 7,
+    "topic": "7.1",
+    "topic_name": "Modeling Situations with Differential Equations",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A24",
+   "part": "A",
+   "display_no": 24,
+   "orig_no": 24,
+   "source_page": 0,
+   "stem_html": "Mock question A24: what is \\(4 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(22\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(23\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(25\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 5,
+    "topic": "5.2",
+    "topic_name": "Extreme Value Theorem, Global Versus Local Extrema, and Critical Points",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A25",
+   "part": "A",
+   "display_no": 25,
+   "orig_no": 25,
+   "source_page": 0,
+   "stem_html": "Mock question A25: what is \\(5 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(31\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(32\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(33\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(34\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(35\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 7,
+    "topic": "7.7",
+    "topic_name": "Finding Particular Solutions Using Initial Conditions and Separation of Variables",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A26",
+   "part": "A",
+   "display_no": 26,
+   "orig_no": 26,
+   "source_page": 0,
+   "stem_html": "Mock question A26: what is \\(6 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(19\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(20\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(22\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 5,
+    "topic": "5.9",
+    "topic_name": "Connecting a Function, Its First Derivative, and Its Second Derivative",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A27",
+   "part": "A",
+   "display_no": 27,
+   "orig_no": 27,
+   "source_page": 0,
+   "stem_html": "Mock question A27: what is \\(7 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(28\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(29\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(30\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(31\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 3,
+    "topic": "3.6",
+    "topic_name": "Calculating Higher-Order Derivatives",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-A28",
+   "part": "A",
+   "display_no": 28,
+   "orig_no": 28,
+   "source_page": 0,
+   "stem_html": "Mock question A28: what is \\(8 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(38\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(39\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(40\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(41\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(42\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 4,
+    "topic": "4.2",
+    "topic_name": "Straight-Line Motion: Connecting Position, Velocity, and Acceleration",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B01",
+   "part": "B",
+   "display_no": 1,
+   "orig_no": 1,
+   "source_page": 0,
+   "stem_html": "Mock question B01: what is \\(2 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(13\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 5,
+    "topic": "5.9",
+    "topic_name": "Connecting a Function, Its First Derivative, and Its Second Derivative",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B02",
+   "part": "B",
+   "display_no": 2,
+   "orig_no": 2,
+   "source_page": 0,
+   "stem_html": "Mock question B02: what is \\(3 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(19\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(20\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(21\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 1,
+    "topic": "1.16",
+    "topic_name": "Working with the Intermediate Value Theorem (IVT)",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B03",
+   "part": "B",
+   "display_no": 3,
+   "orig_no": 3,
+   "source_page": 0,
+   "stem_html": "Mock question B03: what is \\(4 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(14\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(16\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 3,
+    "topic": "3.1",
+    "topic_name": "The Chain Rule",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B04",
+   "part": "B",
+   "display_no": 4,
+   "orig_no": 4,
+   "source_page": 0,
+   "stem_html": "Mock question B04: what is \\(5 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(19\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(20\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(22\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(23\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 8,
+    "topic": "8.1",
+    "topic_name": "Finding the Average Value of a Function on an Interval",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B05",
+   "part": "B",
+   "display_no": 5,
+   "orig_no": 5,
+   "source_page": 0,
+   "stem_html": "Mock question B05: what is \\(6 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(28\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(29\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(30\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(31\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(32\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 5,
+    "topic": "5.9",
+    "topic_name": "Connecting a Function, Its First Derivative, and Its Second Derivative",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B06",
+   "part": "B",
+   "display_no": 6,
+   "orig_no": 6,
+   "source_page": 0,
+   "stem_html": "Mock question B06: what is \\(7 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(39\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(40\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(41\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(42\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(43\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 8,
+    "topic": "8.3",
+    "topic_name": "Using Accumulation Functions and Definite Integrals in Applied Contexts",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B07",
+   "part": "B",
+   "display_no": 7,
+   "orig_no": 7,
+   "source_page": 0,
+   "stem_html": "Mock question B07: what is \\(8 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(52\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(53\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(54\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(55\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(56\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 5,
+    "topic": "5.4",
+    "topic_name": "Using the First Derivative Test to Determine Relative (Local) Extrema",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B08",
+   "part": "B",
+   "display_no": 8,
+   "orig_no": 8,
+   "source_page": 0,
+   "stem_html": "Mock question B08: what is \\(2 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(6\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(7\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(8\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(10\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 8,
+    "topic": "8.2",
+    "topic_name": "Connecting Position, Velocity, and Acceleration of Functions Using Integrals",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B09",
+   "part": "B",
+   "display_no": 9,
+   "orig_no": 9,
+   "source_page": 0,
+   "stem_html": "Mock question B09: what is \\(3 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(12\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(13\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(14\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(15\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 5,
+    "topic": "5.6",
+    "topic_name": "Determining Concavity of Functions over Their Domains",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B10",
+   "part": "B",
+   "display_no": 10,
+   "orig_no": 10,
+   "source_page": 0,
+   "stem_html": "Mock question B10: what is \\(4 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(19\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(20\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(22\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 5,
+    "topic": "5.4",
+    "topic_name": "Using the First Derivative Test to Determine Relative (Local) Extrema",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B11",
+   "part": "B",
+   "display_no": 11,
+   "orig_no": 11,
+   "source_page": 0,
+   "stem_html": "Mock question B11: what is \\(5 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(28\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(29\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(30\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(31\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 6,
+    "topic": "6.5",
+    "topic_name": "Interpreting the Behavior of Accumulation Functions Involving Area",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B12",
+   "part": "B",
+   "display_no": 12,
+   "orig_no": 12,
+   "source_page": 0,
+   "stem_html": "Mock question B12: what is \\(6 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(38\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(39\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(40\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(41\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(42\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 5,
+    "topic": "5.6",
+    "topic_name": "Determining Concavity of Functions over Their Domains",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B13",
+   "part": "B",
+   "display_no": 13,
+   "orig_no": 13,
+   "source_page": 0,
+   "stem_html": "Mock question B13: what is \\(7 \\times 3\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(21\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(22\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(23\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(25\\)"
+    }
+   ],
+   "key": "A",
+   "tags": {
+    "unit": 4,
+    "topic": "4.5",
+    "topic_name": "Solving Related Rates Problems",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B14",
+   "part": "B",
+   "display_no": 14,
+   "orig_no": 14,
+   "source_page": 0,
+   "stem_html": "Mock question B14: what is \\(8 \\times 4\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(31\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(32\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(33\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(34\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(35\\)"
+    }
+   ],
+   "key": "B",
+   "tags": {
+    "unit": 8,
+    "topic": "8.2",
+    "topic_name": "Connecting Position, Velocity, and Acceleration of Functions Using Integrals",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B15",
+   "part": "B",
+   "display_no": 15,
+   "orig_no": 15,
+   "source_page": 0,
+   "stem_html": "Mock question B15: what is \\(2 \\times 5\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(8\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(9\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(10\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(11\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(12\\)"
+    }
+   ],
+   "key": "C",
+   "tags": {
+    "unit": 6,
+    "topic": "6.9",
+    "topic_name": "Integrating Using Substitution",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B16",
+   "part": "B",
+   "display_no": 16,
+   "orig_no": 16,
+   "source_page": 0,
+   "stem_html": "Mock question B16: what is \\(3 \\times 6\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(15\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(16\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(17\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(18\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(19\\)"
+    }
+   ],
+   "key": "D",
+   "tags": {
+    "unit": 5,
+    "topic": "5.9",
+    "topic_name": "Connecting a Function, Its First Derivative, and Its Second Derivative",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  },
+  {
+   "qid": "MOCK-AP45-B17",
+   "part": "B",
+   "display_no": 17,
+   "orig_no": 17,
+   "source_page": 0,
+   "stem_html": "Mock question B17: what is \\(4 \\times 7\\)?",
+   "figures": [],
+   "choices": [
+    {
+     "label": "A",
+     "html": "\\(24\\)"
+    },
+    {
+     "label": "B",
+     "html": "\\(25\\)"
+    },
+    {
+     "label": "C",
+     "html": "\\(26\\)"
+    },
+    {
+     "label": "D",
+     "html": "\\(27\\)"
+    },
+    {
+     "label": "E",
+     "html": "\\(28\\)"
+    }
+   ],
+   "key": "E",
+   "tags": {
+    "unit": 8,
+    "topic": "8.7",
+    "topic_name": "Volumes with Cross Sections: Squares and Rectangles",
+    "topic2": null,
+    "practice": "1",
+    "representation": "analytic",
+    "difficulty": "M",
+    "tag_status": "est"
+   },
+   "transcription_notes": "mock"
+  }
+ ]
+}

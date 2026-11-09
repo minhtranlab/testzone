@@ -1,0 +1,93 @@
+# Push to main → tests → clasp push → new version of the SAME web-app deployment → Sheet update (?update=1).
+# Pull requests (and pushes to other branches) only run the tests.
+name: Test and deploy
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'deploy-main' || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test tools
+        working-directory: tests
+        run: |
+          pip install --quiet pillow==11.3.0
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run all test suites (made-up fixture forms only)
+        run: bash tests/run_ci.sh
+
+  deploy:
+    needs: test
+    if: github.repository == 'minhtranlab/testzone' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install clasp
+        run: npm install -g @google/clasp@3.4.1
+      - name: Check deployment id
+        id: dep
+        run: |
+          ID="$(tr -d ' \r\n' < .deployment 2>/dev/null || true)"
+          if [ -z "$ID" ]; then echo "::notice::.deployment is empty → tests only, nothing deployed"; fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+      - name: Write clasp credentials (from the CLASPRC_JSON secret; never printed)
+        if: steps.dep.outputs.id != ''
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then echo "::error::Secret CLASPRC_JSON is missing (see README → If the Google login expires)"; exit 1; fi
+          umask 077; printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+      - name: Stamp the build (commit id → APP_BUILD)
+        if: steps.dep.outputs.id != ''
+        run: sed -i "s/^var APP_BUILD = 'dev';/var APP_BUILD = '${GITHUB_SHA::7}';/" src/Code.gs && grep -n "^var APP_BUILD" src/Code.gs
+      - name: clasp push (replaces every file of the Apps Script project with src/)
+        if: steps.dep.outputs.id != ''
+        run: clasp push --force
+      - name: New version of the same deployment (the app link never changes)
+        if: steps.dep.outputs.id != ''
+        run: |
+          MSG="$(git log -1 --format=%s | cut -c1-90)"
+          clasp create-deployment --deploymentId "${{ steps.dep.outputs.id }}" --description "${GITHUB_SHA::7} ${MSG}"
+      - name: Sheet update for this version (Update.gs via ?update=1)
+        if: steps.dep.outputs.id != ''
+        run: |
+          URL="https://script.google.com/macros/s/${{ steps.dep.outputs.id }}/exec?update=1"
+          for i in 1 2 3; do
+            R="$(curl -sSL --max-time 330 "$URL" | head -c 400 || true)"
+            echo "→ $R" | head -3
+            case "$R" in
+              "Test Zone update: done"*|"Test Zone update: already up to date"*) exit 0 ;;
+              "Test Zone update: busy"*) sleep 30 ;;
+              "Test Zone update: FAILED"*) echo "::error::Sheet update failed: open the Apps Script editor → Executions to see which step"; exit 1 ;;
+              *) echo "::error::No answer from the web app. If it says authorization is required: Minh opens the Apps Script editor, runs updateAfterNewVersion once and presses Allow (needed only when the app asks for a new permission)"; sleep 20 ;;
+            esac
+          done
+          exit 1
+      - name: Remove credentials
+        if: always()
+        run: rm -f ~/.clasprc.json

@@ -1,0 +1,37 @@
+{
+ "form_id": "MOCK-APCAB",
+ "exam": "AP Calculus AB",
+ "title": "Mock form (engine test, 4 questions)",
+ "track": "AP Calc AB",
+ "parts": [
+  {
+   "part": "A",
+   "title": "Section I, Part A",
+   "calculator": false,
+   "reference": false,
+   "layout": "single",
+   "time_limit_sec": 360,
+   "n": 3,
+   "can_return": false,
+   "break_after_sec": 0,
+   "choices": 5,
+   "directions_html": "<p><b>Directions:</b> Solve each of the following problems. After examining the form of the choices, decide which is the best of the choices given and select it. Do not spend too much time on any one problem.</p><p><b>A calculator may not be used on this part.</b></p><p><b>In this exam:</b></p><ol><li>Unless otherwise specified, the domain of a function \\(f\\) is assumed to be the set of all real numbers \\(x\\) for which \\(f(x)\\) is a real number.</li><li>The inverse of a trigonometric function \\(f\\) may be indicated using the inverse function notation \\(f^{-1}\\) or with the prefix &ldquo;arc&rdquo; (e.g., \\(\\sin^{-1}x = \\arcsin x\\)).</li></ol>"
+  },
+  {
+   "part": "B",
+   "title": "Section I, Part B",
+   "calculator": true,
+   "reference": false,
+   "layout": "single",
+   "time_limit_sec": 240,
+   "n": 1,
+   "can_return": false,
+   "break_after_sec": 0,
+   "choices": 5,
+   "directions_html": "<p><b>Directions:</b> Solve each of the following problems. After examining the form of the choices, decide which is the best of the choices given and select it. Do not spend too much time on any one problem.</p><p><b>A graphing calculator is required for some questions on this part.</b> Open it with <b>Calculator</b> (top right).</p><p>If the exact numerical value of the correct answer does not always appear among the choices given, select from among the choices the number that best approximates the exact numerical value.</p><p><b>In this exam:</b></p><ol><li>Unless otherwise specified, the domain of a function \\(f\\) is assumed to be the set of all real numbers \\(x\\) for which \\(f(x)\\) is a real number.</li><li>The inverse of a trigonometric function \\(f\\) may be indicated using the inverse function notation \\(f^{-1}\\) or with the prefix &ldquo;arc&rdquo; (e.g., \\(\\sin^{-1}x = \\arcsin x\\)).</li></ol>"
+  }
+ ],
+ "routing": [],
+ "between_parts": "transition screen, no break, Part A locked after leaving",
+ "pause_allowed_between_parts": true
+}

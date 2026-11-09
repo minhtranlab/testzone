@@ -1,0 +1,1216 @@
+<script>
+/* ======================= Test Zone — client engine =======================
+ * All interaction is local. Server calls: login, listForms, getTest, autosave, submit, getResult.
+ * State is saved to localStorage on every change and to the server every autosave_sec.
+ * The server-side clock decides remaining time: remaining = limit − (serverNow − part_start).
+ */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  function el(tag, attrs, html) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { if (k === 'class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); });
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+  function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  var LS = {
+    get: function (k) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+
+  /** google.script.run as a promise */
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var r = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      r[fn].apply(r, args);
+    });
+  }
+  function errMsg(e) { var m = (e && e.message) || String(e); return m.replace(/^(Error|Exception):\s*/, '').replace(/^(LOGIN|SESSION|FORM):\s*/, ''); }
+
+  /* ---------------- app state ---------------- */
+  var A = {
+    student: null, code: '', test: null, profile: null, parts: {}, qs: {}, st: null,
+    events: [], evBase: 0, acked: 0, offset: 0, tick: null, saveIv: null, saving: false, ending: false,
+    calc: null, calcSci: null, desmosLoading: null, annotMode: false, lastSel: null, hlActive: null
+  };
+  window.TZ = A; // for the test harness / debugging
+
+  function serverNow() { return Date.now() + A.offset; }
+  function lsKey() { return 'tz_s_' + A.test.session.session_id; }
+  function curPart() { return A.st ? A.st.current_part : null; }
+  function pdef(p) { return A.parts[p || curPart()]; }
+  function pst(p) { return A.st.parts[p || curPart()]; }
+  function qlist(p) { return A.qs[p || curPart()] || []; }
+  function word() { return (A.profile && A.profile.part_word) || 'part'; } // "part" (AP) / "module" (SAT)
+
+  /* ---------------- screens ---------------- */
+  function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); }); }
+  function view(id) {
+    $$('#tmain .view').forEach(function (v) { v.classList.toggle('on', v.id === id); });
+    var inQ = id === 'v-question', inR = id === 'v-review', inTest = inQ || inR;
+    $('#btn-nav').parentNode.style.visibility = inQ ? 'visible' : 'hidden';
+    $('#btn-back').classList.toggle('hidden', !inTest);
+    $('#btn-next').classList.toggle('hidden', !inTest);
+    var d = pdef();
+    $('#tool-annot').classList.toggle('hidden', !(inQ && d && d.annotate !== false));
+    $('#tool-more').classList.toggle('hidden', !inTest);
+    $('#practice-banner').classList.toggle('on', !!(inTest && A.profile && A.profile.practice_banner));
+    $('#tool-calc').classList.toggle('hidden', !(inTest && d && d.calculator));
+    $('#tool-ref').classList.toggle('hidden', !(inTest && d && d.reference));
+    $('#btn-dir').classList.toggle('hidden', !inTest);
+    $('#timer').style.visibility = id === 'v-break' ? 'hidden' : ''; // no test clock on the break screen
+    if (!inTest) { closePops(); hideCalc(true); $('#ref-panel').classList.remove('on'); }
+    if (!inQ) hideHlToolbar();
+  }
+  function toast(msg, ms) {
+    var t = $('#toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, ms || 2600);
+  }
+  function modal(title, bodyHtml, buttons) {
+    return new Promise(function (resolve) {
+      var root = $('#modal-root');
+      root.innerHTML = '';
+      var m = el('div', { class: 'modal', role: 'dialog' }, '<h3>' + esc(title) + '</h3><div class="body">' + bodyHtml + '</div>');
+      var b = el('div', { class: 'btns' });
+      buttons.forEach(function (bt) {
+        var x = el('button', { class: bt.cls || 'btn-blue', type: 'button' }, esc(bt.label));
+        x.onclick = function () { root.classList.remove('on'); root.innerHTML = ''; resolve(bt.value); };
+        b.appendChild(x);
+      });
+      m.appendChild(b); root.appendChild(m); root.classList.add('on');
+    });
+  }
+  function setSaveDot(t) { $('#save-dot').textContent = t || ''; }
+
+  /* ---------------- device ---------------- */
+  function deviceStr() {
+    var ua = navigator.userAgent || '';
+    var os = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' :
+             /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /CrOS/.test(ua) ? 'Chromebook' : /Linux/.test(ua) ? 'Linux' : 'Other';
+    var br = /Edg\//.test(ua) ? 'Edge' : /(Chrome|CriOS)\//.test(ua) ? 'Chrome' : /(Firefox|FxiOS)\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+    return os + ' ' + br + ' ' + window.innerWidth + 'x' + window.innerHeight;
+  }
+
+  /* ================= login / home ================= */
+  function initLogin() {
+    $('#login-form').addEventListener('submit', function (e) { e.preventDefault(); doLogin($('#login-code').value, false); });
+    $('#btn-logout').onclick = function () { LS.del('tz_code'); LS.del('tz_active'); A.student = null; $('#login-code').value = ''; show('scr-login'); };
+    var saved = LS.get('tz_code');
+    if (saved) doLogin(saved, true);
+  }
+  function doLogin(code, auto) {
+    code = String(code || '').trim().toUpperCase();
+    if (!code) { $('#login-err').textContent = 'Enter your code.'; return; }
+    $('#login-btn').disabled = true; $('#login-err').textContent = auto ? 'Signing in…' : '';
+    call('login', code).then(function (r) {
+      $('#login-btn').disabled = false;
+      if (!r.ok) { $('#login-err').textContent = r.msg; LS.del('tz_code'); return; }
+      A.student = r.student; A.code = r.student.code;
+      LS.set('tz_code', A.code);
+      $$('.app-name').forEach(function (x) { x.textContent = r.app_name || 'Test Zone'; });
+      document.title = r.app_name || 'Test Zone';
+      var act = LS.get('tz_active');
+      if (act && act.code === A.code && act.session_id) { openTest(act.form_id, { resume: act.session_id }); return; }
+      showHome();
+    }).catch(function (e) {
+      $('#login-btn').disabled = false;
+      $('#login-code').value = code;
+      $('#login-err').textContent = 'No connection. Signing in again automatically when the internet is back…';
+      clearTimeout(A.reloginT);
+      var retry = function () { if (!A.student) doLogin(code, true); };
+      A.reloginT = setTimeout(retry, 10000);
+      window.addEventListener('online', retry, { once: true });
+    });
+  }
+  function showHome() {
+    A.profile = null;
+    show('scr-home');
+    $('#home-name').textContent = A.student.name;
+    $('#home-list').innerHTML = '<div class="spinner"></div>';
+    call('listForms', A.code).then(function (r) {
+      var box = $('#home-list'); box.innerHTML = '';
+      if (!r.forms.length) { box.innerHTML = '<div class="empty">No tests for your program yet. Ask your teacher.</div>'; return; }
+      r.forms.forEach(function (f) { box.appendChild(formCard(f)); });
+    }).catch(function (e) { $('#home-list').innerHTML = '<div class="empty">Could not load your tests: ' + esc(errMsg(e)) + ' <br><br><button class="btn-outline" onclick="location.reload()">Reload</button></div>'; });
+  }
+  function formCard(f) {
+    var c = el('div', { class: 'form-card' });
+    var parts = f.parts.map(function (p) { return esc(p.title || ('Part ' + p.part)) + ': ' + p.n + (p.n === 1 ? ' question · ' : ' questions · ') + p.minutes + ' min · ' + (p.calculator ? 'calculator' : 'no calculator'); }).join('<br>');
+    if (f.break_min) parts += '<br>' + f.break_min + '-minute break between sections';
+    c.innerHTML = '<h2>' + esc(f.exam) + (f.title ? ' — ' + esc(f.title) : '') + '</h2><div class="meta">' + parts + '</div>';
+    var actions = el('div', { class: 'actions' });
+    var open = f.attempts.filter(function (a) { return a.status === 'in_progress' || a.status === 'paused'; }).pop();
+    if (!f.available) actions.innerHTML = '<span class="tag abandoned">Coming soon</span>';
+    else if (open) {
+      var pz = open.paused;
+      if (pz) actions.appendChild(el('div', { class: 'meta', style: 'width:100%;margin:0 0 4px' },
+        '<b>' + esc(pz.done) + ' completed' + (pz.at ? ' · ' + esc(pz.at) : '') + '</b> — Attempt ' + open.attempt_no + ' is waiting for ' + esc(pz.next) + '.'));
+      var b1 = el('button', { class: 'btn-blue', type: 'button' }, pz ? 'Continue ' + esc(pz.next) : 'Resume attempt ' + open.attempt_no);
+      b1.onclick = function () { openTest(f.form_id, { resume: open.session_id }); };
+      var b2 = el('button', { class: 'btn-outline', type: 'button' }, 'Start Over');
+      b2.onclick = function () {
+        modal('Start a new attempt?', 'Your unfinished attempt ' + open.attempt_no + ' will be closed and will not be scored.', [
+          { label: 'Cancel', value: false, cls: 'btn-outline' }, { label: 'Start new attempt', value: true }]).then(function (ok) { if (ok) openTest(f.form_id, { fresh: true }); });
+      };
+      actions.appendChild(b1); actions.appendChild(b2);
+    } else {
+      var done = f.attempts.filter(function (a) { return a.status === 'completed' || a.status === 'timeout'; }).length;
+      var b = el('button', { class: 'btn-blue', type: 'button' }, done ? 'Take again' : 'Start test');
+      b.onclick = function () { openTest(f.form_id, {}); };
+      actions.appendChild(b);
+    }
+    c.appendChild(actions);
+    var past = f.attempts.filter(function (a) { return a.status !== 'in_progress' && a.status !== 'paused'; });
+    if (past.length) {
+      var t = el('table', { class: 'attempts' });
+      t.innerHTML = '<tr><th>Attempt</th><th>Date</th><th>Status</th><th>Score</th><th></th></tr>';
+      past.slice().reverse().forEach(function (a) {
+        var tr = el('tr');
+        var finished = a.status === 'completed' || a.status === 'timeout';
+        tr.innerHTML = '<td>#' + a.attempt_no + '</td><td>' + esc(a.submitted_at || a.started_at) + '</td><td><span class="tag ' + esc(a.status) + '">' +
+          esc(a.status === 'timeout' ? 'time up' : a.status) + '</span></td><td>' + (finished && a.total_correct !== null ? a.total_correct + ' / ' + a.total_questions : '—') + '</td><td></td>';
+        if (finished) {
+          var vb = el('button', { class: 'btn-plain', type: 'button' }, 'View result');
+          vb.onclick = function () { show('scr-result'); $('#result-body').innerHTML = '<div class="spinner"></div>'; call('getResult', A.code, a.session_id).then(renderResult).catch(function (e) { toast(errMsg(e)); showHome(); }); };
+          tr.lastChild.appendChild(vb);
+        }
+        t.appendChild(tr);
+      });
+      c.appendChild(t);
+    }
+    return c;
+  }
+
+  /* ================= load / resume a test ================= */
+  function openTest(formId, opts) {
+    show('scr-test'); view('v-wait');
+    $('#v-wait').innerHTML = '<div class="page"><div class="spinner"></div><p class="lead">Loading your test…</p></div>';
+    $('#fb-name').textContent = A.student.name;
+    opts = opts || {}; opts.device = deviceStr();
+    var t0 = Date.now();
+    call('getTest', A.code, formId, opts).then(function (res) {
+      var rtt = Date.now() - t0;
+      A.offset = res.server_now + rtt / 2 - Date.now();
+      setupTest(res);
+    }).catch(function (e) {
+      var m = (e && e.message) || String(e);
+      if (/(SESSION|FORM|LOGIN):/.test(m)) { // the server said no: forget it
+        LS.del('tz_active');
+        modal('Could not open the test', esc(errMsg(e)), [{ label: 'OK', value: 1 }]).then(showHome);
+      } else loadTrouble(e); // network / server hiccup: keep tz_active so a retry resumes
+    });
+  }
+
+  function newState(res) {
+    var prof = res.profile, targets = {};
+    (prof.routing || []).forEach(function (r) { targets[r.hard] = 1; targets[r.easy] = 1; });
+    var seq = prof.parts.map(function (p) { return p.part; }).filter(function (p) { return !targets[p]; });
+    var parts = {};
+    prof.parts.forEach(function (p) { parts[p.part] = { cur: 0, ans: {}, elim: {}, mark: {}, hl: {}, elimMode: false }; });
+    return { v: 1, session_id: res.session.session_id, form_id: res.session.form_id, seq: 0, seq_parts: seq, part_idx: 0,
+             current_part: seq[0], phase: 'directions', part_starts: {}, ended: {}, route: {}, warned: {}, parts: parts,
+             timer_hidden: false, zoom: 1 };
+  }
+
+  /** Something failed while (re)building the test page: keep everything, offer a retry. */
+  function loadTrouble(e) {
+    console.error(e);
+    built = null;
+    show('scr-test'); view('v-wait');
+    $('#v-wait').innerHTML = '<div class="page center"><h1 style="font-size:24px">Still loading…</h1><p class="lead">Your answers and time are saved. ' +
+      'Check the internet connection, then tap <b>Try again</b>.</p><button class="btn-blue" id="btn-retry" type="button">Try again</button></div>';
+    $('#btn-retry').onclick = function () { location.reload(); };
+  }
+  function setupTest(res) {
+    try { setupTest0(res); } catch (e) { loadTrouble(e); }
+  }
+  function setupTest0(res) {
+    A.test = res; A.profile = res.profile; A.parts = {}; A.qs = {}; A.ending = false;
+    $('#tool-annot span').textContent = res.profile.annotate_label || 'Annotate';
+    $('#scr-test').classList.toggle('serif', res.profile.question_font === 'serif'); // SAT: question text + choices in a serif face (Bluebook look)
+    res.profile.parts.forEach(function (p) { A.parts[p.part] = p; A.qs[p.part] = []; });
+    res.questions.forEach(function (q) { (A.qs[q.part] = A.qs[q.part] || []).push(q); });
+    Object.keys(A.qs).forEach(function (p) { A.qs[p].sort(function (a, b) { return a.display_no - b.display_no; }); });
+    var sid = res.session.session_id, saved = Number(res.session.events_saved) || 0;
+    var local = LS.get('tz_s_' + sid);
+    var server = res.state;
+    if (local && local.state && (!server || (local.state.seq || 0) >= (server.seq || 0)) && local.evBase + local.events.length >= saved) {
+      A.st = local.state; A.events = local.events || []; A.evBase = local.evBase || 0; A.acked = Math.max(local.acked || 0, saved);
+      if (server) { // server clock + locks win
+        Object.keys(server.part_starts || {}).forEach(function (p) { A.st.part_starts[p] = server.part_starts[p]; });
+        Object.keys(server.ended || {}).forEach(function (p) { if (server.ended[p]) A.st.ended[p] = server.ended[p]; });
+      }
+    } else if (server) {
+      A.st = server; A.events = []; A.evBase = saved; A.acked = saved;
+      if (local && local.state && local.state.part_starts) Object.keys(local.state.part_starts).forEach(function (p) { if (!A.st.part_starts[p]) A.st.part_starts[p] = local.state.part_starts[p]; });
+    } else {
+      A.st = newState(res); A.events = []; A.evBase = 0; A.acked = 0;
+    }
+    // make sure every part has a state slot (profile may have changed)
+    res.profile.parts.forEach(function (p) { if (!A.st.parts[p.part]) A.st.parts[p.part] = { cur: 0, ans: {}, elim: {}, mark: {}, hl: {}, elimMode: false }; });
+    LS.set('tz_active', { code: A.code, session_id: sid, form_id: res.session.form_id });
+    applyZoom();
+    $('#fb-name').textContent = res.session.student_name || A.student.name;
+    var pending = local && local.pendingSubmit;
+    persist();
+    if (pending || A.st.phase === 'submitting') { doSubmit(); return; }
+    var resumed = !!(server || local);
+    if (resumed && A.st.part_starts[curPart()] && !A.st.ended[curPart()]) log('resume', null, A.st.phase);
+    route(true);
+    startLoops();
+  }
+
+  /** Show whatever the state says we are on. */
+  function route(isResume) {
+    var p = curPart();
+    $('#tb-title').textContent = pdef().title || ('Part ' + p);
+    renderTimer();
+    switch (A.st.phase) {
+      case 'directions': renderDirections(); break;
+      case 'test': case 'review':
+        if (A.st.ended[p]) { advanceAfter(p); return; }
+        if (remainingMs() <= 0) { endPart('timeout'); return; }
+        buildPart(p).then(function () {
+          if (A.st.phase === 'review') showReview(true); else goTo(pst().cur || 0, true);
+        }).catch(loadTrouble);
+        break;
+      case 'transition':
+        if (isResume) { A.st.phase = 'directions'; persist(); renderDirections(); } // "Continue Part B" → Part B directions (Begin)
+        else renderTransition();
+        break;
+      case 'break':
+        // came back after the break, or after "Save and Continue Later" → the next section's Directions (Begin starts its timer)
+        if (isResume && ((A.st.break_until && serverNow() > A.st.break_until) || A.st.resume_to_dir)) {
+          A.st.break_until = null; A.st.resume_to_dir = false; A.st.phase = 'directions'; persist(); renderDirections();
+        }
+        else renderBreak();
+        break;
+      default: renderDirections();
+    }
+  }
+
+  /* ================= persistence + autosave ================= */
+  function persist(extra) {
+    if (!A.st) return;
+    A.st.seq = (A.st.seq || 0) + 1;
+    var o = { state: A.st, events: A.events, evBase: A.evBase, acked: A.acked };
+    if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+    else { var old = LS.get(lsKey()); if (old && old.pendingSubmit) o.pendingSubmit = true; }
+    if (!LS.set(lsKey(), o)) setSaveDot('⚠ device storage full — saving to server only');
+  }
+  function log(type, qid, value) {
+    var p = curPart();
+    var start = A.st.part_starts[p];
+    var limit = pdef(p).time_limit_sec * 1000;
+    var t = start ? Math.max(0, Math.min(limit, serverNow() - start)) : 0;
+    A.events.push({ part: p, t_ms: Math.round(t), qid: qid || null, type: type, value: value === undefined ? null : value });
+  }
+  function payload() {
+    var from = Math.max(A.acked, A.evBase);
+    if (A.evBase === 0) return { state: A.st, events: A.events.slice(from), ev_from: from };
+    return { state: A.st, events: A.events.slice(from - A.evBase), ev_from: from };
+  }
+  function autosave(extra) {
+    if (!A.st || A.saving) return Promise.resolve(null);
+    A.saving = true;
+    if (!extra || !extra.route_part) log('autosave', null, null);
+    persist();
+    var pl = payload();
+    if (extra) Object.keys(extra).forEach(function (k) { pl[k] = extra[k]; });
+    var t0 = Date.now();
+    return call('autosave', A.code, A.st.session_id, pl).then(function (r) {
+      A.saving = false;
+      if (r && r.closed) { onClosed(r); return r; }
+      if (r && r.ok) {
+        A.offset = r.server_now + (Date.now() - t0) / 2 - Date.now();
+        A.acked = Math.max(A.acked, r.events_saved);
+        Object.keys(r.part_starts || {}).forEach(function (p) {
+          if (A.st.part_starts[p] && Math.abs(A.st.part_starts[p] - r.part_starts[p]) > 1500) A.st.part_starts[p] = r.part_starts[p];
+          if (!A.st.part_starts[p]) A.st.part_starts[p] = r.part_starts[p];
+        });
+        persist();
+        setSaveDot('Saved ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }
+      return r;
+    }).catch(function () { A.saving = false; setSaveDot('Offline — answers kept on this device'); return null; });
+  }
+  function onClosed(r) {
+    stopLoops(); LS.del(lsKey()); LS.del('tz_active');
+    modal('This attempt is already closed', 'It was submitted or closed on another device (' + esc(r.status) + ').', [{ label: 'OK', value: 1 }]).then(showHome);
+  }
+  function startLoops() {
+    stopLoops();
+    A.tick = setInterval(onTick, 250);
+    var sec = Math.max(15, Math.min(60, Number(A.test.settings.autosave_sec) || 60));
+    A.saveIv = setInterval(function () { if (A.st.phase === 'test' || A.st.phase === 'review') autosave(); }, sec * 1000);
+  }
+  function stopLoops() { clearInterval(A.tick); clearInterval(A.saveIv); A.tick = A.saveIv = null; }
+
+  /* ================= timer ================= */
+  function remainingMs(p) {
+    p = p || curPart();
+    var d = pdef(p), start = A.st.part_starts[p];
+    if (!start) return d.time_limit_sec * 1000;
+    return d.time_limit_sec * 1000 - (serverNow() - start);
+  }
+  function fmt(ms) {
+    var s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : String(m)) + ':' + String(x).padStart(2, '0');
+  }
+  function renderTimer() {
+    var rem = remainingMs(), warnMs = (Number(A.test.settings.five_min_warning_sec) || 300) * 1000;
+    var inWarn = A.st.part_starts[curPart()] && rem <= warnMs;
+    var tm = $('#timer');
+    $('.digits', tm).textContent = fmt(rem);
+    tm.classList.toggle('red', !!inWarn);
+    tm.classList.toggle('concealed', !!(A.st.timer_hidden && !inWarn));
+    var hb = $('#btn-hide');
+    hb.textContent = A.st.timer_hidden && !inWarn ? 'Show' : 'Hide';
+    hb.disabled = !!inWarn;
+    hb.style.visibility = (A.st.phase === 'test' || A.st.phase === 'review') ? 'visible' : 'hidden';
+  }
+  function onTick() {
+    if (!A.st || A.ending) return;
+    var ph = A.st.phase;
+    if (ph !== 'test' && ph !== 'review') { if (ph === 'break') tickBreak(); return; }
+    var p = curPart(), rem = remainingMs();
+    renderTimer();
+    var warnMs = (Number(A.test.settings.five_min_warning_sec) || 300) * 1000;
+    if (rem <= warnMs && rem > 0 && !A.st.warned[p] && pdef().time_limit_sec * 1000 > warnMs) {
+      A.st.warned[p] = true; log('warning_5min', null, Math.round(rem / 1000)); persist();
+      var wm = Math.max(1, Math.round(warnMs / 60000));
+      $('#warn-text').textContent = wm + (wm === 1 ? ' minute' : ' minutes') + ' remaining in this ' + word() + '.';
+      $('#warn-banner').classList.add('on');
+      setTimeout(function () { $('#warn-banner').classList.remove('on'); }, 10000);
+    }
+    if (rem <= 0) endPart('timeout');
+  }
+
+  /* ================= directions / transition / break ================= */
+  function partNumberLabel(p) { var i = A.st.seq_parts.indexOf(p); return i + 1; }
+  function renderDirections() {
+    view('v-directions');
+    var d = pdef();
+    $('#tb-title').textContent = d.title || ('Part ' + d.part);
+    renderTimer();
+    var n = qlist().length;
+    $('#v-directions').innerHTML = '<div class="page dir-page"><h1>' + esc(d.title || 'Part ' + d.part) + '</h1>' +
+      '<div class="part-facts"><div><b>' + n + '</b>questions</div><div><b>' + fmt(d.time_limit_sec * 1000) + '</b>time</div><div><b>' + (d.calculator ? 'Yes' : 'No') + '</b>calculator</div></div>' +
+      '<div class="dir-text">' + (d.directions_html || '') + '</div>' +
+      '<p class="lead">The timer starts when you click <b>Begin</b>. Once you leave this ' + word() + ' you cannot come back to it.</p>' +
+      '<div class="center"><button class="btn-blue" id="btn-begin" type="button" style="min-width:180px">Begin</button></div></div>';
+    $('#btn-begin').onclick = beginPart;
+    typeset($('#v-directions'));
+    if (d.calculator) loadDesmos();
+  }
+  function beginPart() {
+    var p = curPart();
+    $('#btn-begin').disabled = true;
+    if (!A.st.part_starts[p]) A.st.part_starts[p] = serverNow();
+    A.st.phase = 'test';
+    log('part_start', null, p);
+    persist();
+    buildPart(p).then(function () { goTo(0, true); autosave(); }).catch(loadTrouble);
+  }
+  /** "Save and Continue Later" is offered after a part with pause_after:true (SAT: only at the section break),
+   *  or after any part when the profile allows pausing between parts (AP). */
+  function canPauseAfter(prevPart) {
+    var pd = A.parts[prevPart] || {};
+    if (pd.pause_after === true) return true;
+    if (pd.pause_after === false) return false;
+    return A.profile.pause_allowed_between_parts !== false;
+  }
+  function nextLabel() {
+    var secs = A.profile.sections, p = curPart();
+    if (secs && secs.length) { var sx = secs.filter(function (x) { return x.parts.indexOf(p) >= 0; })[0]; if (sx) return sx.title || sx.id; }
+    return 'Part ' + p;
+  }
+  function saveForLater(btns, nextName) {
+    btns.forEach(function (b) { if (b) b.disabled = true; });
+    if (A.st.phase === 'break') A.st.resume_to_dir = true;
+    A.saving = false;
+    autosave({ pause: true }).then(function (r) {
+      stopLoops();
+      LS.del('tz_active');
+      if (!r || !r.ok) toast('Saved on this device. Open the app again when you are online to sync.', 4000);
+      else toast('Saved. Go to My Tests to continue ' + nextName + '.', 3000);
+      showHome();
+    });
+  }
+  function renderTransition() {
+    view('v-transition');
+    var prev = A.st.seq_parts[A.st.part_idx - 1], next = curPart();
+    var pd = A.parts[prev] || {};
+    $('#tb-title').textContent = pdef().title || next;
+    renderTimer();
+    var canPause = canPauseAfter(prev);
+    var nextName = nextLabel();
+    $('#v-transition').innerHTML = '<div class="page center"><h1>' + esc(pd.title || 'Part ' + prev) + ' is complete</h1>' +
+      '<p class="lead">Your answers are saved. You can no longer return to ' + esc(pd.title || 'that part') + '.<br>Next: <b>' + esc(pdef().title || nextName) + '</b>.</p>' +
+      (canPause ? '<p class="lead">You can take a break and start ' + esc(nextName) + ' later, even on another day. The timer for ' + esc(nextName) + ' starts only when you select <b>Begin</b>.</p>' : '') +
+      '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
+      '<button class="btn-blue" id="btn-cont" type="button">' + (canPause ? 'Start ' + esc(nextName) + ' Now' : 'Continue') + '</button>' +
+      (canPause ? '<button class="btn-outline" id="btn-pause" type="button">Save and Continue Later</button>' : '') + '</div></div>';
+    $('#btn-cont').onclick = function () { A.st.phase = 'directions'; persist(); renderDirections(); };
+    var bp = $('#btn-pause');
+    if (bp) bp.onclick = function () { saveForLater([bp, $('#btn-cont')], nextName); };
+  }
+  /** Scheduled break between sections (SAT: 10 min after Reading and Writing). The next section starts only when the
+   *  student selects Resume Testing (then its Directions + Begin); at the section break the attempt can also be saved for later. */
+  function renderBreak() {
+    view('v-break');
+    var prevId = A.st.seq_parts[A.st.part_idx - 1];
+    var prev = A.parts[prevId] || {};
+    if (!A.st.break_until) { A.st.break_until = serverNow() + (prev.break_after_sec || 600) * 1000; persist(); }
+    var nextName = nextLabel(), mins = Math.round((prev.break_after_sec || 600) / 60), canPause = canPauseAfter(prevId);
+    $('#tb-title').textContent = 'Break';
+    $('#v-break').innerHTML = '<div class="page break-page"><div class="break-left"><div class="break-lbl">Remaining Break Time:</div>' +
+      '<div class="big-count" id="break-count"></div><button class="btn-blue" id="btn-resume" type="button">Resume Testing</button>' +
+      (canPause ? '<button class="btn-outline" id="btn-pause" type="button">Save and Continue Later</button>' : '') + '</div>' +
+      '<div class="break-right"><h1>Break</h1><p class="lead" id="break-msg">You have a ' + mins + '-minute break before ' + esc(nextName) + '. ' +
+      'You can start ' + esc(nextName) + ' as soon as you are ready: select <b>Resume Testing</b>.</p>' +
+      (canPause ? '<p class="lead">Need to stop for today? Select <b>Save and Continue Later</b>. Your answers so far are saved, and you can start ' +
+        esc(nextName) + ' another day from My Tests.</p>' : '') +
+      '<p class="lead">The timer for ' + esc(nextName) + ' starts only when you select <b>Begin</b> on the next screen.</p></div></div>';
+    $('#btn-resume').onclick = function () { A.st.break_until = null; A.st.phase = 'directions'; persist(); renderDirections(); };
+    var bp = $('#btn-pause');
+    if (bp) bp.onclick = function () { saveForLater([bp, $('#btn-resume')], nextName); };
+    tickBreak();
+  }
+  function tickBreak() {
+    var c = $('#break-count'); if (!c || !A.st.break_until) return;
+    var left = A.st.break_until - serverNow();
+    c.textContent = fmt(left);
+    if (left <= 0 && !c._over) { c._over = 1; var m = $('#break-msg'); if (m) m.innerHTML = 'Your break is over. Select <b>Resume Testing</b> to continue.'; }
+  }
+
+  /* ================= building questions ================= */
+  var built = null;
+  /** Resolves when MathJax has loaded (config object exists before the library does, so check startup.promise),
+   *  or after ~20 s (then math stays as TeX text rather than blocking the test). Never rejects. */
+  var mjReady = null;
+  function mathJaxReady() {
+    if (mjReady) return mjReady;
+    mjReady = new Promise(function (resolve) {
+      var t0 = Date.now();
+      (function poll() {
+        if (window.MathJax && MathJax.startup && MathJax.startup.promise && typeof MathJax.typesetPromise === 'function') {
+          MathJax.startup.promise.then(function () { resolve(true); }, function () { resolve(false); });
+        } else if (Date.now() - t0 > 20000) { mjReady = null; resolve(false); }
+        else setTimeout(poll, 100);
+      })();
+    });
+    return mjReady;
+  }
+  function typeset(node) {
+    return mathJaxReady().then(function (ok) {
+      if (!ok) return null;
+      return MathJax.typesetPromise([node]);
+    }).catch(function (e) { console.warn('MathJax', e); });
+  }
+  function buildPart(p) {
+    if (built === A.st.session_id + ':' + p) return Promise.resolve();
+    var wrap = $('#qwrap'); wrap.innerHTML = '';
+    var d = A.parts[p];
+    qlist(p).forEach(function (q, i) { wrap.appendChild(buildQuestion(q, i, d)); });
+    view('v-wait'); $('#v-wait').innerHTML = '<div class="page"><div class="spinner"></div></div>';
+    return typeset(wrap).then(function () {
+      built = A.st.session_id + ':' + p;
+      qlist(p).forEach(function (q) { applyHighlights(q.qid); refreshQ(q.qid); });
+    });
+  }
+  function figHtml(f) {
+    var w = f.width ? ' style="width:' + Number(f.width) + 'px"' : '';
+    return '<div class="q-fig"><img src="' + f.src + '" alt="' + esc(f.alt) + '"' + w + '></div>';
+  }
+  /** Left pane of a student-produced-response question (SAT Math), own wording. */
+  var SPR_DIRECTIONS_HTML = '<h3 class="spr-dir-h">Student-produced response directions</h3><ul class="spr-dir">' +
+    '<li>If more than one answer is correct, enter just one of them.</li>' +
+    '<li>The box holds up to 5 characters for a positive answer and up to 6 characters (the minus sign included) for a negative answer.</li>' +
+    '<li>A fraction that does not fit in the box can be entered as its decimal value instead.</li>' +
+    '<li>A decimal that does not fit can be cut off or rounded after the fourth digit, as long as it fills the whole box.</li>' +
+    '<li>Write a mixed number such as \\(2\\tfrac{1}{2}\\) as an improper fraction (5/2) or as a decimal (2.5).</li>' +
+    '<li>Do not type symbols such as %, $ or a comma.</li></ul>' +
+    '<table class="spr-ex"><tr><th>Answer</th><th>Accepted entries</th><th>Not accepted (no credit)</th></tr>' +
+    '<tr><td>\\(2.5\\)</td><td>2.5<br>2.50<br>5/2</td><td>2 1/2<br>21/2</td></tr>' +
+    '<tr><td>\\(\\tfrac{7}{9}\\)</td><td>7/9<br>.7777<br>.7778<br>0.777<br>0.778</td><td>0.77<br>.78<br>0.78</td></tr>' +
+    '<tr><td>\\(-\\tfrac{2}{7}\\)</td><td>-2/7<br>-.2857<br>-0.285<br>-0.286</td><td>-.28<br>-0.29</td></tr></table>';
+
+  function buildQuestion(q, i, d) {
+    var sprSplit = q.type === 'spr' && d.spr_layout === 'split';
+    var split = (d.layout === 'split' && q.passage_html) || sprSplit;
+    var box = el('div', { class: 'q' + (split ? ' split' : '') + (sprSplit ? ' spr-split' : ''), 'data-qid': q.qid, 'data-i': i });
+    var head = '<div class="q-head"><div class="q-num">' + q.display_no + '</div>' +
+      '<button type="button" class="q-mark"><svg width="16" height="20" viewBox="0 0 16 20"><path d="M2 1.5h12v17l-6-4.2-6 4.2z"/></svg><span>Mark for Review</span></button>' +
+      (q.type === 'spr' ? '' : '<button type="button" class="q-elim" title="Answer choice eliminator">ABC</button>') + '</div>';
+    var before = q.figures.filter(function (f) { return f.position !== 'after_stem'; }).map(figHtml).join('');
+    var after = q.figures.filter(function (f) { return f.position === 'after_stem'; }).map(figHtml).join('');
+    var body = '<div class="q-text">' + before + '<div class="stem">' + q.stem_html + '</div>' + after + '</div>';
+    var ans;
+    if (q.type === 'spr') {
+      ans = '<div class="spr-box"><input class="spr-in" inputmode="decimal" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="6" aria-label="Your answer"><div class="spr-prev">Answer Preview: <b class="spr-out"></b></div></div>';
+    } else {
+      ans = '<div class="choices">' + q.choices.map(function (c) {
+        return '<div class="ch-row" data-l="' + esc(c.label) + '"><button type="button" class="ch"><span class="ltr">' + esc(c.label) + '</span><span class="ctext">' + c.html + '</span></button>' +
+          '<button type="button" class="strike" aria-label="Eliminate ' + esc(c.label) + '">' + esc(c.label) + '</button><button type="button" class="undo">Undo</button></div>';
+      }).join('') + '</div>';
+    }
+    if (sprSplit) {
+      box.innerHTML = '<div class="q-pass spr-dir-pane">' + SPR_DIRECTIONS_HTML + '</div><div class="q-divider"></div><div class="q-side">' + head + body + ans + '</div>';
+      bindDivider(box);
+    } else if (split) {
+      box.innerHTML = '<div class="q-pass q-text-pass">' + q.passage_html + '</div><div class="q-divider"></div><div class="q-side">' + head + body + ans + '</div>';
+      bindDivider(box);
+    } else box.innerHTML = head + body + ans;
+    // bindings
+    $('.q-mark', box).onclick = function () { toggleMark(q.qid); };
+    var eb = $('.q-elim', box); if (eb) eb.onclick = function () { toggleElimMode(); };
+    $$('.ch-row', box).forEach(function (row) {
+      var L = row.getAttribute('data-l');
+      $('.ch', row).onclick = function () { selectAnswer(q.qid, L); };
+      $('.strike', row).onclick = function () { toggleElim(q.qid, L); };
+      $('.undo', row).onclick = function () { toggleElim(q.qid, L); };
+    });
+    var inp = $('.spr-in', box);
+    if (inp) bindSpr(q, inp, box);
+    return box;
+  }
+  function bindDivider(box) {
+    var div = $('.q-divider', box);
+    div.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); div.setPointerCapture(e.pointerId);
+      var mv = function (ev) { var r = box.getBoundingClientRect(); var pct = Math.min(75, Math.max(25, 100 * (ev.clientX - r.left) / r.width)); box.style.setProperty('--split', pct + '%'); };
+      var up = function () { div.removeEventListener('pointermove', mv); div.removeEventListener('pointerup', up); };
+      div.addEventListener('pointermove', mv); div.addEventListener('pointerup', up);
+    });
+  }
+  function bindSpr(q, inp, box) {
+    var timer = null;
+    var commit = function () {
+      var v = inp.value.trim(), ps = pst(), prev = ps.ans[q.qid] || '';
+      if (v === prev) return;
+      if (!v) { delete ps.ans[q.qid]; log('clear', q.qid, prev); }
+      else { ps.ans[q.qid] = v; log(prev ? 'change' : 'select', q.qid, v); }
+      persist();
+    };
+    inp.addEventListener('input', function () {
+      var v = sprClean(inp.value);
+      if (v !== inp.value) inp.value = v;
+      sprPreview(box, v);
+      clearTimeout(timer); timer = setTimeout(commit, 900);
+    });
+    inp.addEventListener('blur', function () { clearTimeout(timer); commit(); });
+  }
+  /** Only what fits the SAT answer box: digits, one "." or one "/", "-" only first; 5 characters (6 with "-"). */
+  function sprClean(raw) {
+    var v = String(raw).replace(/\u2212/g, '-').replace(/[^0-9.\/\-]/g, '');
+    var neg = v.charAt(0) === '-';
+    v = v.replace(/-/g, '');
+    var seenSep = false;
+    v = v.split('').filter(function (c) { if (c === '.' || c === '/') { if (seenSep) return false; seenSep = true; } return true; }).join('');
+    if (neg) v = '-' + v;
+    return v.slice(0, neg ? 6 : 5);
+  }
+  function sprPreview(box, v) {
+    var out = $('.spr-out', box);
+    var m = String(v).match(/^(-?)(\d+)\/(\d+)$/);
+    out.innerHTML = !v ? '' : m ? '\\(' + m[1] + '\\dfrac{' + m[2] + '}{' + m[3] + '}\\)' : esc(v);
+    if (m) typeset(out);
+  }
+
+  /* ================= question navigation ================= */
+  function curQ() { var l = qlist(); return l[pst().cur] || l[0]; }
+  function qBox(qid) { return $('#qwrap .q[data-qid="' + qid + '"]'); }
+  function goTo(i, isEnter) {
+    var l = qlist(); if (!l.length) return;
+    i = Math.max(0, Math.min(l.length - 1, i));
+    var ps = pst();
+    if (A.st.phase === 'test' && !isEnter) { var old = l[ps.cur]; if (old) log('q_leave', old.qid, null); }
+    if (A.st.phase === 'review') A.st.phase = 'test';
+    ps.cur = i;
+    var q = l[i];
+    log('q_enter', q.qid, i + 1);
+    persist();
+    view('v-question');
+    $$('#qwrap .q').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-qid') === q.qid); });
+    $('#tmain').scrollTop = 0;
+    $('#nav-label').textContent = 'Question ' + (i + 1) + ' of ' + l.length;
+    $('#btn-back').disabled = i === 0;
+    $('#btn-next').disabled = false;
+    hideHlToolbar(); closePops();
+    refreshQ(q.qid);
+    var sp = $('.spr-in', qBox(q.qid)); if (sp) { sp.value = ps.ans[q.qid] || ''; sprPreview(qBox(q.qid), sp.value); }
+  }
+  function refreshQ(qid) {
+    var box = qBox(qid); if (!box) return;
+    var ps = pst(), ans = ps.ans[qid], elim = ps.elim[qid] || [];
+    box.classList.toggle('elim-mode', !!ps.elimMode);
+    var eb = $('.q-elim', box); if (eb) eb.classList.toggle('on', !!ps.elimMode);
+    $('.q-mark', box).classList.toggle('on', !!ps.mark[qid]);
+    $$('.ch-row', box).forEach(function (row) {
+      var L = row.getAttribute('data-l'), out = elim.indexOf(L) >= 0;
+      row.classList.toggle('out', out);
+      $('.ch', row).classList.toggle('out', out);
+      $('.ch', row).classList.toggle('sel', ans === L);
+    });
+  }
+  function selectAnswer(qid, L) {
+    var ps = pst(), prev = ps.ans[qid];
+    var elim = ps.elim[qid] || [];
+    if (elim.indexOf(L) >= 0) { ps.elim[qid] = elim.filter(function (x) { return x !== L; }); log('uneliminate', qid, L); }
+    if (prev === L) { persist(); refreshQ(qid); return; } // Bluebook: clicking the selected choice keeps it
+    ps.ans[qid] = L;
+    log(prev ? 'change' : 'select', qid, L);
+    persist(); refreshQ(qid);
+  }
+  function toggleElim(qid, L) {
+    var ps = pst(), elim = ps.elim[qid] || [];
+    if (elim.indexOf(L) >= 0) { ps.elim[qid] = elim.filter(function (x) { return x !== L; }); log('uneliminate', qid, L); }
+    else {
+      ps.elim[qid] = elim.concat([L]); log('eliminate', qid, L);
+      if (ps.ans[qid] === L) { delete ps.ans[qid]; log('clear', qid, L); }
+    }
+    persist(); refreshQ(qid);
+  }
+  function toggleElimMode() { var ps = pst(); ps.elimMode = !ps.elimMode; persist(); refreshQ(curQ().qid); }
+  function toggleMark(qid) {
+    var ps = pst();
+    if (ps.mark[qid]) { delete ps.mark[qid]; log('unmark', qid, null); } else { ps.mark[qid] = true; log('mark', qid, null); }
+    persist(); refreshQ(qid);
+  }
+
+  /* ---------- navigator grid (popover + review page) ---------- */
+  function gridHtml(withCurrent) {
+    var ps = pst(), cur = pst().cur;
+    return qlist().map(function (q, i) {
+      var cls = 'gcell' + (ps.ans[q.qid] ? ' ans' : '') + (ps.mark[q.qid] ? ' mk' : '') + (withCurrent && i === cur ? ' cur' : '');
+      return '<button type="button" class="' + cls + '" data-i="' + i + '"><svg class="pin"><use href="#i-pin"/></svg>' + q.display_no + '<svg class="flag"><use href="#i-flag"/></svg></button>';
+    }).join('');
+  }
+  function legendHtml(withCurrent) {
+    return (withCurrent ? '<span><svg width="16" height="18"><use href="#i-pin"/></svg>Current</span>' : '') +
+      '<span><i class="lg-un"></i>Unanswered</span><span><svg width="14" height="18"><use href="#i-flag"/></svg>For Review</span>';
+  }
+  function openNav() {
+    var pop = $('#nav-pop');
+    if (pop.classList.contains('on')) { closePops(); return; }
+    closePops();
+    $('#nav-pop-title').textContent = (pdef().title || 'Part ' + curPart()) + ' Questions';
+    $('#nav-legend').innerHTML = legendHtml(true);
+    $('#nav-grid').innerHTML = gridHtml(true);
+    $$('#nav-grid .gcell').forEach(function (b) { b.onclick = function () { closePops(); goTo(+b.getAttribute('data-i')); }; });
+    pop.classList.add('on'); $('#btn-nav').classList.add('open');
+    log('nav_open', curQ().qid, null);
+  }
+  function closePops() {
+    $('#nav-pop').classList.remove('on'); $('#btn-nav').classList.remove('open');
+    $('#dir-pop').classList.remove('on'); $('#btn-dir').classList.remove('open');
+    $('#more-menu').classList.remove('on'); $('#tool-more').classList.remove('active');
+  }
+  function showReview(isResume) {
+    if (A.st.phase === 'test' && !isResume) { log('q_leave', curQ().qid, null); }
+    A.st.phase = 'review';
+    if (!isResume) log('review_open', null, null);
+    persist();
+    view('v-review');
+    var d = pdef(), l = qlist(), ps = pst();
+    var unanswered = l.filter(function (q) { return !ps.ans[q.qid]; }).length, marked = l.filter(function (q) { return ps.mark[q.qid]; }).length;
+    $('#v-review').innerHTML = '<div class="page"><h1>Check Your Work</h1>' +
+      '<p class="lead">You can go back to any question in this ' + word() + ' until time runs out or you click <b>Next</b>. ' +
+      (unanswered ? '<br><b>' + unanswered + '</b> unanswered' : '<br>All questions answered') + (marked ? ' · <b>' + marked + '</b> marked for review' : '') + '.</p>' +
+      '<div class="card"><div class="pop-head" style="border:0;padding-bottom:4px">' + esc(d.title || 'Part ' + d.part) + ' Questions</div>' +
+      '<div class="legend">' + legendHtml(false) + '</div><div class="grid" id="rev-grid">' + gridHtml(false) + '</div></div></div>';
+    $$('#rev-grid .gcell').forEach(function (b) { b.onclick = function () { goTo(+b.getAttribute('data-i'), true); }; });
+    $('#btn-back').disabled = false; $('#btn-next').disabled = false;
+  }
+  function onNext() {
+    if (A.st.phase === 'review') {
+      var last = A.st.part_idx >= A.st.seq_parts.length - 1 && !(A.profile.routing || []).some(function (r) { return r.from === curPart(); });
+      modal(last ? 'Submit your test?' : 'Move on to the next ' + word() + '?',
+        (last ? 'This is the last part. Your answers will be submitted.' : 'You will not be able to come back to <b>' + esc(pdef().title) + '</b>.') +
+        ' Time left in this part: <b>' + fmt(remainingMs()) + '</b>.',
+        [{ label: 'Cancel', value: false, cls: 'btn-outline' }, { label: last ? 'Submit' : 'Next ' + word(), value: true }]).then(function (ok) { if (ok) endPart('submit'); });
+      return;
+    }
+    var i = pst().cur;
+    if (i >= qlist().length - 1) showReview(); else goTo(i + 1);
+  }
+  function onBack() {
+    if (A.st.phase === 'review') { goTo(qlist().length - 1, true); return; }
+    var i = pst().cur; if (i > 0) goTo(i - 1);
+  }
+
+  /* ================= ending parts + submit ================= */
+  function endPart(reason) {
+    if (A.ending) return;
+    var p = curPart();
+    if (A.st.ended[p]) { advanceAfter(p); return; }
+    A.ending = true;
+    if (A.st.phase === 'test') { var q = curQ(); if (q) log('q_leave', q.qid, null); }
+    log('part_end', null, reason);
+    A.st.ended[p] = reason;
+    $('#warn-banner').classList.remove('on');
+    persist();
+    if (reason === 'timeout') toast('Time is up for this ' + word() + '. Your answers are saved.', 4000);
+    advanceAfter(p);
+  }
+  function advanceAfter(p) {
+    var rule = (A.profile.routing || []).filter(function (r) { return r.from === p; })[0];
+    var go = function () {
+      A.ending = false;
+      if (A.st.part_idx >= A.st.seq_parts.length - 1) { doSubmit(); return; }
+      A.st.part_idx++;
+      var next = A.st.current_part = A.st.seq_parts[A.st.part_idx];
+      var d = A.parts[p] || {}, nd = A.parts[next] || {};
+      if (nd.auto_start && !d.break_after_sec) { // SAT: Module 2 opens right after Module 1, its timer starts at once (Bluebook)
+        if (!A.st.part_starts[next]) A.st.part_starts[next] = serverNow();
+        A.st.phase = 'test';
+        log('part_start', null, next);
+        persist(); autosave();
+        toast((nd.title || next) + ' has started.', 3500);
+        route();
+        return;
+      }
+      A.st.phase = d.break_after_sec ? 'break' : 'transition';
+      persist(); autosave();
+      route();
+    };
+    if (rule && A.st.seq_parts.indexOf(rule.hard) < 0 && A.st.seq_parts.indexOf(rule.easy) < 0) {
+      view('v-wait'); $('#v-wait').innerHTML = '<div class="page"><div class="spinner"></div><p class="lead">Saving… please stay on this page.</p></div>';
+      var tryRoute = function () {
+        A.saving = false;
+        autosave({ route_part: p }).then(function (r) {
+          if (r && r.route) { A.st.seq_parts.splice(A.st.part_idx + 1, 0, r.route); persist(); go(); }
+          else setTimeout(tryRoute, 5000);
+        });
+      };
+      tryRoute();
+    } else go();
+  }
+  function doSubmit() {
+    stopLoops();
+    A.ending = true;
+    A.st.phase = 'submitting';
+    persist({ pendingSubmit: true });
+    show('scr-test'); view('v-wait');
+    $('#tb-title').textContent = 'Submitting';
+    $('#v-wait').innerHTML = '<div class="page center"><div class="spinner"></div><h1 style="font-size:24px">Submitting your answers…</h1><p class="lead" id="sub-msg">Please keep this page open.</p><div id="sub-retry"></div></div>';
+    var attempt = function () {
+      var pl = payload(); pl.device = deviceStr();
+      call('submit', A.code, A.st.session_id, pl).then(function (res) {
+        LS.del(lsKey()); LS.del('tz_active');
+        A.ending = false;
+        renderResult(res);
+      }).catch(function (e) {
+        var m = $('#sub-msg');
+        if (m) m.innerHTML = 'Could not reach the server. <b>Your answers are safe on this device.</b><br>Retrying automatically… (' + esc(errMsg(e)) + ')';
+        var r = $('#sub-retry');
+        if (r && !r.firstChild) { var b = el('button', { class: 'btn-blue', type: 'button' }, 'Try again now'); b.onclick = function () { clearTimeout(A.subT); attempt(); }; r.appendChild(b); }
+        clearTimeout(A.subT); A.subT = setTimeout(attempt, 10000);
+      });
+    };
+    attempt();
+  }
+
+  /* ================= result ================= */
+  function renderResult(res) {
+    show('scr-result');
+    var b = $('#result-body');
+    if (!res || !res.ok) { b.innerHTML = '<div class="page"><p class="lead">' + esc((res && res.msg) || 'No result.') + '</p></div>'; return; }
+    var title = A.profile ? (A.profile.exam + ' — ' + (A.profile.title || '')) : (res.title || '');
+    var h = '<div class="topbar-simple"><div class="brand" style="font-size:20px"><span class="brand-mark" style="width:28px;height:28px;font-size:14px">TZ</span><span>' + esc($('.app-name').textContent) + '</span></div>' +
+      '<button class="btn-outline" id="res-home" type="button">Back to My Tests</button></div><div class="page"><h1>Your Results</h1>' +
+      '<p class="lead" style="margin-bottom:0">' + esc(title) + (res.attempt_no ? ' · Attempt ' + res.attempt_no : '') + '</p>';
+    if (res.total === null) {
+      h += '<p class="lead">Your test has been submitted. Your teacher will go over the results with you.</p></div>';
+    } else {
+      h += '<div class="score-total">' + res.total + ' / ' + res.n + '</div><div class="score-sub">questions correct</div>';
+      if (res.sections && res.sections.length > 1) h += '<div class="score-secs">' + res.sections.map(function (x) {
+        return '<div><b>' + x.score + ' / ' + x.n + '</b>' + esc(x.title) + '</div>'; }).join('') + '</div>';
+      if (res.parts.some(function (p) { return p.grid.length; })) h += '<div class="res-legend"><span>✓ correct</span><span>✗ incorrect</span><span>– not answered</span></div>';
+      res.parts.forEach(function (p) {
+        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + p.score + ' / ' + p.n + '</span></h3><div class="rgrid">' +
+          p.grid.map(function (c) { return '<div class="rcell ' + c.status + '">' + c.no + '<i>' + (c.status === 'right' ? '✓' : c.status === 'wrong' ? '✗' : '–') + '</i></div>'; }).join('') + '</div></div>';
+      });
+      h += '</div>';
+    }
+    b.innerHTML = h;
+    $('#res-home').onclick = showHome;
+  }
+
+  /* ================= tools: directions / more / zoom / line reader / help ================= */
+  function initTools() {
+    $('#btn-dir').onclick = function () {
+      var pop = $('#dir-pop'), on = pop.classList.contains('on');
+      closePops();
+      if (!on) { $('#dir-pop-text').innerHTML = pdef().directions_html || ''; typeset($('#dir-pop-text')); pop.classList.add('on'); $('#btn-dir').classList.add('open'); }
+    };
+    $('#dir-close').onclick = closePops;
+    $('#btn-hide').onclick = function () {
+      A.st.timer_hidden = !A.st.timer_hidden;
+      log(A.st.timer_hidden ? 'timer_hide' : 'timer_show', null, null); persist(); renderTimer();
+    };
+    $('#warn-x').onclick = function () { $('#warn-banner').classList.remove('on'); };
+    $('#btn-nav').onclick = openNav;
+    $('#nav-x').onclick = closePops;
+    $('#nav-review').onclick = function () { closePops(); showReview(); };
+    $('#btn-next').onclick = onNext;
+    $('#btn-back').onclick = onBack;
+    $('#tool-more').onclick = function () {
+      var m = $('#more-menu'), on = m.classList.contains('on'); closePops();
+      if (!on) { m.classList.add('on'); $('#tool-more').classList.add('active'); }
+    };
+    $$('#more-menu button').forEach(function (b) {
+      b.onclick = function () {
+        var a = b.getAttribute('data-act'); closePops();
+        if (a === 'help') showHelp();
+        else if (a === 'reader') toggleReader();
+        else if (a === 'zin') setZoom(A.st.zoom + 0.1);
+        else if (a === 'zout') setZoom(A.st.zoom - 0.1);
+        else if (a === 'zreset') setZoom(1);
+      };
+    });
+    document.addEventListener('pointerdown', function (e) {
+      if (!e.target.closest('#nav-pop, #btn-nav, #dir-pop, #btn-dir, #more-menu, #tool-more')) closePops();
+      if (!e.target.closest('#hl-toolbar, .hl, #tool-annot')) hideHlToolbar();
+    });
+    initCalc(); initRef(); initAnnotate(); initReader();
+    window.addEventListener('pagehide', function () {
+      if (A.st && A.st.phase === 'test') { var q = curQ(); if (q) log('q_leave', q.qid, 'pagehide'); persist(); }
+    });
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted && A.st && A.st.phase === 'test') { log('resume', null, 'pageshow'); var q = curQ(); if (q) log('q_enter', q.qid, pst().cur + 1); persist(); }
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden' && A.st && (A.st.phase === 'test' || A.st.phase === 'review')) { persist(); autosave(); }
+    });
+    window.addEventListener('resize', dockUpdate);
+    window.addEventListener('online', function () { if (A.st && (A.st.phase === 'test' || A.st.phase === 'review')) autosave(); });
+  }
+  function setZoom(z) {
+    A.st.zoom = Math.round(Math.max(0.8, Math.min(1.8, z)) * 10) / 10; persist(); applyZoom();
+  }
+  function applyZoom() { var z = (A.st && A.st.zoom) || 1; document.documentElement.style.setProperty('--z', z); $('#zoom-val').textContent = Math.round(z * 100) + '%'; }
+  function showHelp() {
+    modal('Help', '<ul style="padding-left:18px;margin:0">' +
+      '<li><b>Timer</b> — top centre. <i>Hide</i> hides it (it keeps running). It turns red and stays visible in the last 5 minutes. At 0:00 the part ends and your answers are saved.</li>' +
+      '<li><b>Mark for Review</b> — flags a question. Flags show in the question menu and on the review page.</li>' +
+      '<li><b>ABC</b> — answer eliminator. Turn it on, then cross out choices you have ruled out. <i>Undo</i> brings a choice back.</li>' +
+      '<li><b>Question X of N</b> — bottom centre. Jump to any question or go to the review page.</li>' +
+      '<li><b>Annotate</b> — select words in a question, then click Annotate to highlight them. Click a highlight to change colour, underline, add a note or delete it.</li>' +
+      '<li><b>Calculator</b> — only in parts that allow it. Drag the dark bar to move it; drag the corner to resize.</li>' +
+      '<li><b>Leaving a part</b> — after the review page you cannot go back to that part.</li>' +
+      '<li>If the page reloads or the internet drops, sign in again: your answers and the time are kept.</li></ul>',
+      [{ label: 'Close', value: 1 }]);
+  }
+
+  /* ---------- line reader ---------- */
+  function initReader() {
+    var band = $('#lr-band'), y = 220, h = 64;
+    var place = function () {
+      $('#lr-top').style.height = Math.max(0, y) + 'px';
+      band.style.top = y + 'px'; band.style.height = h + 'px';
+      $('#lr-bot').style.top = (y + h) + 'px';
+    };
+    place();
+    band.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); band.setPointerCapture(e.pointerId);
+      var dy = e.clientY - y;
+      var mv = function (ev) { y = Math.max(60, Math.min(window.innerHeight - h - 60, ev.clientY - dy)); place(); };
+      var up = function () { band.removeEventListener('pointermove', mv); band.removeEventListener('pointerup', up); };
+      band.addEventListener('pointermove', mv); band.addEventListener('pointerup', up);
+    });
+  }
+  function toggleReader() {
+    var lr = $('#line-reader'); lr.classList.toggle('on');
+    $('#reader-label').textContent = lr.classList.contains('on') ? 'Line Reader (on)' : 'Line Reader';
+  }
+
+  /* ---------- floating panels (drag + resize, mouse + touch) ---------- */
+  function makeFloating(panel, head, handle, onResize) {
+    head.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('button')) return;
+      e.preventDefault(); head.setPointerCapture(e.pointerId);
+      var r = panel.getBoundingClientRect(), host = panel.offsetParent.getBoundingClientRect();
+      var ox = e.clientX - r.left, oy = e.clientY - r.top;
+      var mv = function (ev) {
+        var x = Math.max(0, Math.min(host.width - 80, ev.clientX - host.left - ox));
+        var y = Math.max(0, Math.min(host.height - 40, ev.clientY - host.top - oy));
+        panel.style.left = x + 'px'; panel.style.top = y + 'px'; panel.style.right = 'auto';
+      };
+      var up = function () { head.removeEventListener('pointermove', mv); head.removeEventListener('pointerup', up); dockUpdate(); };
+      head.addEventListener('pointermove', mv); head.addEventListener('pointerup', up);
+    });
+    handle.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); handle.setPointerCapture(e.pointerId);
+      var r = panel.getBoundingClientRect(), sx = e.clientX, sy = e.clientY;
+      var mv = function (ev) {
+        panel.style.width = Math.max(300, r.width + ev.clientX - sx) + 'px';
+        panel.style.height = Math.max(260, r.height + ev.clientY - sy) + 'px';
+        if (onResize) onResize();
+      };
+      var up = function () { handle.removeEventListener('pointermove', mv); handle.removeEventListener('pointerup', up); if (onResize) onResize(); };
+      handle.addEventListener('pointermove', mv); handle.addEventListener('pointerup', up);
+    });
+  }
+
+  /* ---------- calculator (Desmos) ---------- */
+  function loadDesmos() {
+    if (window.Desmos) return Promise.resolve(window.Desmos);
+    if (A.desmosLoading) return A.desmosLoading;
+    var key = (A.test && A.test.settings.desmos_api_key) || '';
+    A.desmosLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://www.desmos.com/api/v1.12/calculator.js?apiKey=' + encodeURIComponent(key);
+      s.async = true;
+      s.onload = function () { window.Desmos ? resolve(window.Desmos) : reject(new Error('Desmos missing')); };
+      s.onerror = function () { A.desmosLoading = null; reject(new Error('Desmos failed to load')); };
+      document.head.appendChild(s);
+    });
+    return A.desmosLoading;
+  }
+  /** On wide screens the question moves right of the calculator (when the panel sits on the left) so nothing is covered. */
+  function dockUpdate() {
+    var panel = $('#calc-panel'), scr = $('#scr-test');
+    var on = panel.classList.contains('on') && window.innerWidth >= 1000 && panel.offsetLeft < 120 && !panel.classList.contains('big');
+    scr.classList.toggle('calc-docked', on);
+    scr.style.setProperty('--calcw', panel.offsetWidth + 'px');
+  }
+  function calcResize() { dockUpdate(); try { if (A.calc && A.calc.resize) A.calc.resize(); if (A.calcSci && A.calcSci.resize) A.calcSci.resize(); } catch (e) {} }
+  function initCalc() {
+    var panel = $('#calc-panel');
+    makeFloating(panel, $('#calc-head'), $('#calc-rs'), calcResize);
+    $('#tool-calc').onclick = function () { panel.classList.contains('on') ? hideCalc() : showCalc(); };
+    $('#calc-x').onclick = function () { hideCalc(); };
+    $('#calc-g').onclick = function () { calcMode('g'); };
+    $('#calc-s').onclick = function () { calcMode('s'); };
+    $('#calc-exp').onclick = function () {
+      var big = panel.classList.toggle('big');
+      if (big) { panel._old = [panel.style.width, panel.style.height, panel.style.left, panel.style.top];
+        panel.style.left = '8px'; panel.style.top = '8px'; panel.style.width = Math.min(window.innerWidth - 16, Math.max(520, window.innerWidth * 0.55)) + 'px'; panel.style.height = ($('#tmain').clientHeight - 16) + 'px'; }
+      else if (panel._old) { panel.style.width = panel._old[0]; panel.style.height = panel._old[1]; panel.style.left = panel._old[2]; panel.style.top = panel._old[3]; }
+      $('#calc-exp').textContent = big ? 'Collapse' : 'Expand';
+      calcResize();
+    };
+  }
+  function calcMode(m) {
+    $('#calc-g').classList.toggle('on', m === 'g'); $('#calc-s').classList.toggle('on', m === 's');
+    $('#calc-graph').classList.toggle('hidden', m !== 'g'); $('#calc-sci').classList.toggle('hidden', m !== 's');
+    if (m === 's' && !A.calcSci && window.Desmos) A.calcSci = Desmos.ScientificCalculator($('#calc-sci'));
+    calcResize();
+  }
+  function showCalc() {
+    if (!pdef().calculator) return;
+    var panel = $('#calc-panel');
+    panel.classList.add('on'); $('#tool-calc').classList.add('active');
+    if (!panel._sized) { panel._sized = 1; panel.style.width = Math.round(Math.max(380, Math.min(520, window.innerWidth * 0.42))) + 'px'; panel.style.height = Math.max(300, Math.min(640, $('#tmain').clientHeight - 24)) + 'px'; panel.style.top = ($('#tmain').offsetTop + 12) + 'px'; }
+    dockUpdate();
+    var q = curQ(); log('calc_open', q && A.st.phase === 'test' ? q.qid : null, null); persist();
+    if (A.calc) { calcResize(); return; }
+    $('#calc-msg').classList.remove('hidden'); $('#calc-msg').textContent = 'Loading calculator…';
+    loadDesmos().then(function (D) {
+      $('#calc-msg').classList.add('hidden');
+      if (!A.calc) A.calc = D.GraphingCalculator($('#calc-graph'), { keypad: true, expressions: true, settingsMenu: true, zoomButtons: true, border: false, expressionsCollapsed: false });
+      calcResize();
+    }).catch(function () { $('#calc-msg').textContent = 'The calculator could not load. Check the internet connection, then close and open it again.'; });
+  }
+  function hideCalc(silent) {
+    var panel = $('#calc-panel');
+    if (!panel.classList.contains('on')) return;
+    panel.classList.remove('on'); $('#tool-calc').classList.remove('active');
+    dockUpdate();
+    if (!silent && A.st) { var q = curQ(); log('calc_close', q && A.st.phase === 'test' ? q.qid : null, null); persist(); }
+    else if (A.st && A.st.phase === 'test') { log('calc_close', null, null); }
+  }
+
+
+  /* ---------- SAT reference sheet (own drawings + standard formulas; no images) ---------- */
+  function refCell(svg, tex) { return '<div class="ref-cell"><svg viewBox="0 0 120 92" width="120" height="92" aria-hidden="true">' + svg + '</svg><div class="ref-f">' + tex + '</div></div>'; }
+  var RS = 'fill="none" stroke="#111" stroke-width="1.6"', RT = 'font-family="Noto Serif, Georgia, serif" font-style="italic" font-size="13" fill="#111"';
+  var SAT_REF_HTML = '<div class="ref-grid">' +
+    refCell('<circle cx="60" cy="46" r="34" ' + RS + '/><line x1="60" y1="46" x2="94" y2="46" ' + RS + '/><circle cx="60" cy="46" r="2" fill="#111"/><text x="74" y="41" ' + RT + '>r</text>',
+            '\\(A=\\pi r^2\\)<br>\\(C=2\\pi r\\)') +
+    refCell('<rect x="18" y="22" width="84" height="48" ' + RS + '/><text x="56" y="84" ' + RT + '>ℓ</text><text x="106" y="50" ' + RT + '>w</text>',
+            '\\(A=\\ell w\\)') +
+    refCell('<path d="M14 74 L92 74 L70 16 Z" ' + RS + '/><line x1="70" y1="16" x2="70" y2="74" stroke="#111" stroke-width="1.2" stroke-dasharray="4 3"/><path d="M70 68 h-6 v6" ' + RS + '/><text x="61" y="50" ' + RT + '>h</text><text x="50" y="88" ' + RT + '>b</text>',
+            '\\(A=\\tfrac{1}{2}bh\\)') +
+    refCell('<path d="M20 74 L100 74 L20 18 Z" ' + RS + '/><path d="M20 66 h8 v8" ' + RS + '/><text x="8" y="50" ' + RT + '>a</text><text x="58" y="88" ' + RT + '>b</text><text x="64" y="40" ' + RT + '>c</text>',
+            '\\(c^2=a^2+b^2\\)') +
+    refCell('<path d="M16 74 L104 74 L16 22 Z" ' + RS + '/><path d="M16 66 h8 v8" ' + RS + '/><text x="21" y="42" font-size="10" fill="#111">60°</text><text x="76" y="70" font-size="10" fill="#111">30°</text><text x="4" y="52" ' + RT + '>x</text><text x="62" y="44" ' + RT + '>2x</text><text x="48" y="88" ' + RT + '>x√3</text>',
+            'Special right triangle') +
+    refCell('<path d="M24 74 L84 74 L24 14 Z" ' + RS + '/><path d="M24 66 h8 v8" ' + RS + '/><text x="28" y="36" font-size="10" fill="#111">45°</text><text x="62" y="70" font-size="10" fill="#111">45°</text><text x="12" y="48" ' + RT + '>s</text><text x="50" y="88" ' + RT + '>s</text><text x="58" y="40" ' + RT + '>s√2</text>',
+            'Special right triangle') +
+    refCell('<path d="M16 34 L76 34 L76 78 L16 78 Z M16 34 L36 16 L96 16 L76 34 M96 16 L96 60 L76 78" ' + RS + '/><path d="M16 78 L36 60 L96 60 M36 60 L36 16" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><text x="42" y="90" ' + RT + '>ℓ</text><text x="88" y="78" ' + RT + '>w</text><text x="100" y="40" ' + RT + '>h</text>',
+            '\\(V=\\ell wh\\)') +
+    refCell('<ellipse cx="60" cy="20" rx="32" ry="9" ' + RS + '/><path d="M28 20 L28 72 M92 20 L92 72" ' + RS + '/><path d="M28 72 A32 9 0 0 0 92 72" ' + RS + '/><path d="M28 72 A32 9 0 0 1 92 72" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><line x1="60" y1="20" x2="92" y2="20" stroke="#111" stroke-width="1.2"/><text x="73" y="8" ' + RT + '>r</text><text x="98" y="50" ' + RT + '>h</text>',
+            '\\(V=\\pi r^2 h\\)') +
+    refCell('<circle cx="60" cy="46" r="34" ' + RS + '/><ellipse cx="60" cy="46" rx="34" ry="9" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><line x1="60" y1="46" x2="94" y2="46" stroke="#111" stroke-width="1.2"/><text x="72" y="42" ' + RT + '>r</text>',
+            '\\(V=\\tfrac{4}{3}\\pi r^3\\)') +
+    refCell('<path d="M28 72 L60 12 L92 72" ' + RS + '/><path d="M28 72 A32 9 0 0 0 92 72" ' + RS + '/><path d="M28 72 A32 9 0 0 1 92 72" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><line x1="60" y1="12" x2="60" y2="72" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><line x1="60" y1="72" x2="92" y2="72" stroke="#111" stroke-width="1.2"/><text x="74" y="68" ' + RT + '>r</text><text x="64" y="46" ' + RT + '>h</text>',
+            '\\(V=\\tfrac{1}{3}\\pi r^2 h\\)') +
+    refCell('<path d="M18 70 L82 70 L102 52 M18 70 L60 12 L82 70 M60 12 L102 52" ' + RS + '/><path d="M18 70 L38 52 L102 52 M38 52 L60 12" fill="none" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><line x1="60" y1="12" x2="60" y2="61" stroke="#111" stroke-width="1" stroke-dasharray="3 3"/><text x="46" y="86" ' + RT + '>ℓ</text><text x="96" y="68" ' + RT + '>w</text><text x="63" y="44" ' + RT + '>h</text>',
+            '\\(V=\\tfrac{1}{3}\\ell wh\\)') +
+    '</div><p class="ref-note">A circle has 360 degrees of arc, which equals \\(2\\pi\\) radians.<br>The angles of a triangle add up to 180 degrees.</p>';
+
+  /* ---------- reference sheet (SAT-ready) ---------- */
+  function initRef() {
+    var panel = $('#ref-panel');
+    makeFloating(panel, $('#ref-head'), $('#ref-rs'));
+    $('#tool-ref').onclick = function () {
+      var on = panel.classList.toggle('on'); $('#tool-ref').classList.toggle('active', on);
+      if (on && !panel._sized) { panel._sized = 1; panel.style.height = Math.max(320, Math.min(680, $('#tmain').clientHeight - 16)) + 'px'; }
+      if (on) { $('#ref-body').innerHTML = A.profile.reference_sheet === 'sat' ? SAT_REF_HTML : (A.profile.reference_html || '<p>No reference sheet for this test.</p>'); typeset($('#ref-body')); }
+    };
+    $('#ref-x').onclick = function () { panel.classList.remove('on'); $('#tool-ref').classList.remove('active'); };
+  }
+
+  /* ---------- annotate (highlights + notes, stored as text offsets) ---------- */
+  /** Highlightable text of a question: 's' = question text (stem + figures), 'p' = passage pane (SAT Reading and Writing). */
+  function textRoot(qid, r) { var b = qBox(qid); return b ? (r === 'p' ? $('.q-text-pass', b) : $('.q-text', b)) : null; }
+  function textNodes(root) {
+    var out = [];
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        var p = n.parentNode;
+        while (p && p !== root) { if (p.nodeName === 'MJX-CONTAINER' || p.nodeName === 'SCRIPT' || p.nodeName === 'STYLE') return NodeFilter.FILTER_REJECT; p = p.parentNode; }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    while (w.nextNode()) out.push(w.currentNode);
+    return out;
+  }
+  /** Character offset of a DOM boundary point within the highlightable text of root (math is skipped → snaps). */
+  function offsetOf(root, node, off) {
+    var nodes = textNodes(root), acc = 0;
+    var r = document.createRange(); r.setStart(node, off); r.collapse(true);
+    for (var j = 0; j < nodes.length; j++) {
+      var n = nodes[j];
+      if (n === node) return acc + off;
+      if (r.comparePoint(n, n.data.length) <= 0) acc += n.data.length; else return acc;
+    }
+    return acc;
+  }
+  function selectionOffsets() {
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    var q = curQ(); if (!q) return null;
+    var r = sel.getRangeAt(0), which = null, root = null;
+    ['s', 'p'].forEach(function (k) { var x = textRoot(q.qid, k); if (!which && x && x.contains(r.commonAncestorContainer)) { which = k; root = x; } });
+    if (!root) return null;
+    var s = offsetOf(root, r.startContainer, r.startOffset), e = offsetOf(root, r.endContainer, r.endOffset);
+    if (e - s < 1) return null;
+    return { qid: q.qid, s: s, e: e, r: which };
+  }
+  function unwrapHighlights(root) {
+    $$('span.hl', root).forEach(function (sp) { var p = sp.parentNode; while (sp.firstChild) p.insertBefore(sp.firstChild, sp); p.removeChild(sp); });
+    root.normalize();
+  }
+  function applyHighlights(qid) { ['s', 'p'].forEach(function (k) { applyHighlightsIn(qid, k); }); }
+  function applyHighlightsIn(qid, which) {
+    var root = textRoot(qid, which); if (!root) return;
+    unwrapHighlights(root);
+    var list = (pst().hl[qid] || []).filter(function (h) { return (h.r || 's') === which; }).sort(function (a, b) { return a.s - b.s; });
+    list.forEach(function (h) {
+      var nodes = textNodes(root), acc = 0, segs = [];
+      nodes.forEach(function (n) {
+        var a = acc, b = acc + n.data.length; acc = b;
+        var s = Math.max(h.s, a), e = Math.min(h.e, b);
+        if (e > s) segs.push({ n: n, s: s - a, e: e - a });
+      });
+      segs.forEach(function (sg) {
+        if (!sg.n.data.slice(sg.s, sg.e).trim()) return;
+        var mid = sg.n.splitText(sg.s); mid.splitText(sg.e - sg.s);
+        var sp = document.createElement('span');
+        sp.className = 'hl ' + (h.c === 'u' ? 'hl-u' : 'hl-' + h.c) + (h.note ? ' hl-note' : '');
+        sp.setAttribute('data-hid', h.id);
+        mid.parentNode.insertBefore(sp, mid); sp.appendChild(mid);
+        sp.onclick = function (ev) { ev.stopPropagation(); openHlToolbar(qid, h.id, sp); };
+      });
+    });
+  }
+  function addHighlight(o) {
+    var ps = pst(), list = ps.hl[o.qid] || [];
+    var h = { id: 'h' + Date.now().toString(36), s: o.s, e: o.e, c: 'y', note: '' };
+    if (o.r === 'p') h.r = 'p';
+    ps.hl[o.qid] = list.concat([h]);
+    log('annotate', o.qid, 'add:' + (o.r === 'p' ? 'p' : '') + o.s + '-' + o.e);
+    persist();
+    try { window.getSelection().removeAllRanges(); } catch (e) {}
+    applyHighlights(o.qid);
+    var sp = $('span.hl[data-hid="' + h.id + '"]', qBox(o.qid));
+    if (sp) openHlToolbar(o.qid, h.id, sp);
+  }
+  function initAnnotate() {
+    document.addEventListener('selectionchange', function () {
+      if (!A.st || A.st.phase !== 'test') return;
+      var o = selectionOffsets(); if (o) A.lastSel = { o: o, t: Date.now() };
+    });
+    var maybeAuto = function () { if (!A.annotMode) return; setTimeout(function () { var o = selectionOffsets(); if (o) addHighlight(o); }, 30); };
+    document.addEventListener('mouseup', maybeAuto);
+    document.addEventListener('touchend', maybeAuto);
+    $('#tool-annot').onclick = function () {
+      var o = selectionOffsets() || (A.lastSel && Date.now() - A.lastSel.t < 8000 && curQ() && A.lastSel.o.qid === curQ().qid ? A.lastSel.o : null);
+      A.lastSel = null;
+      if (o) { addHighlight(o); return; }
+      A.annotMode = !A.annotMode;
+      $('#tool-annot').classList.toggle('active', A.annotMode);
+      var nm = (A.profile && A.profile.annotate_label) || 'Annotate';
+      toast(A.annotMode ? nm + ' is on: select words in the text or question to highlight them.' : nm + ' is off.');
+    };
+    var tb = $('#hl-toolbar');
+    $$('[data-c]', tb).forEach(function (b) { b.onclick = function () { updateHl({ c: b.getAttribute('data-c') }); }; });
+    $('#hl-del').onclick = function () {
+      var a = A.hlActive; if (!a) return;
+      pst().hl[a.qid] = (pst().hl[a.qid] || []).filter(function (h) { return h.id !== a.id; });
+      log('annotate', a.qid, 'delete'); persist(); applyHighlights(a.qid); hideHlToolbar();
+    };
+    $('#hl-close').onclick = hideHlToolbar;
+    $('#hl-note-btn').onclick = function () { var n = $('#hl-note'); n.classList.toggle('hidden'); if (!n.classList.contains('hidden')) n.focus(); };
+    $('#hl-note').addEventListener('input', function () { updateHl({ note: $('#hl-note').value }, true); });
+  }
+  function findHl(qid, id) { return (pst().hl[qid] || []).filter(function (h) { return h.id === id; })[0]; }
+  function updateHl(ch, quiet) {
+    var a = A.hlActive; if (!a) return;
+    var h = findHl(a.qid, a.id); if (!h) return;
+    Object.keys(ch).forEach(function (k) { h[k] = ch[k]; });
+    if (!quiet) log('annotate', a.qid, ch.c ? 'color:' + ch.c : 'note');
+    persist();
+    if (!quiet || ch.note !== undefined) {
+      applyHighlights(a.qid);
+      var sp = $('span.hl[data-hid="' + a.id + '"]', qBox(a.qid));
+      markToolbar(h);
+      if (sp && !quiet) placeToolbar(sp);
+    }
+  }
+  function markToolbar(h) { $$('#hl-toolbar [data-c]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === h.c); }); }
+  function placeToolbar(sp) {
+    var tb = $('#hl-toolbar'), host = $('#scr-test').getBoundingClientRect(), r = sp.getBoundingClientRect();
+    tb.classList.add('on');
+    var left = Math.max(8, Math.min(host.width - tb.offsetWidth - 8, r.left - host.left));
+    var top = r.bottom - host.top + 8;
+    if (top + tb.offsetHeight > host.height - 70) top = r.top - host.top - tb.offsetHeight - 8;
+    tb.style.left = left + 'px'; tb.style.top = top + 'px';
+  }
+  function openHlToolbar(qid, id, sp) {
+    var h = findHl(qid, id); if (!h) return;
+    A.hlActive = { qid: qid, id: id };
+    markToolbar(h);
+    var n = $('#hl-note'); n.value = h.note || ''; n.classList.toggle('hidden', !h.note);
+    placeToolbar(sp);
+  }
+  function hideHlToolbar() { $('#hl-toolbar').classList.remove('on'); A.hlActive = null; }
+
+  /* ================= boot ================= */
+  function boot() {
+    if (typeof google === 'undefined' || !google.script) { $('#login-err').textContent = 'Open this app from its web-app link.'; return; }
+    A.api = { autosave: autosave, persist: persist }; // used by the local test harness only
+    initTools(); initLogin();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
