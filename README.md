@@ -40,7 +40,7 @@ Notes
 
 ### What the Action does after deploying: the Sheet update
 `Update.gs` runs once per deploy (the Action opens `<app link>?update=1`; the answer is one line of status text, never Sheet data):
-`addMissingColumns_` (new columns at the end + Dictionary rows) → `importQuestions_` (rows for new forms; existing rows are kept) → `rebuildAll_` (Topic_Summary / Student_Report / Report list) → `checkSheet_` (read-only).
+header renames → `addMissingColumns_` (new columns at the end) → Forms rows (old SAT ids renamed, rows for forms with a Drive file, `data_file_id` filled) → Settings rows (teacher_code) → text tabs from `SheetText.gs` → `Score_Scale` (created once, then Minh's) → `importQuestions_` (rows for new forms; existing rows are kept) → `rebuildAll_` (Topic_Summary / Student_Report / Report list) → `checkSheet_` (read-only).
 Result: Settings row `code_version` (value = version · commit, meaning = when + one-line result).
 Fallback: Sheet menu **Test Zone → Update after new version** (runs it again).
 All four steps are append-only / rebuild-only; they never delete or overwrite data that Minh or students wrote.
@@ -69,12 +69,21 @@ cp dist/Forms_Registry.gs src/                                    # profiles onl
 The server finds `<form_id>.json` by name in the Form Files folder, caches it (CacheService, ≤ 10 min to pick up a replaced file) and never sends keys to the browser.
 A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive shows as "Coming soon".
 
+## What the app does (v1.6)
+- Students sign in with their code (Students tab) → My Tests → AP Calc AB 2012 and the SAT forms (SAT · August 2026, September 2026 A / B, October 2026, November 2026; a form without its Drive file shows "Coming soon").
+- Result page (all exams, English, never a key): score, estimated SAT score range (Score_Scale tab, SC's formula), results by section → domain → skill (AP: unit → topic), types of mistakes, "What to practise first", 2-sittings note, and a read-only review of every question (own answer, right / wrong, time).
+- Teacher mode: sign in with `Settings → teacher_code` → students → attempts → the same result page → each question with the student's answer; **Show answer** fetches that one key only when pressed.
+- SAT break: 10:00 countdown, Math Module 1 starts by itself at 0:00; "Save and Continue Later" only on the break screen.
+- Keys: the Questions-tab `key` overrides the data file (grading, reports). SPR: accepted answers separated by `|`; a rounded decimal key (e.g. 0.651 next to 441/677) only matches as typed text.
+- The Sheet is English: README / Interpretation / Dictionary / Settings meanings are written from `src/SheetText.gs` on every deploy (edit them there).
+
 ## Layout
 
 ```
-src/        Apps Script project (pushed as is): Code.gs, Report.gs, ReportTab.gs, Setup.gs, Update.gs, Forms_Registry.gs,
-            Index.html, Styles.html, Client.html, appsscript.json (scopes + web app: execute as owner, anyone)
-tools/      build_data.py (form JSON + registry), upload_form.mjs (Drive), make_sat_profiles.py, profiles/
+src/        Apps Script project (pushed as is): Code.gs (server), Report.gs (analysis + result page), ReportTab.gs (Sheet Report tab),
+            Score.gs + ScoreScale.gs (SAT estimate), Setup.gs (checkSheet …), Update.gs + Sync.gs + SheetText.gs (per-deploy Sheet update),
+            Forms_Registry.gs (profiles), Index.html, Styles.html, Client.html, appsscript.json (scopes + web app: execute as owner, anyone)
+tools/      build_data.py (form JSON + registry), upload_form.mjs (Drive), make_sat_profiles.py, build_score_scale.py, profiles/
 tests/      harness: gas.js (Apps Script + Sheet mock), server.js + h.js (Playwright), suites, fixtures/ (made-up forms only)
 .github/workflows/deploy.yml   the pipeline
 ```

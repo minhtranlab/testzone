@@ -149,7 +149,7 @@ const FORM = 'MOCK-SAT98';
   const PL = G.table('Part_Log').filter(r => r.session_id === S.session_id);
   check(PL.map(r => r.part + ':' + r.sitting_no).join() === 'RW1:1,RW2:1,M1:2,M2:2', 'Part_Log: RW1, RW2 sitting 1 · M1, M2 sitting 2 (' + PL.map(r => r.part + ':' + r.sitting_no).join() + ')');
   const SR = G.table('Student_Report').find(r => r.session_id === S.session_id);
-  check(/^RW 25\/54 · Math \d+\/44 · tổng \d+\/98\. /.test(SR.summary_vi) && /^Làm 2 lần: RW1 /.test(SR.sittings), 'Student_Report: score line first, sittings per module');
+  check(/^RW 25\/54 · Math \d+\/44 · total \d+\/98\. /.test(SR.summary) && /^2 sittings: RW1 /.test(SR.sittings), 'Student_Report: score line first, sittings per module');
   H.englishOnly(E);
   const fails = H.summary(); await E.close(); process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

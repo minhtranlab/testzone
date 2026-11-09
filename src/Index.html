@@ -138,6 +138,30 @@
 
   <!-- ============ Result ============ -->
   <section id="scr-result" class="screen"><div id="result-body"></div></section>
+  <!-- ============ Review (read-only questions of a finished attempt) ============ -->
+  <section id="scr-review" class="screen">
+    <div class="topbar-simple rv-top"><div id="rv-title" class="rv-title"></div><button class="btn-outline" id="rv-back" type="button">Back to results</button></div>
+    <div id="rv-grid" class="rv-grid"></div>
+    <main id="rv-main"><div id="rv-body"></div></main>
+    <footer class="rv-foot">
+      <button class="btn-outline" id="rv-list" type="button">All questions</button>
+      <span id="rv-nav-label" class="muted"></span>
+      <span><button class="btn-blue" id="rv-prev" type="button">Previous</button> <button class="btn-blue" id="rv-next" type="button">Next</button></span>
+    </footer>
+  </section>
+  <!-- ============ Teacher ============ -->
+  <section id="scr-teacher" class="screen">
+    <div class="topbar-simple">
+      <div class="brand" style="font-size:20px"><span class="brand-mark" style="width:28px;height:28px;font-size:14px">TZ</span><span class="app-name">Test Zone</span><span class="t-badge">Teacher</span></div>
+      <div><button class="btn-plain" id="t-logout">Sign out</button></div>
+    </div>
+    <div class="home-body">
+      <h1>Students</h1>
+      <p class="sub">Open an attempt to see the result page the student saw, then every question with the student's answer. Read-only.</p>
+      <input id="t-filter" class="field t-filter" placeholder="Filter by name or code" autocomplete="off">
+      <div id="t-list"><div class="spinner"></div></div>
+    </div>
+  </section>
 </div>
 
 <div id="modal-root"></div>

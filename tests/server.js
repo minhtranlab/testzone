@@ -11,7 +11,7 @@ function initialTabs() {
   return {
     README: [['Test Zone – Data']],
     Interpretation: [['Kiểu / cờ', 'Điều kiện', 'Ý nghĩa', 'Chiến lược dạy gợi ý']],
-    Student_Report: [['session_id', 'student_code', 'form_id', 'attempt_no', 'submitted_at', 'total_correct', 'percent', 'weakest_topics', 'main_error_profile', 'timing_pattern', 'summary_vi']],
+    Student_Report: [['session_id', 'student_code', 'form_id', 'attempt_no', 'submitted_at', 'total_correct', 'percent', 'weakest_topics', 'main_error_profile', 'timing_pattern', 'summary']],
     Topic_Summary: [['student_code', 'form_id', 'unit', 'topic', 'topic_name', 'n_attempted', 'n_correct', 'accuracy', 'avg_pace_ratio', 'n_fast_wrong', 'n_slow_wrong', 'n_slow_right', 'n_blank', 'n_changed_R_to_W', 'verdict', 'updated_at']],
     Students: [['student_code', 'name', 'track', 'active', 'note'],
       ['T01', 'Test Student', 'AP Calc AB', 'Yes', ''], ['T02', 'Locked Student', 'AP Calc AB', 'No', ''], ['T03', 'SAT Only', 'SAT', 'Yes', ''],
@@ -33,7 +33,7 @@ function initialTabs() {
       ['valid_blank_ratio', process.env.STRICT_VALID ? '0.3' : '1.01', ''], ['unit_slow_ratio', '0.4', ''], ['fast_ratio', '0.5', ''], ['slow_ratio', '1.5', ''], ['guess_window_sec', '60', ''],
       ['guess_min_time_sec', '15', ''], ['weak_accuracy', '0.6', ''], ['min_questions_for_verdict', '2', ''], ['autosave_sec', '60', ''],
       ['five_min_warning_sec', '300', ''], ['desmos_api_key', '', ''], ['show_results', 'score_and_right_wrong', '']],
-    Dictionary: [['tab', 'column', 'ý nghĩa', 'ví dụ']]
+    Dictionary: [['tab', 'column', 'meaning', 'example']]
   };
 }
 

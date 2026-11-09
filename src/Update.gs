@@ -2,7 +2,12 @@
  * Test Zone — Sheet update after a new version (replaces the editor steps Minh used to run by hand after a paste).
  *
  * Runs once per deploy (stamp = APP_VERSION + APP_BUILD, the commit id the Action writes into Code.gs), in this order (each step is safe to repeat):
- *   addMissingColumns_  → new columns at the END of row 1 (+ Dictionary rows); never touches existing cells
+ *   renameHeaders_      → header renames listed in Sync.gs (e.g. summary_vi → summary)
+ *   addMissingColumns_  → new columns at the END of row 1; never touches existing cells
+ *   renameOldForms_ + syncFormsTab_ → Forms rows for the current form ids, data_file_id filled (Sync.gs)
+ *   ensureSettingsRows_ → Settings rows the code needs (teacher_code), values never changed
+ *   syncSheetTexts_     → README / Interpretation / Dictionary / Settings meanings from SheetText.gs
+ *   ensureScoreScale_   → Score_Scale tab created once from ScoreScale.gs (then Minh's to edit)
  *   importQuestions_    → Questions-tab rows for forms that are new; existing rows (Minh's edits) are left as they are
  *   rebuildAll_         → recompute Topic_Summary / Student_Report / Report-tab list (script-built tabs only)
  *   checkSheet_         → read-only check, result in the log
@@ -50,7 +55,12 @@ function currentStamp_() {
 
 function doUpdate_() {
   var steps = [
+    ['headers', renameHeaders_],
     ['columns', addMissingColumns_],
+    ['forms', function () { return renameOldForms_() + ' · ' + syncFormsTab_(); }],
+    ['settings', ensureSettingsRows_],
+    ['texts', syncSheetTexts_],
+    ['score scale', ensureScoreScale_],
     ['questions', importQuestions_],
     ['reports', rebuildAll_],
     ['check', checkSheet_]
@@ -60,6 +70,7 @@ function doUpdate_() {
     try {
       var msg = String(s[1]() || '');
       log.push('[' + s[0] + '] ' + msg);
+      if (['headers', 'forms', 'settings', 'score scale'].indexOf(s[0]) >= 0) notes.push(msg);
       if (s[0] === 'columns') notes.push(/Nothing to add/.test(msg) ? 'columns OK' : 'columns added: ' + (msg.match(/added column/g) || []).length);
       if (s[0] === 'questions') { var m = /Imported (\d+)/.exec(msg); notes.push('questions added: ' + (m ? m[1] : '?')); }
       if (s[0] === 'reports') notes.push('reports rebuilt');

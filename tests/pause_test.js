@@ -51,10 +51,10 @@ const FORM = process.env.AP_FORM || 'MOCK-AP45', CARD = process.env.AP_CARD || (
     check(s2.status === 'completed' && s2.n_sittings === 2, 'submitted: completed, n_sittings 2');
     check(pl.length === 2 && pl[1].part === 'B' && pl[1].sitting_no === 2 && gapDays > 1.9 && pl[1].time_used_min < 1, 'Part_Log: 2 rows, B in sitting 2, ~2 days after A ended');
     const sr = G.table('Student_Report').find(r => r.session_id === s.session_id);
-    check(/^Làm 2 lần: Part A \d\d\/\d\d .* · Part B \d\d\/\d\d/.test(sr.sittings), 'Student_Report.sittings: ' + sr.sittings);
+    check(/^2 sittings: Part A \d\d\/\d\d .* · Part B \d\d\/\d\d/.test(sr.sittings), 'Student_Report.sittings: ' + sr.sittings);
     G.ctx.refreshReportList_(); const rp = G.sheets.Report; const lab = rp.rows[1][17];
     rp.rows[1][1] = lab; G.ctx.onEdit({ range: rp._proxy.getRange(2, 2) });
-    check(/^Làm 2 lần: Part A/.test(String(rp.rows[6][1])), 'Report tab header shows the sittings: ' + rp.rows[6][1]);
+    check(/^2 sittings: Part A/.test(String(rp.rows[6][1])), 'Report tab header shows the sittings: ' + rp.rows[6][1]);
     await p2.context().close();
     G.resetShift();
   }
@@ -73,7 +73,7 @@ const FORM = process.env.AP_FORM || 'MOCK-AP45', CARD = process.env.AP_CARD || (
     check(ss[0].status === 'abandoned' && ss[1].status === 'in_progress' && ss[1].attempt_no === 2, 'Start over: paused attempt → abandoned, new attempt 2');
     await p2.context().close();
   }
-  // ---- 3. no pause: Bắt đầu Part B ngay → one sitting
+  // ---- 3. no pause: Start Part B Now → one sitting
   console.log('[straight through]');
   {
     const { page } = await E.newPage();

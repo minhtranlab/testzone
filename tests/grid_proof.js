@@ -34,7 +34,7 @@ function attempt(code, k) {
   const a2 = G.call('autosave', [code, sid, { state: st, events: ev.slice(120, 200), ev_from: 120 }]);
   ok(a2.ok, code + '#' + k + ' autosave 2');
   const res = G.call('submit', [code, sid, { state: st, events: ev.slice(200), ev_from: 200 }]);
-  ok(res.ok && res.n === 45, code + '#' + k + ' submit');
+  ok(res.ok && res.total.n === 45, code + '#' + k + ' submit');
   const s = G.table('Sessions').find(x => x.session_id === sid);
   ok(s.status === 'completed', code + '#' + k + ' status completed');
   ok(G.table('Topic_Summary').length > 0, code + '#' + k + ' Topic_Summary not empty');

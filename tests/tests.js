@@ -152,7 +152,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   const expect1 = 2 + nB; // A1, A2 right, A3 wrong, rest of A blank, all B right
   check((await page.textContent('.score-total')).trim() === `${expect1} / ${nA + nB}`, `result shows ${expect1} / ${nA + nB}`);
   check(await page.$$eval('.rcell.wrong', a => a.length) === 1, 'result grid marks 1 wrong');
-  check(!/[A-E] is correct|correct answer/i.test(await page.textContent('#result-body')), 'result shows no key / correct answers');
+  check(!/[A-E] is correct|Correct answer:/.test(await page.textContent('#result-body')), 'result shows no key / correct answers');
   await shot(page, 'desktop_12_result');
   // sheet checks
   const s1 = sessionsOf(E, 'T01')[0];
@@ -176,8 +176,8 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   check(ev1.filter(e => e.type === 'part_end').every(e => e.value === 'submit'), 'part_end reason = submit');
   check(G.table('Topic_Summary').some(r => r.student_code === 'T01' && r.form_id === 'ALL') && G.table('Topic_Summary').some(r => r.student_code === 'T01' && r.form_id === FORM), 'Topic_Summary rebuilt (per form + ALL)');
   const rep1 = G.table('Student_Report').find(r => r.session_id === s1.session_id);
-  check(rep1 && /làm chắc|Mất điểm|Không có câu sai/.test(rep1.summary_vi) && /^Unit \d/.test(rep1.weakest_topics) && rep1.reliable === 'Yes' && /^Làm 1 lần: Part A/.test(rep1.sittings) && !('report_link' in rep1), 'Student_Report: readable summary, weakest units, reliable, sittings (no report_link)');
-  console.log('    summary_vi:', JSON.stringify(rep1 && rep1.summary_vi));
+  check(rep1 && /is solid in|Most points lost|No wrong answers/.test(rep1.summary) && /^Unit \d/.test(rep1.weakest_topics) && rep1.reliable === 'Yes' && /^1 sitting: Part A/.test(rep1.sittings) && !('report_link' in rep1), 'Student_Report: readable summary, weakest units, reliable, sittings (no report_link)');
+  console.log('    summary:', JSON.stringify(rep1 && rep1.summary));
   console.log('    timing_pattern:', rep1 && rep1.timing_pattern);
   // My Tests shows past attempt
   await page.click('#res-home'); await page.waitForSelector('.attempts');
@@ -277,7 +277,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
     check(rr.every(r => r.profile === 'BLANK' && r.correct === ''), 'Responses all BLANK, correct empty');
     check(sess.n_blank === nA + nB, 'Sessions n_blank = N');
     const rep = G.table('Student_Report').find(r => r.session_id === sess.session_id);
-    check(/^Bỏ trống/.test(rep.main_error_profile), 'Student_Report main_error_profile = Bỏ trống');
+    check(/^Blank/.test(rep.main_error_profile), 'Student_Report main_error_profile = Blank');
     await page.context().close();
   }
 
@@ -294,7 +294,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
     const sess = sessionsOf(E, 'T07')[0];
     check(respOf(E, sess.session_id).every(r => r.correct === 1 && /RIGHT/.test(r.profile)), 'Responses all correct');
     const ts = G.table('Topic_Summary').filter(r => r.student_code === 'T07');
-    check(ts.length > 0 && ts.every(r => /^(Ổn|Ít dữ liệu|Đúng nhưng chậm)/.test(r.verdict)), 'Topic_Summary verdicts Ổn / Ít dữ liệu');
+    check(ts.length > 0 && ts.every(r => /^(OK|Too few to judge|Slow)/.test(r.verdict)), 'Topic_Summary verdicts OK / Too few to judge');
     await page.context().close();
   }
 
@@ -371,9 +371,10 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   console.log('\n[10] checkSheet');
   const cs = G.admin('checkSheet');
   check(/All good/.test(cs), 'checkSheet → All good');
-  const dict = G.table('Dictionary').filter(r => r.tab === 'Sessions');
-  check(dict.length === 11 && ['score_RW', 'score_Math', 'time_used_RW_min', 'time_used_Math_min'].every(c => dict.some(r => r.column === c && !/cột mới/.test(r['ý nghĩa']))), 'Dictionary rows added (with meaning) for the 11 new Sessions columns (7 + 4 SAT section columns)');
-  check(G.table('Dictionary').filter(r => r.tab === 'Questions').length === 4, 'Dictionary rows for the 4 new Questions columns (type, orig_module, key_source, flags)');
+  G.admin('syncSheetTexts');
+  const dict = G.table('Dictionary');
+  check(dict.length > 100 && dict.some(r => r.tab === 'Sessions' && r.column === 'score_RW / score_Math' && /Reading and Writing/.test(r.meaning)) && dict.some(r => r.tab === 'Forms' && r.column === 'data_file_id'), 'Dictionary written in English from SheetText.gs (incl. new columns)');
+  check(!G.table('README').concat(G.table('Interpretation')).some(r => /[ạảãầấậẩẫăằắặẳẵẹẻẽềếệểễịỉĩọỏõồốộổỗơờớợởỡụủũưừứựửữỳỵỷỹđ]/i.test(JSON.stringify(r))), 'README + Interpretation in English (no Vietnamese letters)');
 
   H.englishOnly(E);
   const fails = H.summary();

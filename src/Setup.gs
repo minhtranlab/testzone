@@ -2,8 +2,8 @@
  * Test Zone — Sheet checks (run from the Apps Script editor — they refuse to run when called through the web app).
  *   checkSheet()          → verifies every tab's headers against what the code expects + Forms/Questions vs data files.
  *                           Read-only: never writes to the Sheet. Result in the log (View → Logs / Execution log).
- *   addMissingColumns()   → only if checkSheet says columns are missing: appends them at the END of row 1 and adds
- *                           their Dictionary rows. Never touches existing cells.
+ *   addMissingColumns()   → only if checkSheet says columns are missing: appends them at the END of row 1.
+ *                           Never touches existing cells. (Column meanings: Dictionary, from SheetText.gs.)
  *   importQuestions()     → appends Questions-tab rows (metadata + key, no stem) for every form in Forms_Registry.gs.
  *                           Existing qids are left as they are (Minh's tag edits are kept); differences are reported.
  *   rebuildAll()          → recompute Topic_Summary + Student_Report for every student.
@@ -31,9 +31,9 @@ function rebuildAll() { requireEditor_(); console.log(rebuildAll_()); }
 var EXPECTED_HEADERS = {
   README: null, Interpretation: null, // free text tabs, not checked
   Student_Report: ['session_id', 'student_code', 'form_id', 'attempt_no', 'submitted_at', 'total_correct', 'percent',
-                   'weakest_topics', 'main_error_profile', 'timing_pattern', 'summary_vi',
-                   // added in fix round 1 / 2:
-                   'reliable', 'sittings'],
+                   'weakest_topics', 'main_error_profile', 'timing_pattern', 'summary',
+                   // added in fix round 1 / 2, SAT round 2:
+                   'reliable', 'sittings', 'estimated_score'],
   Topic_Summary: ['student_code', 'form_id', 'unit', 'topic', 'topic_name', 'n_attempted', 'n_correct', 'accuracy',
                   'avg_pace_ratio', 'n_fast_wrong', 'n_slow_wrong', 'n_slow_right', 'n_blank', 'n_changed_R_to_W', 'verdict', 'updated_at'],
   Students: ['student_code', 'name', 'track', 'active', 'note'],
@@ -55,42 +55,26 @@ var EXPECTED_HEADERS = {
               'representation', 'difficulty', 'tag_status',
               // added in the SAT round:
               'type', 'orig_module', 'key_source', 'flags'],
-  Forms: ['form_id', 'exam', 'part', 'part_title', 'n_questions', 'time_limit_min', 'calculator', 'source'],
+  Forms: ['form_id', 'exam', 'part', 'part_title', 'n_questions', 'time_limit_min', 'calculator', 'source',
+          // SAT round 2: Drive file of the form (filled automatically when blank; may also be typed to point at another file)
+          'data_file_id'],
   Settings: ['key', 'value', 'meaning'],
-  Dictionary: ['tab', 'column', 'ý nghĩa', 'ví dụ']
+  Dictionary: ['tab', 'column', 'meaning', 'example'],
+  Score_Scale: null
 };
 
-/** Dictionary rows for columns Chat B added (used by addMissingColumns). */
-var NEW_COLUMN_DOCS = {
-  'Sessions.current_part': ['Part đang làm (trống khi đã nộp). Dùng để tiếp tục bài khi tải lại trang', 'B'],
-  'Sessions.part_started_at': ['Giờ server ghi nhận bắt đầu part đang làm; đồng hồ còn lại = thời gian part − (bây giờ − mốc này)', '2026-11-06 19:05:12'],
-  'Sessions.last_saved_at': ['Lần app lưu tạm gần nhất (autosave)', '2026-11-06 19:31:40'],
-  'Sessions.events_saved': ['Số event đã ghi vào tab Events cho lần làm này', '214'],
-  'Sessions.state_json': ['Trạng thái bài đang làm (đáp án, đánh dấu, gạch đáp án…) dạng JSON để tiếp tục khi mất mạng/tải lại. Không sửa tay', '{"parts":{…}}'],
-  'Sessions.reliable': ['Yes = bài làm nghiêm túc, dùng để đánh giá được. No = không đáng tin (làm quá nhanh, nhiều câu chọn dưới 15 giây hoặc bỏ trống nhiều; xem Interpretation). Bài No không tính vào Topic_Summary', 'No'],
-  'Student_Report.reliable': ['Như Sessions.reliable', 'Yes'],
-  'Student_Report.sittings': ['Làm mấy lần và giờ làm từng part', 'Làm 2 lần: Part A 06/11 19:00–19:52 · Part B 08/11 20:10–21:00'],
-  'Sessions.n_sittings': ['Số lần ngồi làm: 1 = làm liền cả đề; 2 = nghỉ giữa các part rồi làm tiếp (có thể khác ngày)', '2'],
-  'Sessions.score_RW': ['SAT: số câu đúng phần Reading and Writing (Module 1 + 2, tối đa 54). Đề AP để trống', '41'],
-  'Sessions.score_Math': ['SAT: số câu đúng phần Math (Module 1 + 2, tối đa 44). Đề AP để trống', '33'],
-  'Sessions.time_used_RW_min': ['SAT: số phút đã dùng cho Reading and Writing (tối đa 64)', '58.5'],
-  'Sessions.time_used_Math_min': ['SAT: số phút đã dùng cho Math (tối đa 70)', '66.2'],
-  'Questions.type': ['mcq = trắc nghiệm A–D; spr = học sinh tự điền đáp án (SAT Math)', 'spr'],
-  'Questions.orig_module': ['SAT: module trong file đề gốc (để truy lại khi app đổi thứ tự module, vd đề 09-I2)', 'RW2'],
-  'Questions.key_source': ['SAT: đáp án in trong file đề gốc (bên thứ ba). key = key_source cho tới khi thầy quyết định khác', 'C'],
-  'Questions.flags': ['SAT: cờ của câu (off_spec = ngoài chương trình SAT, dup_in_form = gần trùng câu khác trong đề, key_disputed = đáp án đang xem lại, ocr_fixed = đã sửa lỗi chữ)', 'dup_in_form']
-};
+/* Column meanings: Dictionary tab, written from SheetText.gs on every deploy (Sync.gs). */
 
 var REQUIRED_SETTINGS = ['app_name', 'fast_ratio', 'slow_ratio', 'guess_window_sec', 'guess_min_time_sec', 'weak_accuracy',
                          'min_questions_for_verdict', 'autosave_sec', 'five_min_warning_sec', 'desmos_api_key', 'show_results',
-                         'valid_min_time_ratio', 'valid_quick_ratio', 'valid_blank_ratio', 'unit_slow_ratio'];
+                         'valid_min_time_ratio', 'valid_quick_ratio', 'valid_blank_ratio', 'unit_slow_ratio', 'teacher_code'];
 
 function checkSheet_() {
   var out = [], problems = 0;
   var ss = ss_();
   Object.keys(EXPECTED_HEADERS).forEach(function (tab) {
     var sh = ss.getSheetByName(tab);
-    if (!sh && (tab === 'Report' || tab === 'Part_Log')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends)'); return; }
+    if (!sh && (tab === 'Report' || tab === 'Part_Log' || tab === 'Score_Scale')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends, Score_Scale by the update after a deploy)'); return; }
     if (!sh) { out.push('✗ ' + tab + ': TAB MISSING'); problems++; return; }
     var exp = EXPECTED_HEADERS[tab];
     if (!exp) { out.push('✓ ' + tab + ' (free text, not checked)'); return; }
@@ -143,7 +127,7 @@ function checkSheet_() {
       var have = {};
       qrows.filter(function (r) { return String(r.form_id) === fid; }).forEach(function (r) { have[String(r.qid)] = r; });
       var missing = 0, keyDiff = [];
-      formData_(fid).questions.forEach(function (q) {
+      formDataRaw_(fid).questions.forEach(function (q) {
         var r = have[q.qid];
         if (!r) { missing++; return; }
         var k = Array.isArray(q.key) ? q.key.join('|') : String(q.key);
@@ -151,7 +135,7 @@ function checkSheet_() {
       });
       if (missing) out.push('! Questions tab: ' + missing + ' questions of ' + fid + ' not imported yet (run importQuestions)');
       else out.push('✓ Questions tab: all ' + formData_(fid).questions.length + ' questions of ' + fid + ' present');
-      if (keyDiff.length) { out.push('✗ KEY DIFFERS sheet vs data (grading uses the data file): ' + keyDiff.join('; ')); problems++; }
+      if (keyDiff.length) out.push('· Key changed in the Sheet (the Sheet key is used for grading and reports): ' + keyDiff.join('; '));
     });
   } catch (e) {}
   out.push(problems ? ('→ ' + problems + ' problem(s).') : '→ All good.');
@@ -175,10 +159,6 @@ function addMissingColumns_() {
       if (col > sh.getMaxColumns()) sh.insertColumnsAfter(sh.getMaxColumns(), col - sh.getMaxColumns());
       sh.getRange(1, col).setValue(h);
       log.push(tab + ': added column ' + h);
-      var doc = NEW_COLUMN_DOCS[tab + '.' + h];
-      var dict = readTable_('Dictionary');
-      var exists = dict.rows.some(function (r) { return String(r.tab) === tab && String(r.column) === h; });
-      if (!exists) appendObjects_('Dictionary', [{ tab: tab, column: h, 'ý nghĩa': doc ? doc[0] : '(cột mới)', 'ví dụ': doc ? doc[1] : '' }]);
     });
   });
   var msg = log.length ? log.join('\n') : 'Nothing to add.';
@@ -191,11 +171,11 @@ function importQuestions_() {
   readTable_('Questions').rows.forEach(function (r) { existing[String(r.qid)] = r; });
   var add = [], diffs = [];
   formIds_().forEach(function (fid) {
-    formData_(fid).questions.forEach(function (q) {
+    formDataRaw_(fid).questions.forEach(function (q) {
       var row = questionRow_(fid, q);
       var r = existing[q.qid];
       if (!r) { add.push(row); return; }
-      ['key', 'unit', 'topic', 'difficulty', 'tag_status'].forEach(function (k) {
+      ['unit', 'topic', 'difficulty', 'tag_status'].forEach(function (k) { // key: the Sheet wins on purpose (checkSheet lists it)
         var want = String(row[k]).replace(/^'/, '');
         if (String(r[k]) !== want) diffs.push(q.qid + '.' + k + ': sheet=' + r[k] + ' data=' + want);
       });

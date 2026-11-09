@@ -193,7 +193,7 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
       getBlob: () => ({ getDataAsString: () => { dstats.reads++; return fs.readFileSync(f, 'utf8'); } }) };
   };
   vm.createContext(ctx);
-  const files = ['Code.gs', 'Report.gs', 'ReportTab.gs', 'Setup.gs', 'Update.gs'].filter(f => fs.existsSync(path.join(appDir, f))).map(f => path.join(appDir, f))
+  const files = fs.readdirSync(appDir).filter(f => /\.gs$/.test(f) && f !== 'Forms_Registry.gs' && !/^Data_/.test(f)).sort().map(f => path.join(appDir, f))
     .concat(fs.readdirSync(dataDir).filter(f => /^Data_.*\.gs$/.test(f)).map(f => path.join(dataDir, f)))
     .concat([opts.registry || path.join(dataDir, 'Forms_Registry.gs')]);
   files.forEach(f => vm.runInContext(fs.readFileSync(f, 'utf8'), ctx, { filename: f }));

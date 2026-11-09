@@ -16,12 +16,12 @@ M_DIR = ('<p>This section tests math skills. Some questions are multiple-choice 
          '<li>Figures are drawn to scale and lie in a plane.</li>'
          '<li>The domain of a function \\(f\\) is every real number \\(x\\) for which \\(f(x)\\) is a real number.</li></ul>')
 
-FORMS = {
-    'SAT-2026-08-I2': 'Practice Test · August 2026 (International)',
-    'SAT-2026-09-USA': 'Practice Test · September 2026 (US)',
-    'SAT-2026-09-I2': 'Practice Test · September 2026 (International)',
-    'SAT-2026-10-A': 'Practice Test · October 2026',
-    'SAT-2026-11-A': 'Practice Test · November 2026',
+FORMS = {  # renamed 2026-11-09 (Brain): a form is named by its month; two in one month → A / B
+    'SAT-2026-08': 'SAT · August 2026',
+    'SAT-2026-09A': 'SAT · September 2026 A',
+    'SAT-2026-09B': 'SAT · September 2026 B',
+    'SAT-2026-10': 'SAT · October 2026',
+    'SAT-2026-11': 'SAT · November 2026',
 }
 
 

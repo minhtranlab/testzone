@@ -99,7 +99,8 @@
   /* ================= login / home ================= */
   function initLogin() {
     $('#login-form').addEventListener('submit', function (e) { e.preventDefault(); doLogin($('#login-code').value, false); });
-    $('#btn-logout').onclick = function () { LS.del('tz_code'); LS.del('tz_active'); A.student = null; $('#login-code').value = ''; show('scr-login'); };
+    var out = function () { LS.del('tz_code'); LS.del('tz_active'); A.student = null; A.teacher = false; A.code = null; $('#login-code').value = ''; $('#login-err').textContent = ''; show('scr-login'); };
+    $('#btn-logout').onclick = out; $('#t-logout').onclick = out;
     var saved = LS.get('tz_code');
     if (saved) doLogin(saved, true);
   }
@@ -110,6 +111,12 @@
     call('login', code).then(function (r) {
       $('#login-btn').disabled = false;
       if (!r.ok) { $('#login-err').textContent = r.msg; LS.del('tz_code'); return; }
+      if (r.teacher) { // teacher mode: the code is never stored on the device
+        LS.del('tz_code'); LS.del('tz_active'); A.teacher = true; A.code = code; A.student = { name: 'Teacher', code: code };
+        $$('.app-name').forEach(function (x) { x.textContent = r.app_name || 'Test Zone'; });
+        showTeacher(); return;
+      }
+      A.teacher = false;
       A.student = r.student; A.code = r.student.code;
       LS.set('tz_code', A.code);
       $$('.app-name').forEach(function (x) { x.textContent = r.app_name || 'Test Zone'; });
@@ -138,11 +145,13 @@
       r.forms.forEach(function (f) { box.appendChild(formCard(f)); });
     }).catch(function (e) { $('#home-list').innerHTML = '<div class="empty">Could not load your tests: ' + esc(errMsg(e)) + ' <br><br><button class="btn-outline" onclick="location.reload()">Reload</button></div>'; });
   }
+  /** "SAT · August 2026" stays as it is; "Practice Exam 2012" → "AP Calculus AB — Practice Exam 2012". */
+  function cardTitle(exam, title) { exam = exam || ''; title = title || ''; return !title ? exam : (title.indexOf(exam) === 0 ? title : exam + ' — ' + title); }
   function formCard(f) {
     var c = el('div', { class: 'form-card' });
     var parts = f.parts.map(function (p) { return esc(p.title || ('Part ' + p.part)) + ': ' + p.n + (p.n === 1 ? ' question · ' : ' questions · ') + p.minutes + ' min · ' + (p.calculator ? 'calculator' : 'no calculator'); }).join('<br>');
     if (f.break_min) parts += '<br>' + f.break_min + '-minute break between sections';
-    c.innerHTML = '<h2>' + esc(f.exam) + (f.title ? ' — ' + esc(f.title) : '') + '</h2><div class="meta">' + parts + '</div>';
+    c.innerHTML = '<h2>' + esc(cardTitle(f.exam, f.title)) + '</h2><div class="meta">' + parts + '</div>';
     var actions = el('div', { class: 'actions' });
     var open = f.attempts.filter(function (a) { return a.status === 'in_progress' || a.status === 'paused'; }).pop();
     if (!f.available) actions.innerHTML = '<span class="tag abandoned">Coming soon</span>';
@@ -176,7 +185,7 @@
           esc(a.status === 'timeout' ? 'time up' : a.status) + '</span></td><td>' + (finished && a.total_correct !== null ? a.total_correct + ' / ' + a.total_questions : '—') + '</td><td></td>';
         if (finished) {
           var vb = el('button', { class: 'btn-plain', type: 'button' }, 'View result');
-          vb.onclick = function () { show('scr-result'); $('#result-body').innerHTML = '<div class="spinner"></div>'; call('getResult', A.code, a.session_id).then(renderResult).catch(function (e) { toast(errMsg(e)); showHome(); }); };
+          vb.onclick = function () { openResult(a.session_id); };
           tr.lastChild.appendChild(vb);
         }
         t.appendChild(tr);
@@ -473,10 +482,9 @@
       '<div class="big-count" id="break-count"></div><button class="btn-blue" id="btn-resume" type="button">Resume Testing</button>' +
       (canPause ? '<button class="btn-outline" id="btn-pause" type="button">Save and Continue Later</button>' : '') + '</div>' +
       '<div class="break-right"><h1>Break</h1><p class="lead" id="break-msg">You have a ' + mins + '-minute break before ' + esc(nextName) + '. ' +
-      'You can start ' + esc(nextName) + ' as soon as you are ready: select <b>Resume Testing</b>.</p>' +
+      'When the countdown reaches 0:00, ' + esc(nextName) + ' starts automatically. To start sooner, select <b>Resume Testing</b>.</p>' +
       (canPause ? '<p class="lead">Need to stop for today? Select <b>Save and Continue Later</b>. Your answers so far are saved, and you can start ' +
-        esc(nextName) + ' another day from My Tests.</p>' : '') +
-      '<p class="lead">The timer for ' + esc(nextName) + ' starts only when you select <b>Begin</b> on the next screen.</p></div></div>';
+        esc(nextName) + ' another day from My Tests. (A test taken in two sittings is marked on your result.)</p>' : '') + '</div></div>';
     $('#btn-resume').onclick = function () { A.st.break_until = null; A.st.phase = 'directions'; persist(); renderDirections(); };
     var bp = $('#btn-pause');
     if (bp) bp.onclick = function () { saveForLater([bp, $('#btn-resume')], nextName); };
@@ -485,8 +493,14 @@
   function tickBreak() {
     var c = $('#break-count'); if (!c || !A.st.break_until) return;
     var left = A.st.break_until - serverNow();
-    c.textContent = fmt(left);
-    if (left <= 0 && !c._over) { c._over = 1; var m = $('#break-msg'); if (m) m.innerHTML = 'Your break is over. Select <b>Resume Testing</b> to continue.'; }
+    c.textContent = fmt(Math.max(0, left));
+    if (left <= 0 && !c._over && A.st.phase === 'break') { c._over = 1; autoStartAfterBreak(); }
+  }
+  /** Break over (0:00): the next section starts by itself, like Bluebook — its timer starts now. */
+  function autoStartAfterBreak() {
+    A.st.break_until = null; A.st.phase = 'directions'; log('break_end', null, 'auto'); persist();
+    renderDirections();
+    var b = $('#btn-begin'); if (b) beginPart();
   }
 
   /* ================= building questions ================= */
@@ -817,31 +831,207 @@
     attempt();
   }
 
-  /* ================= result ================= */
+  /* ================= result page (student + teacher) ================= */
+  /** My Tests → View result. */
+  function openResult(sessionId) {
+    show('scr-result'); $('#result-body').innerHTML = '<div class="page"><div class="spinner"></div></div>';
+    call('getResult', A.code, sessionId).then(renderResult).catch(function (e) { toast(errMsg(e)); showHome(); });
+  }
+  function pct(a, b) { return b ? Math.round(100 * a / b) : 0; }
+  function xy(r, n) { return '<span class="xy">' + r + '/' + n + '</span>'; }
+  function brandBar(btnId, btnLabel) {
+    return '<div class="topbar-simple"><div class="brand" style="font-size:20px"><span class="brand-mark" style="width:28px;height:28px;font-size:14px">TZ</span><span>' +
+      esc($('.app-name').textContent) + '</span></div><button class="btn-outline" id="' + btnId + '" type="button">' + btnLabel + '</button></div>';
+  }
+  /** res = studentView_ (server, Report.gs): score, estimate, skills, error types, practise, review list. Never a key. */
   function renderResult(res) {
     show('scr-result');
     var b = $('#result-body');
-    if (!res || !res.ok) { b.innerHTML = '<div class="page"><p class="lead">' + esc((res && res.msg) || 'No result.') + '</p></div>'; return; }
-    var title = A.profile ? (A.profile.exam + ' — ' + (A.profile.title || '')) : (res.title || '');
-    var h = '<div class="topbar-simple"><div class="brand" style="font-size:20px"><span class="brand-mark" style="width:28px;height:28px;font-size:14px">TZ</span><span>' + esc($('.app-name').textContent) + '</span></div>' +
-      '<button class="btn-outline" id="res-home" type="button">Back to My Tests</button></div><div class="page"><h1>Your Results</h1>' +
-      '<p class="lead" style="margin-bottom:0">' + esc(title) + (res.attempt_no ? ' · Attempt ' + res.attempt_no : '') + '</p>';
-    if (res.total === null) {
+    if (!res || !res.ok) { b.innerHTML = brandBar('res-home', 'Back to My Tests') + '<div class="page"><p class="lead">' + esc((res && res.msg) || 'No result.') + '</p></div>'; $('#res-home').onclick = showHome; return; }
+    A.result = res;
+    var teacher = !!res.teacher;
+    var h = brandBar('res-home', teacher ? 'Back to students' : 'Back to My Tests') + '<div class="page res-page">';
+    h += '<h1>' + (teacher ? esc(res.student) + ' — Results' : 'Your Results') + '</h1>';
+    h += '<p class="lead res-meta">' + esc(res.title || '') + (res.attempt ? ' · Attempt ' + res.attempt : '') + (res.date ? ' · ' + esc(res.date) : '') + '</p>';
+    if (res.show === 'none') {
       h += '<p class="lead">Your test has been submitted. Your teacher will go over the results with you.</p></div>';
-    } else {
-      h += '<div class="score-total">' + res.total + ' / ' + res.n + '</div><div class="score-sub">questions correct</div>';
-      if (res.sections && res.sections.length > 1) h += '<div class="score-secs">' + res.sections.map(function (x) {
-        return '<div><b>' + x.score + ' / ' + x.n + '</b>' + esc(x.title) + '</div>'; }).join('') + '</div>';
-      if (res.parts.some(function (p) { return p.grid.length; })) h += '<div class="res-legend"><span>✓ correct</span><span>✗ incorrect</span><span>– not answered</span></div>';
-      res.parts.forEach(function (p) {
-        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + p.score + ' / ' + p.n + '</span></h3><div class="rgrid">' +
-          p.grid.map(function (c) { return '<div class="rcell ' + c.status + '">' + c.no + '<i>' + (c.status === 'right' ? '✓' : c.status === 'wrong' ? '✗' : '–') + '</i></div>'; }).join('') + '</div></div>';
-      });
-      h += '</div>';
+      b.innerHTML = h; $('#res-home').onclick = teacher ? showTeacher : showHome; return;
     }
+    if (!res.valid) {
+      h += '<div class="res-box bad"><b>This result can\'t be used to judge your level.</b><br>Why: ' + esc(res.reasons.join('; ')) + '.' +
+        '<br>Take the test again in real test conditions: the full time, in one go, answering every question.</div>';
+    }
+    if (res.sittings_note) h += '<div class="res-box warn">' + esc(res.sittings_note) + '</div>';
+    // score
+    h += '<div class="score-total">' + res.total.right + ' / ' + res.total.n + '</div><div class="score-sub">questions correct</div>';
+    if (res.sections && res.sections.length > 1) h += '<div class="score-secs">' + res.sections.map(function (x) {
+      return '<div><b>' + x.right + ' / ' + x.n + '</b>' + esc(x.title) + '</div>'; }).join('') + '</div>';
+    if (res.estimate && res.estimate.total) {
+      var e = res.estimate;
+      h += '<div class="est"><div class="est-lbl">Estimated SAT score</div><div class="est-total">' + e.total.score + '</div>' +
+        '<div class="est-range">range ' + e.total.low + '–' + e.total.high + '</div><div class="est-secs">' +
+        ['RW', 'Math'].filter(function (k) { return e[k]; }).map(function (k) {
+          return '<div><b>' + e[k].score + '</b> ' + (k === 'RW' ? 'Reading and Writing' : 'Math') + ' <span class="muted">(' + e[k].low + '–' + e[k].high + ')</span></div>'; }).join('') +
+        '</div>' + ['RW', 'Math'].filter(function (k) { return e[k] && e[k].note; }).map(function (k) {
+          return '<p class="est-note"><b>' + (k === 'RW' ? 'Reading and Writing' : 'Math') + ':</b> ' + esc(e[k].note) + '</p>'; }).join('') +
+        '<p class="est-note muted">' + esc(e.note) + '</p></div>';
+    }
+    h += '<div class="res-parts">' + res.parts.map(function (p) { return '<div><b>' + p.right + ' / ' + p.n + '</b>' + esc(p.title || 'Part ' + p.part) + '</div>'; }).join('') + '</div>';
+    // what to practise first
+    if (res.practise && res.practise.length) {
+      h += '<h2 class="res-h">What to practise first</h2><ol class="res-list">' + res.practise.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>';
+    }
+    // skills
+    if (res.valid && res.groups && res.groups.length) {
+      h += '<h2 class="res-h">' + (res.sat ? 'Results by skill' : 'Results by unit') + '</h2>';
+      res.groups.forEach(function (g) {
+        var gr = g.rows.reduce(function (a, r) { return a + r.right; }, 0), gn = g.rows.reduce(function (a, r) { return a + r.n; }, 0);
+        h += '<div class="card skill-card"><h3><span>' + esc(g.title) + '</span>' + xy(gr, gn) + '</h3>' + g.rows.map(function (r) {
+          return '<details class="skill"><summary><span class="sk-name">' + esc(r.name) + '</span>' + xy(r.right, r.n) +
+            '<span class="bar"><i style="width:' + pct(r.right, r.n) + '%"></i></span></summary>' +
+            '<ul>' + r.items.map(function (it) { return '<li><span>' + esc(it.name) + '</span>' + xy(it.right, it.n) + '</li>'; }).join('') + '</ul></details>';
+        }).join('') + '</div>';
+      });
+    }
+    // error types
+    if (res.valid && res.types && res.types.length) {
+      h += '<h2 class="res-h">Types of mistakes</h2><table class="res-types">' + res.types.map(function (t) {
+        return '<tr class="' + (t.n ? '' : 'zero') + '"><td class="tl">' + esc(t.label) + '</td><td class="tn">' + t.n + '</td><td>' + esc(t.meaning) + '</td></tr>'; }).join('') + '</table>';
+    }
+    // review list
+    if (res.review && res.review.length) {
+      h += '<h2 class="res-h">Review your questions</h2><p class="muted" style="margin-top:-6px">' +
+        (teacher ? 'Open a question to see it with the student\'s answer. "Show answer" reveals the correct answer.' :
+                   'Open a question to see it again with your answer and whether it was right. The correct answers are not shown.') + '</p>';
+      h += '<div class="res-legend"><span>✓ correct</span><span>✗ incorrect</span><span>– not answered</span></div>';
+      res.review.forEach(function (p) {
+        var r = p.questions.filter(function (q) { return q.status === 'right'; }).length;
+        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid">' +
+          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '">' + q.no + '<i>' + (q.status === 'right' ? '✓' : q.status === 'wrong' ? '✗' : '–') + '</i></button>'; }).join('') + '</div></div>';
+      });
+    }
+    h += '</div>';
     b.innerHTML = h;
-    $('#res-home').onclick = showHome;
+    $('#scr-result').scrollTop = 0;
+    $('#res-home').onclick = teacher ? showTeacher : showHome;
+    $$('#result-body .rcell[data-qid]').forEach(function (c) { c.onclick = function () { openReview(res.session_id, teacher, c.getAttribute('data-qid')); }; });
   }
+
+  /* ================= review (read-only: the question, the student's answer, right / wrong, time) ================= */
+  var RV = null;
+  function openReview(sessionId, teacher, qid) {
+    show('scr-review');
+    $('#rv-body').innerHTML = '<div class="page"><div class="spinner"></div><p class="lead center">Loading questions…</p></div>';
+    var go = function (d) {
+      RV = { d: d, teacher: teacher, sid: sessionId, i: 0, keys: {} };
+      $('#rv-title').textContent = d.title || '';
+      $('#scr-review').classList.toggle('serif', d.question_font === 'serif');
+      var at = d.questions.map(function (q) { return q.qid; }).indexOf(qid);
+      showRv(at < 0 ? 0 : at);
+    };
+    if (RV && RV.sid === sessionId && RV.teacher === teacher) { go(RV.d); return; }
+    call(teacher ? 'teacherReview' : 'getReview', A.code, sessionId).then(go).catch(function (e) { toast(errMsg(e), 4000); show('scr-result'); });
+  }
+  function rvPart(part) { return RV.d.parts.filter(function (p) { return p.part === part; })[0] || {}; }
+  function fmtTime(s) { s = Math.round(s || 0); var m = Math.floor(s / 60), r = s % 60; return m ? m + ' min ' + r + ' s' : r + ' s'; }
+  function showRv(i) {
+    var qs = RV.d.questions; i = Math.max(0, Math.min(qs.length - 1, i)); RV.i = i;
+    var q = qs[i], d = rvPart(q.part);
+    var st = q.status === 'right' ? '<span class="rv-st right">✓ Correct</span>' : q.status === 'wrong' ? '<span class="rv-st wrong">✗ Incorrect</span>' : '<span class="rv-st blank">– Not answered</span>';
+    var your = q.answer ? (q.type === 'spr' ? esc(q.answer) : esc(q.answer)) : '—';
+    var key = RV.keys[q.qid];
+    var info = '<div class="rv-info"><span><b>' + esc(d.title || q.part) + '</b> · Question ' + q.display_no + '</span><span>' + (RV.teacher ? 'Student\'s' : 'Your') + ' answer: <b>' + your + '</b></span>' + st +
+      '<span class="muted">Time: ' + fmtTime(q.time_s) + '</span>' +
+      (RV.teacher ? (key ? '<span class="rv-key">Correct answer: <b>' + esc(key.join(' or ')) + '</b></span>' : '<button type="button" class="btn-outline" id="rv-show">Show answer</button>') : '') + '</div>';
+    var box = rvQuestion(q, d, key);
+    var body = $('#rv-body'); body.innerHTML = info; body.appendChild(box);
+    $('#rv-nav-label').textContent = (d.title || q.part) + ' · ' + q.display_no + ' of ' + qs.filter(function (x) { return x.part === q.part; }).length;
+    $('#rv-prev').disabled = i === 0; $('#rv-next').disabled = i === qs.length - 1;
+    var sb = $('#rv-show');
+    if (sb) sb.onclick = function () {
+      sb.disabled = true;
+      call('teacherAnswer', A.code, RV.sid, q.qid).then(function (r) { RV.keys[q.qid] = r.key; showRv(RV.i); }).catch(function (e) { sb.disabled = false; toast(errMsg(e)); });
+    };
+    typeset(body);
+    $('#rv-main').scrollTop = 0;
+    renderRvGrid();
+  }
+  /** The question as in the test, read-only. key (teacher, after "Show answer") marks the right choice. */
+  function rvQuestion(q, d, key) {
+    var sprSplit = q.type === 'spr' && d.spr_layout === 'split';
+    var split = (d.layout === 'split' && q.passage_html) || sprSplit;
+    var box = el('div', { class: 'q on rv' + (split ? ' split' : '') });
+    var head = '<div class="q-head"><div class="q-num">' + q.display_no + '</div></div>';
+    var before = q.figures.filter(function (f) { return f.position !== 'after_stem'; }).map(figHtml).join('');
+    var after = q.figures.filter(function (f) { return f.position === 'after_stem'; }).map(figHtml).join('');
+    var body = '<div class="q-text">' + before + '<div class="stem">' + q.stem_html + '</div>' + after + '</div>';
+    var ans;
+    if (q.type === 'spr') {
+      ans = '<div class="spr-box rv-spr ' + q.status + '"><div class="spr-in" aria-label="Answer">' + esc(q.answer || ' ') + '</div></div>';
+    } else {
+      ans = '<div class="choices">' + q.choices.map(function (c) {
+        var cls = 'ch';
+        if (q.answer && c.label === q.answer) cls += ' sel rv-' + q.status;
+        if (key && key.indexOf(c.label) >= 0) cls += ' rv-key';
+        return '<div class="ch-row"><div class="' + cls + '"><span class="ltr">' + esc(c.label) + '</span><span class="ctext">' + c.html + '</span></div></div>';
+      }).join('') + '</div>';
+    }
+    if (sprSplit) box.innerHTML = '<div class="q-pass spr-dir-pane">' + SPR_DIRECTIONS_HTML + '</div><div class="q-divider"></div><div class="q-side">' + head + body + ans + '</div>';
+    else if (split) box.innerHTML = '<div class="q-pass q-text-pass">' + q.passage_html + '</div><div class="q-divider"></div><div class="q-side">' + head + body + ans + '</div>';
+    else box.innerHTML = head + body + ans;
+    return box;
+  }
+  function renderRvGrid() {
+    var cur = RV.d.questions[RV.i];
+    $('#rv-grid').innerHTML = RV.d.parts.map(function (p) {
+      return '<div class="rv-gpart"><div class="rv-gt">' + esc(p.title || p.part) + '</div><div class="rgrid">' + RV.d.questions.map(function (q, i) {
+        if (q.part !== p.part) return '';
+        return '<button type="button" class="rcell sm ' + q.status + (q === cur ? ' cur' : '') + '" data-i="' + i + '">' + q.display_no + '<i>' + (q.status === 'right' ? '✓' : q.status === 'wrong' ? '✗' : '–') + '</i></button>';
+      }).join('') + '</div></div>';
+    }).join('');
+    $$('#rv-grid .rcell').forEach(function (c) { c.onclick = function () { $('#rv-grid').classList.remove('on'); showRv(+c.getAttribute('data-i')); }; });
+  }
+  function initReview() {
+    $('#rv-back').onclick = function () { show('scr-result'); };
+    $('#rv-prev').onclick = function () { showRv(RV.i - 1); };
+    $('#rv-next').onclick = function () { showRv(RV.i + 1); };
+    $('#rv-list').onclick = function () { $('#rv-grid').classList.toggle('on'); };
+  }
+
+  /* ================= teacher mode (Settings → teacher_code) ================= */
+  function showTeacher() {
+    show('scr-teacher');
+    $('#t-list').innerHTML = '<div class="spinner"></div>';
+    call('teacherOverview', A.code).then(function (r) {
+      A.tdata = r.students;
+      renderTeacher();
+    }).catch(function (e) { $('#t-list').innerHTML = '<div class="empty">' + esc(errMsg(e)) + '</div>'; });
+  }
+  function renderTeacher() {
+    var f = String($('#t-filter').value || '').trim().toLowerCase();
+    var list = (A.tdata || []).filter(function (s) { return !f || (s.name + ' ' + s.code).toLowerCase().indexOf(f) >= 0; });
+    var h = '';
+    list.forEach(function (s) {
+      h += '<div class="card t-card"><h3><span>' + esc(s.name) + ' <span class="muted">· ' + esc(s.code) + ' · ' + esc(s.track) + (s.active ? '' : ' · locked') + '</span></span><span class="muted">' +
+        (s.attempts.length ? s.attempts.length + (s.attempts.length === 1 ? ' attempt' : ' attempts') : 'no attempts yet') + '</span></h3>';
+      if (s.attempts.length) {
+        h += '<table class="attempts"><tr><th>Test</th><th>Attempt</th><th>Date</th><th>Score</th><th></th><th></th></tr>' + s.attempts.map(function (a) {
+          return '<tr><td>' + esc(a.title) + '</td><td>#' + a.attempt_no + '</td><td>' + esc(a.date) + '</td><td>' + (a.right === null ? '—' : a.right + ' / ' + a.n) + '</td><td>' +
+            (a.reliable === 'No' ? '<span class="tag abandoned">not reliable</span> ' : '') + (a.sittings > 1 ? '<span class="tag paused">' + a.sittings + ' sittings</span>' : '') + '</td><td>' +
+            (a.available ? '<button type="button" class="btn-plain t-open" data-sid="' + esc(a.session_id) + '">Open</button>' : '<span class="muted">form not on Drive</span>') + '</td></tr>';
+        }).join('') + '</table>';
+      }
+      h += '</div>';
+    });
+    $('#t-list').innerHTML = h || '<div class="empty">No students match.</div>';
+    $$('#t-list .t-open').forEach(function (b) {
+      b.onclick = function () {
+        show('scr-result'); $('#result-body').innerHTML = '<div class="page"><div class="spinner"></div></div>';
+        call('teacherResult', A.code, b.getAttribute('data-sid')).then(renderResult).catch(function (e) { toast(errMsg(e)); showTeacher(); });
+      };
+    });
+  }
+  function initTeacher() { $('#t-filter').addEventListener('input', renderTeacher); }
 
   /* ================= tools: directions / more / zoom / line reader / help ================= */
   function initTools() {
@@ -1209,7 +1399,7 @@
   function boot() {
     if (typeof google === 'undefined' || !google.script) { $('#login-err').textContent = 'Open this app from its web-app link.'; return; }
     A.api = { autosave: autosave, persist: persist }; // used by the local test harness only
-    initTools(); initLogin();
+    initTools(); initReview(); initTeacher(); initLogin();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

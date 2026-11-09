@@ -1,7 +1,7 @@
 /**
- * Test Zone — the "Report" tab of the Sheet (teacher view; the app itself is for students only).
+ * Test Zone — the "Report" tab of the Sheet (teacher view; the app also has a teacher mode).
  *   Cell B2 = dropdown of attempts (newest first). Changing it → onEdit() draws the report of that attempt below.
- *   Menu "Test Zone → Làm mới báo cáo" → refreshes the dropdown list and redraws the current attempt.
+ *   Menu "Test Zone → Refresh report" → refreshes the dropdown list and redraws the current attempt.
  * Content and wording follow reference/report-mockup.html; analysis comes from analyse_() in Report.gs.
  * Layout: plain, printable (≈ A4 width), white, black text, thin grey borders, colour only for meaning.
  */
@@ -17,11 +17,14 @@ var RPT_FONT = 'Arial';
 var RPT_GREY = '#9e9e9e';
 var RPT_COLOR = { bad: '#c62828', warn: '#a15c00', good: '#2e7d32', none: '#757575' };
 var RPT_SYMBOL = { RIGHT: '✓', SLOW_RIGHT: '◔', FAST_WRONG: '✗', SLOW_WRONG: '✗', WRONG: '✗', BLANK: '–' };
+var REPORT_TITLE_ = 'Attempt report · Test Zone';
+var REPORT_HINT_ = 'Pick an attempt in cell B2 (type a student name to filter). List out of date? Menu Test Zone → Refresh report.';
+var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (more than 1.5 × the standard time) · red = wrong · grey = blank. Dashed line = standard time per question (module time ÷ number of questions).';
 
 /* ============================== triggers + menu ============================== */
 
 function onOpen() {
-  try { SpreadsheetApp.getUi().createMenu('Test Zone').addItem('Làm mới báo cáo', 'refreshReport')
+  try { SpreadsheetApp.getUi().createMenu('Test Zone').addItem('Refresh report', 'refreshReport')
       .addSeparator().addItem('Update after new version', 'updateAfterNewVersion').addToUi(); } catch (e) {}
 }
 
@@ -32,7 +35,7 @@ function onEdit(e) {
   var sh = r.getSheet();
   if (sh.getName() !== REPORT_TAB || r.getRow() !== 2 || r.getColumn() !== 2) return;
   try { renderSelected_(sh); }
-  catch (err) { console.error('REPORT RENDER FAILED: ' + (err && err.stack || err)); sh.getRange(RPT_FIRST, 2).setValue('Lỗi khi vẽ báo cáo: ' + err.message); }
+  catch (err) { console.error('REPORT RENDER FAILED: ' + (err && err.stack || err)); sh.getRange(RPT_FIRST, 2).setValue('Could not draw the report: ' + err.message); }
 }
 
 /** Menu: refresh the dropdown list and redraw the selected attempt. */
@@ -66,10 +69,10 @@ function setupReportHeader_(sh) {
   sh.setHiddenGridlines(true);
   setReportWidths_(sh);
   sh.getRange(1, 1, 3, 6).setFontFamily(RPT_FONT).setFontColor('#000000').setBackground('#ffffff');
-  sh.getRange(1, 2).setValue('Báo cáo bài làm · Test Zone').setFontSize(14).setFontWeight('bold');
+  sh.getRange(1, 2).setValue(REPORT_TITLE_).setFontSize(14).setFontWeight('bold');
   sh.getRange(2, 2, 1, RPT_COLS).merge().setFontSize(11).setFontWeight('bold')
     .setBorder(true, true, true, true, false, false, '#9e9e9e', SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange(3, 2).setValue('Chọn lần làm ở ô B2 (gõ tên học sinh để lọc). Danh sách cũ? Menu Test Zone → Làm mới báo cáo.');
+  sh.getRange(3, 2).setValue(REPORT_HINT_);
   sh.getRange(3, 2, 1, RPT_COLS).merge().setFontSize(9).setFontColor('#616161');
   sh.setRowHeight(2, 28);
   sh.setFrozenRows(3);
@@ -89,10 +92,10 @@ function refreshReportList_() {
   var seen = {};
   var rows = list.map(function (s) {
     var r = String(s.reliable || rel[String(s.session_id)] || '');
-    var label = [students[normCode_(s.student_code)] || s.student_code, s.form_id, 'Lần ' + s.attempt_no,
+    var label = [students[normCode_(s.student_code)] || s.student_code, s.form_id, 'Attempt ' + s.attempt_no,
       s.submitted_at ? fmtDate_(new Date(toMs_(s.submitted_at)), 'dd/MM HH:mm') : '',
       (s.total_correct === '' ? '?' : s.total_correct) + '/' + (s.total_questions || '?'),
-      r === 'No' ? '⚠ không đáng tin' : '✓'].join(' · ');
+      r === 'No' ? '⚠ not reliable' : '✓'].join(' · ');
     if (seen[label]) label += ' #' + (++seen[label]); else seen[label] = 1;
     return [label, String(s.session_id)];
   });
@@ -100,7 +103,7 @@ function refreshReportList_() {
   ensureGrid_(sh, rows.length + 2, RPT_LIST_COL + 1);
   sh.getRange(2, RPT_LIST_COL, old, 2).clearContent();
   if (rows.length) sh.getRange(2, RPT_LIST_COL, rows.length, 2).setValues(rows);
-  else sh.getRange(2, RPT_LIST_COL).setValue('(chưa có bài nộp)');
+  else sh.getRange(2, RPT_LIST_COL).setValue('(no submitted attempt yet)');
   var rule = SpreadsheetApp.newDataValidation()
     .requireValueInRange(sh.getRange(2, RPT_LIST_COL, Math.max(1, rows.length), 1), true)
     .setAllowInvalid(false).build();
@@ -110,12 +113,12 @@ function refreshReportList_() {
 
 function renderSelected_(sh) {
   var label = String(sh.getRange(2, 2).getValue() || '');
-  if (!label) { clearReport_(sh); sh.getRange(RPT_FIRST, 2).setValue('Chọn một lần làm ở ô B2.'); return null; }
+  if (!label) { clearReport_(sh); sh.getRange(RPT_FIRST, 2).setValue('Pick an attempt in cell B2.'); return null; }
   var n = Math.max(sh.getLastRow(), 2);
   var vals = sh.getRange(2, RPT_LIST_COL, n, 2).getValues();
   var sid = null;
   for (var i = 0; i < vals.length; i++) if (String(vals[i][0]) === label) { sid = String(vals[i][1]); break; }
-  if (!sid) { clearReport_(sh); sh.getRange(RPT_FIRST, 2).setValue('Không tìm thấy lần làm này. Menu Test Zone → Làm mới báo cáo.'); return null; }
+  if (!sid) { clearReport_(sh); sh.getRange(RPT_FIRST, 2).setValue('Attempt not found. Menu Test Zone → Refresh report.'); return null; }
   return renderReport_(sh, sid);
 }
 
@@ -149,7 +152,7 @@ function clearReport_(sh) {
 function renderReport_(sh, sessionId) {
   var S = getSettings_();
   var s = findSession_(sessionId);
-  if (!s) throw new Error('Không tìm thấy lần làm ' + sessionId);
+  if (!s) throw new Error('Attempt not found: ' + sessionId);
   var rows = readTable_('Responses').rows.filter(function (r) { return String(r.session_id) === String(sessionId); });
   var st = findStudent_(s.student_code);
   var a = analyse_(s, rows, S, st ? String(st.name || '') : '');
@@ -169,37 +172,39 @@ function renderReport_(sh, sessionId) {
 
   // 1. header
   var partsTxt = a.parts.map(function (p) { return 'Part ' + p.part + ' ' + p.right + '/' + p.n; }).join(' · ');
-  var paceTxt = a.paces.map(function (x) { return x.label + ' khoảng ' + paceStr_(x.sec, a.sat); }).join(', ');
+  var paceTxt = a.paces.map(function (x) { return x.label + ' about ' + paceStr_(x.sec, a.sat); }).join(', ');
   add([a.student], { bold: true, size: 16, merge: true, h: 30 });
-  para(a.form + ' · Lần làm ' + a.attempt + ' · ' + a.date, { color: '#424242' });
-  if (a.sittings) para(a.sittings, { color: '#424242' });
-  if (a.sat) { // SAT: "RW 40/54 · Math 30/44 · tổng 70/98", then the modules and the time per section
+  para(a.form + ' · Attempt ' + a.attempt + ' · ' + a.date, { color: '#424242' });
+  if (a.sittings) para(a.sittings + (a.n_sittings > 1 ? ' — not like the real test (done in ' + a.n_sittings + ' sittings); the score may be higher than on the real test.' : ''), { color: a.n_sittings > 1 ? RPT_COLOR.warn : '#424242', bold: a.n_sittings > 1 });
+  if (a.sat) { // SAT: "RW 40/54 · Math 30/44 · total 70/98", the estimate, then the modules and the time per section
     para(a.score_line + ' (' + a.pct + '%)', { bold: true, size: 12 });
-    para('Module: ' + a.parts.map(function (p) { return p.part + ' ' + p.right + '/' + p.n; }).join(' · ') + ' · Thời gian ' +
-         a.sections.map(function (x) { return x.id + ' ' + vnNum_(x.used) + '/' + x.limit + ' phút'; }).join(', '), { color: '#424242' });
-  } else para('Điểm ' + a.right + '/' + a.n + ' (' + a.pct + '%) · ' + partsTxt + ' · Thời gian ' + vnNum_(a.used) + '/' + a.limit + ' phút', { bold: true, size: 11 });
+    if (a.estimate_text) para('Estimated score: ' + a.estimate_text, { bold: true, size: 11 });
+    ['RW', 'Math'].forEach(function (k) { if (a.estimate && a.estimate[k] && a.estimate[k].note) para(k + ': ' + a.estimate[k].note, { color: RPT_COLOR.warn, size: 9 }); });
+    para('Modules: ' + a.parts.map(function (p) { return p.part + ' ' + p.right + '/' + p.n; }).join(' · ') + ' · Time ' +
+         a.sections.map(function (x) { return x.id + ' ' + x.used + '/' + x.limit + ' min'; }).join(', '), { color: '#424242' });
+  } else para('Score ' + a.right + '/' + a.n + ' (' + a.pct + '%) · ' + partsTxt + ' · Time ' + a.used + '/' + a.limit + ' min', { bold: true, size: 11 });
   // 2. validity
   gap();
-  if (a.valid) para('Bài làm nghiêm túc. Dùng gần đủ thời gian, ít câu chọn vội. Kết quả dùng để đánh giá được.', { color: RPT_COLOR.good, bold: true });
-  else para('Kết quả không đáng tin: ' + a.reasons.join(' · ') + '.', { color: RPT_COLOR.bad, bold: true });
+  if (a.valid) para('Reliable attempt: nearly the full time used, few rushed answers. The result can be used.', { color: RPT_COLOR.good, bold: true });
+  else para('Not reliable: ' + a.reasons.join(' · ') + '.', { color: RPT_COLOR.bad, bold: true });
   // 3. summary
-  heading('Tóm tắt');
+  heading('Summary');
   para(stripTags_(a.summary));
   // 4. actions
-  heading('Việc nên làm tiếp');
+  heading('Next steps');
   a.actions.forEach(function (x, i) { para((i + 1) + '. ' + stripTags_(x)); });
 
   var groups = [];
   if (a.valid) {
     // 5. units → topics
     if (a.sat) {
-      heading('Theo mảng kiến thức');
-      para('Mỗi dòng là một mảng (domain) của SAT, chia theo phần RW và Math; bấm dấu + / − bên trái để mở / đóng các kỹ năng (skill). "Ít dữ liệu" = đề chỉ có 1 câu thuộc mảng đó, chưa kết luận được.', { color: '#616161', size: 9 });
-      add(['Phần', 'Mảng', 'Đúng', 'Tỉ lệ', 'Nhận xét'], { bold: true, bottom: true });
+      heading('By domain');
+      para('One row per SAT domain (RW and Math); press + / − on the left to open / close its skills. "Too few to judge" = the form has only one question there.', { color: '#616161', size: 9 });
+      add(['Section', 'Domain', 'Right', 'Share', 'Verdict'], { bold: true, bottom: true });
     } else {
-      heading('Theo Unit');
-      para('Mỗi dòng là một Unit của chương trình AP Calc; bấm dấu + / − bên trái để mở / đóng các topic. "Ít dữ liệu" = đề chỉ có 1 câu thuộc Unit đó, chưa kết luận được.', { color: '#616161', size: 9 });
-      add(['Unit', 'Chủ đề', 'Đúng', 'Tỉ lệ', 'Nhận xét'], { bold: true, bottom: true });
+      heading('By unit');
+      para('One row per AP Calc unit; press + / − on the left to open / close its topics. "Too few to judge" = the form has only one question in that unit.', { color: '#616161', size: 9 });
+      add(['Unit', 'Name', 'Right', 'Share', 'Verdict'], { bold: true, bottom: true });
     }
     a.units.forEach(function (U) {
       var color = { 'c-bad': RPT_COLOR.bad, 'c-warn': RPT_COLOR.warn, 'c-good': RPT_COLOR.good, 'c-none': RPT_COLOR.none }[U.cls];
@@ -211,36 +216,37 @@ function renderReport_(sh, sessionId) {
         var r = add([a.sat ? '' : T.code, T.name, T.dots.map(function (d) { return RPT_SYMBOL[d.p] || '?'; }).join(' ')], { size: 9, color: '#424242', wrap: true, line: true });
         if (first === null) first = r; last = r;
       });
-      if (first !== null) groups.push({ from: first, to: last, open: U.status === 'Cần học lại' });
+      if (first !== null) groups.push({ from: first, to: last, open: U.status === UNIT_STATUS_.BAD });
     });
-    para('✓ đúng · ◔ đúng nhưng chậm · ✗ sai · – bỏ trống', { color: '#616161', size: 9 });
+    para('✓ right · ◔ right but slow · ✗ wrong · – blank', { color: '#616161', size: 9 });
     // 6. error types
-    heading('Sai kiểu gì');
-    para('Thời gian chuẩn = thời gian của ' + (a.sat ? 'module' : 'part') + ' chia số câu: ' + paceTxt + '.', { color: '#616161', size: 9 });
-    add(['Kiểu', '', 'Số câu', 'Ý nghĩa', ''], { bold: true, bottom: true, mergeBC: true, mergeEF: true });
+    heading('Error types');
+    para('Standard time = ' + (a.sat ? 'module' : 'part') + ' time ÷ number of questions: ' + paceTxt + '.', { color: '#616161', size: 9 });
+    add(['Type', '', 'Questions', 'Meaning', ''], { bold: true, bottom: true, mergeBC: true, mergeEF: true });
     ['SLOW_WRONG', 'FAST_WRONG', 'WRONG', 'BLANK', 'SLOW_RIGHT'].forEach(function (k) {
       add([a.types[k].t, '', a.counts[k], a.types[k].m, ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0], grey: !a.counts[k] });
     });
-    if (a.r2w) add(['Đổi đúng thành sai', '', a.r2w, 'Đã chọn đúng rồi đổi sang sai: thiếu tự tin.', ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0] });
+    if (a.r2w) add(['Changed right → wrong', '', a.r2w, 'Chose the right answer, then changed it: not confident.', ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0] });
   } else {
-    heading('Phần phân tích');
-    para('Phần phân tích bị ẩn vì bài không đáng tin (không xếp loại ' + (a.sat ? 'mảng' : 'Unit') + ', không phân tích kiểu sai, không liệt kê câu sai). Thời gian từng câu vẫn hiện bên dưới để thầy thấy học sinh đã làm thế nào.', { color: '#616161' });
+    heading('Analysis');
+    para('The analysis is hidden because the attempt is not reliable (no ' + (a.sat ? 'domain' : 'unit') + ' verdicts, no error types, no wrong-answer list). The time per question is still shown below so you can see how the student worked.', { color: '#616161' });
   }
 
   // 7. time per question (chart)
-  heading('Thời gian từng câu');
-  para('Mỗi cột là một câu (phút). Đường gạch đứt là thời gian chuẩn (' + paceTxt + '). Cột cao vượt xa đường là câu làm chậm, cột rất thấp mà màu đỏ là câu làm vội.', { color: '#616161', size: 9 });
+  heading('Time per question');
+  para(CHART_LEGEND_, { size: 9, bold: true, wrap: true });
+  para('One bar per question (minutes). Standard time: ' + paceTxt + '. A bar far above the line = slow; a very short red bar = rushed.', { color: '#616161', size: 9 });
   var chartRow = add([], {});
   for (var i = 0; i < 15; i++) add([], {});
 
   // 8. wrong / blank list
   if (a.valid) {
-    heading('Các câu sai và bỏ trống (' + a.wrong.length + ')');
-    if (!a.wrong.length) para('Không có câu sai hay bỏ trống.');
+    heading('Wrong and blank answers (' + a.wrong.length + ')');
+    if (!a.wrong.length) para('No wrong or blank answers.');
     else {
-      add(['Câu', a.sat ? 'Kỹ năng' : 'Topic', 'Kiểu', 'Thời gian', 'Ghi chú'], { bold: true, bottom: true });
+      add(['Question', a.sat ? 'Skill' : 'Topic', 'Type', 'Time', 'Note'], { bold: true, bottom: true });
       a.wrong.forEach(function (q) {
-        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? '–' : fmtSecVN_(q.s), q.note], { wrap: true, line: true });
+        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? '–' : fmtSec_(q.s), q.note], { wrap: true, line: true });
       });
     }
   }
@@ -283,7 +289,7 @@ function renderReport_(sh, sessionId) {
     if (h) sh.setRowHeight(r, h);
   });
 
-  // ---- topic row groups (+/− on the unit row), "Cần học lại" open; remembered in T1 for the next clear
+  // ---- topic row groups (+/− on the unit row), "Needs reteaching" open; remembered in T1 for the next clear
   sh.getRange(1, RPT_META_COL).setValue(JSON.stringify({ session: String(sessionId), groups: groups.map(function (g) { return [g.from, g.to]; }) }));
   sh.hideColumns(RPT_META_COL, 1);
   if (groups.length) {
@@ -296,7 +302,7 @@ function renderReport_(sh, sessionId) {
   }
 
   // ---- chart: data block J..O (grouped + collapsed), stacked columns by result + line = standard time
-  var data = [['Câu', 'Đúng', 'Đúng nhưng chậm', 'Sai', 'Bỏ trống', 'Thời gian chuẩn']];
+  var data = [['Question', 'Right', 'Right but slow', 'Wrong', 'Blank', 'Standard time']];
   a.qs.forEach(function (q) {
     var m = Math.round(q.s / 60 * 100) / 100;
     var kind = q.p === 'RIGHT' ? 1 : q.p === 'SLOW_RIGHT' ? 2 : q.p === 'BLANK' ? 4 : 3;
@@ -315,7 +321,7 @@ function renderReport_(sh, sessionId) {
     .setOption('isStacked', true)
     .setOption('width', 800).setOption('height', 300)
     .setOption('legend', { position: 'bottom' })
-    .setOption('vAxis', { title: 'phút', minValue: 0 })
+    .setOption('vAxis', { title: 'minutes', minValue: 0 })
     .setOption('hAxis', { slantedText: true, slantedTextAngle: 90, textStyle: { fontSize: 8 } })
     .setOption('series', {
       0: { type: 'bars', color: RPT_COLOR.good }, 1: { type: 'bars', color: '#e0a100' },
@@ -342,4 +348,4 @@ function asText_(v) {
   return /^[0-9][0-9.,\/:\- ]*$/.test(v) ? "'" + v : v;
 }
 
-function fmtSecVN_(s) { s = Math.round(s); var m = Math.floor(s / 60), r = s % 60; return m ? m + 'p' + (r ? ('0' + r).slice(-2) : '') : r + 's'; }
+function fmtSec_(s) { s = Math.round(s); var m = Math.floor(s / 60), r = s % 60; return m ? m + ':' + ('0' + r).slice(-2) : r + ' s'; }

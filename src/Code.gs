@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.5 (2026-11-09, GitHub + auto deploy)';
+var APP_VERSION = 'v1.6 (2026-11-09, SAT round 2)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -232,6 +232,15 @@ function driveFormIndex_() {
       if (!idx[m[1]] || t > Number(idx[m[1]].split(':')[1])) idx[m[1]] = f.getId() + ':' + t;
     }
   } catch (err) { console.error('FORM FILES FOLDER NOT READABLE: ' + err); }
+  // Forms.data_file_id typed by hand (e.g. a file in another account's folder shared with the script owner) wins
+  try {
+    readTable_('Forms').rows.forEach(function (r) {
+      var id = String(r.data_file_id || '').trim(), f = String(r.form_id).trim();
+      if (!id || !f || (idx[f] && idx[f].split(':')[0] === id)) return;
+      try { idx[f] = id + ':' + DriveApp.getFileById(id).getLastUpdated().getTime(); }
+      catch (e2) { console.error('Forms.data_file_id of ' + f + ' not readable: ' + e2); }
+    });
+  } catch (e3) { /* no Forms tab / column yet */ }
   cache.put('tz_drive_idx', JSON.stringify(idx), 600);
   return (_driveIdx = idx);
 }
@@ -263,11 +272,48 @@ function driveFormData_(formId) {
 /** Forms whose Data_*.gs (build) or <form_id>.json on Drive (production) exists. */
 function formIds_() { return Object.keys(formRegistry_()).filter(function (id) { return !!regEntry_(id); }); }
 
-/** Form data object (profile + questions incl. keys) — server only. Parsed only when this form is needed (lazy). */
+/** Form data object (profile + questions incl. keys) — server only. Parsed only when this form is needed (lazy).
+ *  Keys: the Questions tab overrides the data file (Minh fixes keys in the Sheet) → grading, routing, reports use it. */
+var _rawCache = {};
 function formData_(formId) {
   if (Object.prototype.hasOwnProperty.call(_formCache, formId)) return _formCache[formId];
+  var raw = formDataRaw_(formId);
+  if (!raw) return (_formCache[formId] = null);
+  var fd = JSON.parse(JSON.stringify(raw));
+  var keys = sheetKeys_(formId);
+  fd.questions.forEach(function (q) { if (Object.prototype.hasOwnProperty.call(keys, q.qid)) { q.key_data = q.key; q.key = keys[q.qid]; } });
+  return (_formCache[formId] = fd);
+}
+/** The data file exactly as built (no Sheet overrides) — for checkSheet / importQuestions comparisons. */
+function formDataRaw_(formId) {
+  if (Object.prototype.hasOwnProperty.call(_rawCache, formId)) return _rawCache[formId];
   var e = regEntry_(formId);
-  return (_formCache[formId] = e ? e.load() : null);
+  return (_rawCache[formId] = e ? e.load() : null);
+}
+/** {qid: key} from the Questions tab for one form: MCQ = letter, SPR = list split by "|". A cell Sheets turned into a
+ *  date or left empty is ignored (logged) — the data-file key is used then. */
+var _sheetKeys = null;
+function sheetKeys_(formId) {
+  if (!_sheetKeys) {
+    _sheetKeys = {};
+    try {
+      readTable_('Questions').rows.forEach(function (r) {
+        var f = String(r.form_id), v = r.key;
+        if (v === '' || v === null || v === undefined) return;
+        if (Object.prototype.toString.call(v) === '[object Date]') { console.warn('Questions key of ' + r.qid + ' is a date (type an apostrophe first) — data key used'); return; }
+        var list = String(v).split('|').map(function (x) { return x.trim(); }).filter(String);
+        if (!list.length) return;
+        (_sheetKeys[f] = _sheetKeys[f] || {})[String(r.qid)] = { type: String(r.type || ''), list: list };
+      });
+    } catch (e) { /* no Questions tab: data keys */ }
+  }
+  var raw = formDataRaw_(formId), out = {}, m = _sheetKeys[formId] || {};
+  if (!raw) return out;
+  raw.questions.forEach(function (q) {
+    var k = m[q.qid]; if (!k) return;
+    out[q.qid] = (q.type || 'mcq') === 'spr' ? k.list : k.list[0].toUpperCase();
+  });
+  return out;
 }
 
 /** Profile = registry profile (question counts included), with n / time / calculator / title overridden by the Forms tab.
@@ -336,6 +382,7 @@ function requireStudent_(code) {
 }
 
 function login(code) {
+  if (isTeacherCode_(code)) return { ok: true, teacher: true, app_name: getSettings_().app_name, version: APP_VERSION };
   var st = findStudent_(code);
   if (!st) return { ok: false, msg: 'Code not found. Check it or ask your teacher.' };
   if (!isYes_(st.active)) return { ok: false, msg: 'This code is locked. Ask your teacher.' };
@@ -744,25 +791,40 @@ function isCorrect_(q, answer) {
  *  - any form with exactly the key's value counts: 3/4 = .75 = 0.75 = 0.750 = 6/8;
  *  - a decimal that does not fit (2/3 = 0.666…) may be truncated or rounded, but must then FILL the box:
  *    .6666 .6667 0.666 0.667 are right, 0.66 / .67 are not; negatives likewise with 6 characters (-.3333, -0.333).
- *  keys = the key list from the data file (printed answer + equivalent forms); each key is also compared as a value.
+ *  keys = the key list (printed answer + accepted forms). EXACT values = fractions / integers in the list (and a decimal
+ *  equal to one of them; if the list has only decimals and they all have one value, that value). A decimal key that is not
+ *  exact (e.g. 0.651 next to 441/677) is a ROUNDED form: it only matches as typed text, never by value — so ".651"
+ *  (too short) is wrong while "0.651" and ".6514" are right (QK 2026-11-09).
  */
 function sprCorrect_(answer, keys) {
   var a = String(answer).trim().replace(/\u2212/g, '-');
   if (!a) return false;
   var neg = a.charAt(0) === '-', room = neg ? 6 : 5;
   if (a.length > room) return false;
+  var ks = keys.map(function (k) { return String(k).trim().replace(/\u2212/g, '-'); }).filter(String);
+  if (ks.indexOf(a) >= 0) return true; // typed exactly as a listed form
+  var exact = sprExactValues_(ks);
   var av = sprParse_(a);
-  return keys.some(function (k) {
-    var ks = String(k).trim().replace(/\u2212/g, '-');
-    if (ks === a) return true;
-    var kv = sprParse_(ks);
-    if (!av || !kv) return false;
+  if (!av) return false;
+  return exact.some(function (kv) {
     if (av.n * kv.d === kv.n * av.d) return true; // same exact value
     if (av.dec === null || av.dec < 1 || a.length !== room) return false; // only a box-filling decimal may be cut off
     var p10 = Math.pow(10, av.dec), num = Math.abs(kv.n) * p10, sign = kv.n < 0 ? -1 : 1;
     var trunc = sign * Math.floor(num / kv.d), rnd = sign * Math.floor((2 * num + kv.d) / (2 * kv.d));
     return av.n === trunc || av.n === rnd;
   });
+}
+
+/** Exact values (as {n, d}) of an SPR key list — see sprCorrect_. */
+function sprExactValues_(ks) {
+  var parsed = ks.map(sprParse_).filter(Boolean);
+  var exact = parsed.filter(function (k) { return k.dec === null || k.dec === 0; });
+  var decs = parsed.filter(function (k) { return k.dec !== null && k.dec > 0; });
+  if (!exact.length && decs.length) {
+    var same = decs.every(function (k) { return k.n * decs[0].d === decs[0].n * k.d; });
+    return same ? [decs[0]] : [];
+  }
+  return exact;
 }
 
 /** Exact value of an SPR entry as n/d (integers); dec = digits after the point for decimals, null for fractions. */
@@ -961,7 +1023,7 @@ function submit(code, sessionId, payload) {
   try {
     var session = requireSession_(code, sessionId);
     if (String(session.status) === 'completed' || String(session.status) === 'timeout') {
-      return resultFor_(session);
+      return resultView_(session, responsesOf_(sessionId), false);
     }
     var nowMs = Date.now();
     var prevState = parseState_(session);
@@ -1001,60 +1063,127 @@ function submit(code, sessionId, payload) {
     // summaries: a failure here must not lose the submit (Sessions/Responses are already written), but it is logged loudly
     try { rebuildStudent_(String(session.student_code)); } catch (e) { console.error('REBUILD FAILED for ' + session.student_code + ': ' + (e && e.stack || e)); }
     try { refreshReportList_(); } catch (e) { console.error('REPORT LIST FAILED: ' + (e && e.stack || e)); }
-    return buildResult_(g, total, n, session);
+    var done = {}; Object.keys(session).forEach(function (k) { done[k] = session[k]; });
+    Object.keys(fields).forEach(function (k) { done[k] = fields[k]; });
+    try { return resultView_(done, cleanResp, false); }
+    catch (e) { console.error('RESULT VIEW FAILED: ' + (e && e.stack || e)); return { ok: true, show: 'none', session_id: String(session.session_id), attempt: Number(session.attempt_no) }; }
   } finally { lock.releaseLock(); }
 }
 
-function buildResult_(g, total, n, session) {
+/* ============================== result page · review · teacher mode ============================== */
+
+function responsesOf_(sessionId) {
+  return readTable_('Responses').rows.filter(function (r) { return String(r.session_id) === String(sessionId); });
+}
+function isFinished_(s) { return String(s.status) === 'completed' || String(s.status) === 'timeout'; }
+
+/** Result page of one attempt (studentView_, Report.gs). asTeacher → always the full page, + student name. */
+function resultView_(session, rows, asTeacher) {
   var S = getSettings_();
-  var res = { ok: true, session_id: String(session.session_id), attempt_no: Number(session.attempt_no), show: S.show_results,
-              total: total, n: n, parts: [] };
-  try { var pf = profileFor_(String(session.form_id)); res.title = pf ? (pf.exam + ' — ' + (pf.title || '')) : ''; } catch (e) {}
-  if (S.show_results === 'none') { res.total = null; return res; }
-  var pf2 = null;
-  try { pf2 = profileFor_(String(session.form_id)); } catch (e) {}
-  if (pf2 && pf2.sections) { // SAT: score per section (RW /54, Math /44) above the module grids
-    res.sections = pf2.sections.map(function (sec) {
-      var taken = sec.parts.filter(function (p) { return g.partScores[p]; });
-      return { id: sec.id, title: sec.title || sec.id, score: taken.reduce(function (a, p) { return a + g.partScores[p].score; }, 0),
-               n: taken.reduce(function (a, p) { return a + g.partScores[p].n; }, 0) };
-    }).filter(function (x) { return x.n; });
-  }
-  g.seq.forEach(function (p) {
-    if (!g.partScores[p]) return;
-    res.parts.push({
-      part: p, title: g.partScores[p].title, score: g.partScores[p].score, n: g.partScores[p].n,
-      grid: (S.show_results === 'score_only') ? [] : g.responses.filter(function (r) { return r.part === p; }).map(function (r) {
-        return { no: r.display_no, status: r.profile === 'BLANK' ? 'blank' : (r.correct === 1 ? 'right' : 'wrong') };
-      })
-    });
-  });
-  return res;
+  var st = findStudent_(session.student_code);
+  var name = st ? String(st.name || '') : String(session.student_code);
+  var profile = profileFor_(String(session.form_id));
+  var a = analyse_(session, rows, S, name);
+  var v = studentView_(a, profile);
+  v.show = asTeacher ? 'score_and_right_wrong' : S.show_results;
+  if (asTeacher) { v.student = name; v.student_code = normCode_(session.student_code); v.teacher = true; }
+  if (v.show === 'none') return { ok: true, show: 'none', session_id: v.session_id, title: v.title, attempt: v.attempt };
+  if (v.show === 'score_only') { v.groups = []; v.review = []; v.practise = []; v.types = []; }
+  return v;
 }
 
-/** Result for an already-submitted session (from Responses). */
-function resultFor_(session) {
-  var rows = readTable_('Responses').rows.filter(function (r) { return String(r.session_id) === String(session.session_id); });
-  var profile = profileFor_(String(session.form_id));
-  var g = { seq: [], partScores: {}, responses: [] };
-  profile.parts.forEach(function (p) {
-    var pr = rows.filter(function (r) { return String(r.part) === p.part; });
-    if (!pr.length) return;
-    g.seq.push(p.part);
-    g.partScores[p.part] = { score: pr.filter(function (r) { return Number(r.correct) === 1; }).length, n: pr.length, title: p.title };
-    pr.sort(function (a, b) { return Number(a.display_no) - Number(b.display_no); }).forEach(function (r) {
-      g.responses.push({ part: p.part, display_no: Number(r.display_no), correct: r.correct === '' ? '' : Number(r.correct),
-                         profile: String(r.profile) });
-    });
+/** Questions of one finished attempt for the read-only review: the question as the student saw it + their answer,
+ *  right / wrong, time. NEVER the key (clientQuestion_ whitelist; status comes from Responses). */
+function reviewData_(session, rows) {
+  var formId = String(session.form_id);
+  var fd = formData_(formId), profile = profileFor_(formId);
+  if (!fd) throw new Error('FORM: This test is not available.');
+  var by = {};
+  rows.forEach(function (r) { by[String(r.qid)] = r; });
+  var parts = profile.parts.filter(function (p) { return rows.some(function (r) { return String(r.part) === p.part; }); }).map(function (p) {
+    return { part: p.part, title: p.title, layout: p.layout || 'single', spr_layout: p.spr_layout || '', choices: p.choices || 5 };
   });
-  var total = 0, n = 0;
-  Object.keys(g.partScores).forEach(function (p) { total += g.partScores[p].score; n += g.partScores[p].n; });
-  return buildResult_(g, total, n, session);
+  var qs = fd.questions.filter(function (q) { return by[q.qid]; }).map(function (q) {
+    var r = by[q.qid], o = clientQuestion_(q);
+    o.answer = String(r.final_answer === undefined ? '' : r.final_answer);
+    o.status = String(r.profile) === 'BLANK' || o.answer === '' ? 'blank' : (Number(r.correct) === 1 ? 'right' : 'wrong');
+    o.time_s = Math.round(Number(r.time_total_sec) || 0);
+    return o;
+  });
+  return { ok: true, session_id: String(session.session_id), title: formTitle_(profile, formId), parts: parts, questions: qs,
+           question_font: profile.question_font || '' };
 }
 
 /** My Tests → "View result" of a past attempt. */
 function getResult(code, sessionId) {
   var s = requireSession_(code, sessionId);
-  if (String(s.status) !== 'completed' && String(s.status) !== 'timeout') return { ok: false, msg: 'This attempt has not been submitted yet.' };
-  return resultFor_(s);
+  if (!isFinished_(s)) return { ok: false, msg: 'This attempt has not been submitted yet.' };
+  return resultView_(s, responsesOf_(sessionId), false);
 }
+
+/** Result page → "Review questions" (read-only; never the correct answer). */
+function getReview(code, sessionId) {
+  var s = requireSession_(code, sessionId);
+  if (!isFinished_(s)) throw new Error('SESSION: This attempt has not been submitted yet.');
+  if (getSettings_().show_results !== 'score_and_right_wrong') throw new Error('SESSION: Question review is turned off.');
+  return reviewData_(s, responsesOf_(sessionId));
+}
+
+/* ---- teacher mode: sign in with Settings!teacher_code (read-only; "Show answer" reveals one key on request) ---- */
+
+function isTeacherCode_(code) {
+  var t = String(getSettings_().teacher_code || '').trim().toUpperCase();
+  return !!t && t.length >= 4 && String(code || '').trim().toUpperCase() === t;
+}
+function requireTeacher_(code) {
+  if (!isTeacherCode_(code)) throw new Error('LOGIN: Teacher code not valid.');
+}
+
+/** Students → their finished attempts (newest first). */
+function teacherOverview(code) {
+  requireTeacher_(code);
+  var students = readTable_('Students').rows;
+  var sessions = readTable_('Sessions').rows.filter(isFinished_);
+  var titles = {};
+  var out = students.map(function (st) {
+    var c = normCode_(st.student_code);
+    var mine = sessions.filter(function (s) { return normCode_(s.student_code) === c; })
+      .sort(function (a, b) { return toMs_(b.submitted_at) - toMs_(a.submitted_at); });
+    return { code: c, name: String(st.name || c), track: String(st.track || ''), active: isYes_(st.active),
+      attempts: mine.map(function (s) {
+        var f = String(s.form_id);
+        if (!(f in titles)) { var e = regEntry_(f); titles[f] = e ? formTitle_(e.profile, f) : f; }
+        return { session_id: String(s.session_id), form_id: f, title: titles[f], attempt_no: Number(s.attempt_no) || 0,
+                 date: dateStr_(s.submitted_at), right: s.total_correct === '' ? null : Number(s.total_correct),
+                 n: Number(s.total_questions) || null, reliable: String(s.reliable || ''), sittings: Number(s.n_sittings) || 1,
+                 available: !!regEntry_(f) };
+      }) };
+  }).sort(function (a, b) { return (b.attempts.length ? 1 : 0) - (a.attempts.length ? 1 : 0) || a.name.localeCompare(b.name); });
+  return { ok: true, students: out };
+}
+function teacherSession_(code, sessionId) {
+  requireTeacher_(code);
+  var s = findSession_(sessionId);
+  if (!s || !isFinished_(s)) throw new Error('SESSION: This attempt was not found.');
+  return s;
+}
+function teacherResult(code, sessionId) {
+  var s = teacherSession_(code, sessionId);
+  return resultView_(s, responsesOf_(sessionId), true);
+}
+function teacherReview(code, sessionId) {
+  var s = teacherSession_(code, sessionId);
+  var r = reviewData_(s, responsesOf_(sessionId));
+  var st = findStudent_(s.student_code); r.student = st ? String(st.name || '') : String(s.student_code);
+  return r;
+}
+/** The key of ONE question of this attempt — only when the teacher presses "Show answer". */
+function teacherAnswer(code, sessionId, qid) {
+  var s = teacherSession_(code, sessionId);
+  var fd = formData_(String(s.form_id));
+  var q = fd && fd.questions.filter(function (x) { return x.qid === String(qid); })[0];
+  if (!q) throw new Error('SESSION: Question not found.');
+  var keys = Array.isArray(q.key) ? q.key : [q.key];
+  return { ok: true, qid: q.qid, type: q.type || 'mcq', key: keys.map(String) };
+}
+
