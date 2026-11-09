@@ -54,6 +54,8 @@ function currentStamp_() {
 }
 
 function doUpdate_() {
+  // fresh list of form files (a file uploaded just before this deploy must be seen now, not after the 10-min cache)
+  try { CacheService.getScriptCache().remove('tz_drive_idx'); _driveIdx = null; } catch (e) {}
   var steps = [
     ['headers', renameHeaders_],
     ['columns', addMissingColumns_],
