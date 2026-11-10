@@ -97,6 +97,7 @@ A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive
 - Use the test student **Minh (test)** only; never a real student's code. Never write the teacher code in a file, report, log or commit.
 - **Close the test tab when you are done.** A tab left open on an attempt is a second window of that attempt (it is stopped now, but it was the cause of QA N1 in #20).
 - Opening a form creates an attempt in Sessions; say in your report which test attempts you left (in progress / completed).
+- Test attempts of Minh (test) are hidden (Sessions.hidden = Yes, menu Test Zone → Hide attempts…): they stay out of Report, Student_Report, Topic_Summary and the teacher lists.
 
 ## Layout
 
