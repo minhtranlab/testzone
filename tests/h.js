@@ -69,3 +69,28 @@ async function satTotal(page) {
   return t[0] + ' / ' + t[1];
 }
 module.exports = { setup, sleep, shot, grab, englishOnly, login, waitMath, check, summary, SHOTS, satTotal };
+
+/** #27: badges sit inside the question cells (40 × 46: number row 20 px, symbol row 18 px); the badge centre = the ✓ / ✗ centre. */
+async function badgeLayout(page) {
+  return page.evaluate(() => {
+    const cells = [...document.querySelectorAll('#result-body .rgrid .rcell')];
+    const out = { cells: cells.length, size: true, sym: true, R: 0, S: 0, dy: [], badgeH: [], chipsWithBadge: document.querySelectorAll('#result-body .qchip .bdg, #result-body .qchip svg').length,
+                  keys: document.querySelectorAll('#result-body .res-part .grid-key').length, parts: document.querySelectorAll('#result-body .res-part').length,
+                  oldKey: document.querySelectorAll('#result-body .bdg-key, #result-body .res-legend').length, types: [] };
+    cells.forEach(c => {
+      const r = c.getBoundingClientRect(); if (Math.abs(r.width - 40) > 0.5 || Math.abs(r.height - 46) > 0.5) out.size = false;
+      const rs = c.querySelector('.rs'), b = c.dataset.badge, st = c.classList.contains('right') ? 'right' : c.classList.contains('wrong') ? 'wrong' : 'blank';
+      const svg = rs && rs.querySelector('svg'), txt = rs ? rs.textContent.trim() : '';
+      const want = b ? (svg && svg.getAttribute('aria-label') === (b === 'R' ? 'rushed' : 'slow')) : st === 'right' ? txt === '✓' : st === 'wrong' ? txt === '✗' : txt === '' && !svg;
+      if (!want || (b === 'R' && st !== 'wrong')) out.sym = false;
+      if (b) out[b]++;
+      // vertical centre of the symbol inside its cell (badge: the svg box; ✓ / ✗: a range around the glyph)
+      let box; if (svg) { box = svg.getBoundingClientRect(); out.badgeH.push(+box.height.toFixed(1)); } else if (txt) { const rg = document.createRange(); rg.selectNodeContents(rs); box = rg.getBoundingClientRect(); }
+      if (box) out.dy.push(+((box.top + box.height / 2) - r.top).toFixed(1));
+    });
+    document.querySelectorAll('#result-body .res-types tr').forEach(tr => { const rs = tr.querySelector('.tg .rcell .rs'); const svg = rs && rs.querySelector('svg');
+      out.types.push(tr.querySelector('.tl').textContent + '=' + (svg ? svg.getAttribute('aria-label') : rs ? rs.textContent.trim() || '·' : '?')); });
+    return out;
+  });
+}
+module.exports.badgeLayout = badgeLayout;

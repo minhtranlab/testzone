@@ -39,6 +39,16 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   check(practise.length >= 1 && practise.length <= 4 && !practise.some(t => /\bQ\d|A-\d\d/.test(t)), 'what to practise first: 1–4 short tips, no question list (' + practise.join(' | ') + ')');
   check((await page.$$eval('.skill .qchip.wrong', a => a.map(x => x.firstChild.textContent))).includes('A-02') && await page.$$eval('.skill .qchip.blank', a => a.length) >= 1, 'skills: missed questions as chips (A-02 red, blank grey)');
   await shot(page, 'r2_result');
+  {
+    const L = await H.badgeLayout(page), dy = [...new Set(L.dy)], bh = [...new Set(L.badgeH)];
+    console.log('   #27 cells ' + L.cells + ', R ' + L.R + ', S ' + L.S + ', symbol centres ' + dy.join('/') + ' px, badge heights ' + bh.join('/') + ' · types: ' + L.types.join(', '));
+    check(L.cells === 4 && L.size && L.sym && L.R >= 1, '#27 grid: 40×46 cells; centre = ✓ / ✗ / R / S badge / nothing (blank)');
+    check(dy.length === 1 && bh.every(h => Math.abs(h - 16.2) < 0.15), '#27 every badge at the same height as the ✓ / ✗ marks (' + dy[0] + ' px), badge 12.6 × 16.2');
+    check(L.types.join() === "Rushed and wrong=rushed,Didn't know (slow and wrong)=slow,Wrong=✗,Slow but right=slow,Blank=·", '#27 types of mistakes: icon = cell with the tag inside');
+    check(L.chipsWithBadge === 0 && L.oldKey === 0 && L.keys === L.parts && L.parts >= 1, '#27 chips show only the code, no separate S/R line, a small key under each grid');
+    await page.evaluate(() => document.querySelector('.res-types').scrollIntoView());
+    await page.screenshot({ path: H.SHOTS + '/r27_types_3x.png', clip: await page.evaluate(() => { const r = document.querySelector('.res-types').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }) });
+  }
   await page.setViewportSize({ width: 1100, height: 420 });
   await page.evaluate(() => { document.querySelector('#result-body .rgrid .rcell.wrong').scrollIntoView({ block: 'center' }); });
   const y0 = await page.evaluate(() => document.querySelector('#scr-result').scrollTop);
@@ -78,6 +88,7 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   await tp.fill('#t-filter', 'nobody'); check(/No students match/.test(await tp.textContent('#t-list')), 'filter'); await tp.fill('#t-filter', '');
   await tp.click(`.t-open[data-sid="${sid}"]`); await tp.waitForSelector('#scr-result.on .score-total');
   check(/Test Student — Results/.test(await tp.textContent('#result-body')) && (await tp.textContent('.score-total')).trim() === '2 / 4', 'teacher sees the student\'s result page (same score)');
+  { const L = await H.badgeLayout(tp); check(L.cells === 4 && L.size && L.sym && L.R >= 1 && new Set(L.dy).size === 1 && L.chipsWithBadge === 0 && L.keys === L.parts, '#27 teacher page: same cells + badges inside (R ' + L.R + ')'); }
   await tp.setViewportSize({ width: 1100, height: 420 });
   await tp.evaluate(() => { document.querySelector('#result-body .rgrid .rcell.wrong').scrollIntoView({ block: 'center' }); });
   const ty0 = await tp.evaluate(() => document.querySelector('#scr-result').scrollTop);

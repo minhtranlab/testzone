@@ -47,6 +47,7 @@ const FORM = 'MOCK-SAT98', MIN = 60000;
   check(/Results by skill/.test(await page.textContent('#result-body')) && /Reading and Writing/.test(await page.textContent('.skill-card')), 'skills grouped by section → domain');
   check(!res.sittings_note, 'one sitting: no sittings note');
   console.log('[review = the test screen (#24 G), SAT]');
+  { const L = await H.badgeLayout(page); check(L.cells === 98 && L.size && L.sym && new Set(L.dy).size === 1 && L.chipsWithBadge === 0 && L.keys === 4 && L.oldKey === 0, `#27 SAT grids: 98 cells 40×46, centre symbol / badge at one height (R ${L.R}, S ${L.S}), key under each of the 4 grids`); }
   check(await page.$$eval('.rgrid .rcell .bdg', a => a.length) >= 0 && !/questions correct/.test(await page.textContent('#result-body')), 'SAT result: no overall "x / 98 questions correct" line');
   await page.click('.res-part:has-text("Section 2, Module 1") .rgrid .rcell'); await page.waitForSelector('#scr-test.on.viewing #qwrap .q.on');
   check(await page.isVisible('#tool-calc') && await page.isVisible('#tool-ref') && !(await page.isVisible('#timer')) && /M1-01/.test(await page.textContent('#view-bar')), 'Math question: Calculator + Reference, no timer, code M1-01');

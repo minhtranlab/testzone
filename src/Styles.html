@@ -371,16 +371,18 @@ mark.app-mode { background: #e8f0fe; color: var(--blue); font-weight: 700; paddi
 .qchip.wrong { color: var(--red); border-color: var(--red); background: #fdf0f2; }
 .qchip.blank { color: var(--muted); border-color: #a9a9a9; background: var(--bg-2); border-style: dashed; }
 .qchip.right { color: var(--green); border-color: var(--green); background: #eef8f1; }
-.bdg { display: inline-block; min-width: 15px; height: 15px; line-height: 13px; font-size: 10px; font-weight: 900; text-align: center; border-radius: 3px; margin-left: 4px; font-style: normal; vertical-align: 1px; }
-.bdg.S { background: #ffd400; color: #000; border: 1px solid #000; }
-.bdg.R { background: #fff; color: var(--red); border: 1.5px solid var(--red); }
-.rcell { position: relative; }
-.rcell .bdg { position: absolute; top: -6px; right: -6px; margin: 0; }
-.rcell.xs { width: 26px; height: 26px; display: inline-flex; }
+/* #27 badges inside the question cells (Minh's mock "Test Zone Huy Hiệu Mẫu B"): the R / S letter is as tall as the question number */
+.bdg { display: inline-block; line-height: 0; vertical-align: middle; }
+.bdg svg { width: 12.6px; height: 16.2px; display: block; }
+.rgrid .rcell { width: 40px; height: 46px; padding: 0; box-sizing: border-box; display: grid; grid-template-rows: 20px 18px; align-content: center; justify-items: center; row-gap: 1px; font-size: 13px; }
+.rgrid .rcell .rn { line-height: 20px; }
+.rcell .rs { font-style: normal; font-size: 15px; line-height: 18px; height: 18px; display: grid; place-items: center; margin: 0; }
+.rcell.xs { width: 26px; height: 26px; padding: 0; box-sizing: border-box; display: inline-grid; place-items: center; font-size: 14px; vertical-align: middle; }
+.grid-key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.grid-key > span { display: inline-flex; align-items: center; gap: 7px; }
 .res-types .tg { width: 40px; }
 .res-legend .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; margin-right: 5px; vertical-align: -1px; }
 .lg.right { border-color: var(--green); background: #eef8f1; } .lg.wrong { border-color: var(--red); background: #fdf0f2; } .lg.blank { border-color: #a9a9a9; border-style: dashed; }
-.bdg-key { font-size: 13px; margin-top: 6px; }
 /* the review in the test screen (#24 G) */
 #view-bar { display: none; } #btn-view-back { display: none; }
 #scr-test.viewing #view-bar { display: flex; }

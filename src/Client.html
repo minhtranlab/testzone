@@ -898,8 +898,18 @@
       esc($('.app-name').textContent) + '</span></div><button class="btn-outline" id="' + btnId + '" type="button">' + btnLabel + '</button></div>';
   }
   /** A question cell / chip (#24 D, E): status colour + S (slow) / R (rushed) badge; opens the question. */
-  function bdg(b) { return b ? '<b class="bdg ' + b + '" title="' + (b === 'S' ? 'Slow' : 'Rushed') + '">' + b + '</b>' : ''; }
-  function qchip(q) { return '<button type="button" class="qchip ' + q.status + '" data-qid="' + esc(q.qid) + '">' + esc(q.code) + bdg(q.badge) + '</button>'; }
+  // S / R badges (#27, Minh's mock "Test Zone Huy Hiệu Mẫu B"): real Inter Black letter outlines, portrait 14 × 18 tag
+  var BDG_SVG = {
+    R: '<svg class="b" viewBox="0 0 14 18" aria-label="rushed" role="img"><rect width="14" height="18" rx="2" fill="#e30613"/><path d="M2.82 14H5.53V10.7H6.47L8.23 14H11.18L9.14 10.27C10.21 9.76 10.85 8.79 10.85 7.4C10.85 5.28 9.36 4 7.13 4H2.82ZM5.53 8.59V6.17H6.48C7.44 6.17 8.01 6.54 8.01 7.4C8.01 8.26 7.44 8.59 6.48 8.59Z" fill="#fff"/></svg>',
+    S: '<svg class="b" viewBox="0 0 14 18" aria-label="slow" role="img"><rect x=".6" y=".6" width="12.8" height="16.8" rx="1.6" fill="#ffcc00" stroke="#111" stroke-width="1.2"/><path d="M7.13 14C9.6 14 11.08 12.93 11.08 11C11.08 9.52 10.19 8.48 8.03 8.02L7.24 7.85C6.31 7.65 5.93 7.38 5.93 6.92C5.93 6.49 6.29 6.17 7.1 6.17C7.96 6.17 8.37 6.55 8.41 7.18H10.95C10.94 5.27 9.47 4 7.1 4C4.79 4 3.16 5.25 3.16 7.1C3.16 8.63 4.22 9.48 5.94 9.85L6.92 10.06C8 10.29 8.39 10.56 8.39 11C8.39 11.49 7.94 11.83 7.09 11.83C6.07 11.83 5.48 11.35 5.43 10.45H2.92C2.93 12.9 4.59 14 7.13 14Z" fill="#111"/></svg>'
+  };
+  function bdg(b) { return BDG_SVG[b] ? '<span class="bdg ' + b + '" title="' + (b === 'S' ? 'Slow' : 'Rushed') + '">' + BDG_SVG[b] + '</span>' : ''; }
+  /** a question cell's centre symbol: the badge where it applies, else ✓ / ✗ (blank: nothing) */
+  function cellSym(status, badge) { return badge ? bdg(badge) : status === 'right' ? '✓' : status === 'wrong' ? '✗' : ''; }
+  function qcell(status, badge) { return '<span class="rcell xs ' + status + '"><i class="rs">' + cellSym(status, badge) + '</i></span>'; }
+  function qchip(q) { return '<button type="button" class="qchip ' + q.status + '" data-qid="' + esc(q.qid) + '">' + esc(q.code) + '</button>'; }
+  var GRID_KEY = [['right', '', 'Right'], ['wrong', '', 'Wrong'], ['wrong', 'R', 'Rushed and wrong'], ['wrong', 'S', 'Didn\'t know (slow and wrong)'], ['right', 'S', 'Slow but right'], ['blank', '', 'Blank']];
+  function gridKeyHtml() { return '<div class="grid-key">' + GRID_KEY.map(function (k) { return '<span>' + qcell(k[0], k[1]) + k[2] + '</span>'; }).join('') + '</div>'; }
   function practiseHtml(x) {
     if (typeof x === 'string') return esc(x);
     return esc(x.text) + (x.mode ? '<div class="pr-app">Practise: <mark class="app-mode">' + esc(x.mode) + '</mark> in the ' + esc(x.app || 'practice app') + '</div>' : '');
@@ -963,20 +973,18 @@
     // types of mistakes: legend (cell + badge) and the questions of each type (#24 E)
     if (res.valid && res.types && res.types.length) {
       h += '<h2 class="res-h">Types of mistakes</h2><table class="res-types">' + res.types.map(function (t) {
-        return '<tr class="' + (t.n ? '' : 'zero') + '"><td class="tg"><span class="rcell xs ' + t.status + '">' + bdg(t.badge) + '</span></td><td class="tl">' + esc(t.label) + '</td><td class="tn">' + t.n + '</td>' +
-          '<td>' + esc(t.meaning) + ((t.qs || []).length ? '<div class="chips">' + t.qs.map(qchip).join('') + '</div>' : '') + '</td></tr>'; }).join('') + '</table>' +
-        '<p class="muted bdg-key">' + bdg('S') + ' slow (longer than usual for this type of question) · ' + bdg('R') + ' rushed (much faster than usual and wrong). Open a question to try it again.</p>';
+        return '<tr class="' + (t.n ? '' : 'zero') + '"><td class="tg">' + qcell(t.status, t.badge) + '</td><td class="tl">' + esc(t.label) + '</td><td class="tn">' + t.n + '</td>' +
+          '<td>' + esc(t.meaning) + ((t.qs || []).length ? '<div class="chips">' + t.qs.map(qchip).join('') + '</div>' : '') + '</td></tr>'; }).join('') + '</table>';
     }
     // question grids per module
     if (res.review && res.review.length) {
       h += '<h2 class="res-h">Review your questions</h2><p class="muted" style="margin-top:-6px">' +
         (teacher ? 'Open a question: it looks like the test (tools, calculator) with the student\'s answer. "Show answer" reveals the correct answer.' :
                    'Open a question to see it again with your answer and whether it was right. The correct answers are not shown.') + '</p>';
-      h += '<div class="res-legend"><span><i class="lg right"></i>correct</span><span><i class="lg wrong"></i>incorrect</span><span><i class="lg blank"></i>not answered</span><span>' + bdg('S') + ' slow</span><span>' + bdg('R') + ' rushed</span></div>';
       res.review.forEach(function (p) {
         var r = p.questions.filter(function (q) { return q.status === 'right'; }).length;
         h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid">' +
-          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" title="' + esc(q.code) + '">' + q.no + bdg(q.badge) + '</button>'; }).join('') + '</div></div>';
+          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i></button>'; }).join('') + '</div>' + gridKeyHtml() + '</div>';
       });
     }
     h += '</div>';
