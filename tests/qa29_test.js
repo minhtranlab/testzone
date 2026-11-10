@@ -28,7 +28,7 @@ check(dv(3).kind === 'list' && ['RW', 'MATH', 'RW1', 'RW2', 'M1', 'M2', 'M1, M2'
 check(dv(4).kind === 'list' && dv(4).list.join() === 'Yes,No' && dv(1).kind === 'range', 'active = Yes / No; student_code = dropdown from Students');
 check(/Assignments: created/.test(String(G.table('Settings').find(r => r.key === 'code_version').meaning)), 'update line says "Assignments: created"');
 const dict = G.table('Dictionary').filter(r => r.tab === 'Assignments').map(r => r.column).join();
-check(dict === 'student_code,form,parts,active,note' && G.sheets.README.rows.some(r => r[0] === 'Assignments' && /Math Module 1/.test(r[1])), 'README + Dictionary explain the tab');
+check(dict === 'student_code,form,parts,active,note' && G.sheets.README.rows.some(r => r[0] === 'Giao một phần đề?' && /Assignments/.test(r[1])), 'README + Dictionary explain the tab');
 
 console.log('[part codes]');
 const pS = C.profileFor_(SAT), pA = C.profileFor_(AP);

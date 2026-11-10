@@ -157,7 +157,23 @@
       var box = $('#home-list'); box.innerHTML = '';
       if (!r.forms.length) { box.innerHTML = '<div class="empty">No tests for your program yet. Ask your teacher.</div>'; return; }
       r.forms.forEach(function (f) { box.appendChild(formCard(f)); });
+      if (r.past && r.past.length) box.appendChild(pastList(r.past));
     }).catch(function (e) { $('#home-list').innerHTML = '<div class="empty">Could not load your tests: ' + esc(errMsg(e)) + ' <br><br><button class="btn-outline" onclick="location.reload()">Reload</button></div>'; });
+  }
+  /** #32 n1: attempts of assignments that are no longer active — View result only. */
+  function pastList(items) {
+    var d = el('div', { class: 'past-asg' });
+    d.innerHTML = '<h3>Past assignments</h3>';
+    items.forEach(function (f) {
+      f.attempts.slice().reverse().forEach(function (a) {
+        var row = el('div', { class: 'past-row' }), finished = a.status === 'completed' || a.status === 'timeout';
+        row.innerHTML = '<span class="pa-t">' + esc(cardTitle(f.exam, f.title)) + ' · #' + a.attempt_no + '</span><span class="pa-d">' + esc(a.submitted_at || a.started_at) + '</span>' +
+          '<span class="pa-s">' + (finished && a.total_correct !== null ? a.total_correct + ' / ' + a.total_questions : 'Not finished') + '</span>';
+        if (finished) { var b = el('button', { class: 'btn-plain', type: 'button' }, 'View result'); b.onclick = function () { openResult(a.session_id); }; row.appendChild(b); }
+        d.appendChild(row);
+      });
+    });
+    return d;
   }
   /** "SAT · August 2026" stays as it is; "Practice Exam 2012" → "AP Calculus AB — Practice Exam 2012". */
   function cardTitle(exam, title) { exam = exam || ''; title = title || ''; return !title ? exam : (title.indexOf(exam) === 0 ? title : exam + ' — ' + title); }
@@ -224,7 +240,11 @@
 
   /* ================= load / resume a test ================= */
   function openTest(formId, opts) {
+    // #32 t2: no old header / timer / "Saved …" while the test loads
+    var scr = $('#scr-test'); scr.classList.remove('viewing', 'ro');
+    $('#tb-title').textContent = ''; var vb = $('#view-bar'); if (vb) vb.innerHTML = ''; setSaveDot('');
     show('scr-test'); view('v-wait');
+    $('#timer').style.visibility = 'hidden';
     $('#v-wait').innerHTML = '<div class="page"><div class="spinner"></div><p class="lead">Loading your test…</p></div>';
     $('#fb-name').textContent = A.student.name;
     opts = opts || {}; opts.device = deviceStr();

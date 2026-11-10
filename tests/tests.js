@@ -374,7 +374,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   G.admin('syncSheetTexts');
   const dict = G.table('Dictionary');
   check(dict.length > 100 && dict.some(r => r.tab === 'Sessions' && r.column === 'score_RW / score_Math' && /Reading and Writing/.test(r.meaning)) && dict.some(r => r.tab === 'Forms' && r.column === 'data_file_id'), 'Dictionary written in English from SheetText.gs (incl. new columns)');
-  check(!G.table('README').concat(G.table('Interpretation')).some(r => /[ạảãầấậẩẫăằắặẳẵẹẻẽềếệểễịỉĩọỏõồốộổỗơờớợởỡụủũưừứựửữỳỵỷỹđ]/i.test(JSON.stringify(r))), 'README + Interpretation in English (no Vietnamese letters)');
+  check(!G.table('Interpretation').some(r => /[ạảãầấậẩẫăằắặẳẵẹẻẽềếệểễịỉĩọỏõồốộổỗơờớợởỡụủũưừứựửữỳỵỷỹđ]/i.test(JSON.stringify(r))), 'Interpretation in English (no Vietnamese letters; README is Vietnamese since v1.11)');
 
   H.englishOnly(E);
   const fails = H.summary();

@@ -125,7 +125,7 @@ function ensureAssignments_() {
     sh.getRange(1, 1, 1, ASSIGN_HEADERS.length).setValues([ASSIGN_HEADERS]);
     var test = null;
     try { test = readTable_('Students').rows.filter(function (r) { return /\(test\)/i.test(String(r.name)); })[0]; } catch (e) {}
-    var sat = formIds_().filter(function (f) { return /^SAT/.test(f); })[0] || formIds_()[0] || '';
+    var sat = formIds_().filter(function (f) { var pf = profileFor_(f, true); return pf && isSat_(pf); })[0] || '';
     if (test && sat) sh.getRange(2, 1, 1, 5).setValues([[normCode_(test.student_code), sat, 'M1', 'No', 'Example: only Math Module 1. Set active to Yes to show it.']]);
     try { sh.setFrozenRows(1); sh.getRange(1, 1, 1, ASSIGN_HEADERS.length).setFontWeight('bold'); sh.setColumnWidth(5, 360); } catch (e) {}
     made = true;
@@ -158,6 +158,7 @@ function checkAssignments_() {
     if (!codes[normCode_(r.student_code)]) { out.push('✗ ' + where + 'student_code ' + r.student_code + ' is not in Students'); problems++; return; }
     if (!prof) { out.push('✗ ' + where + 'form ' + r.form + ' is not a form id'); problems++; return; }
     if (!parseParts_(prof, r.parts)) { out.push('✗ ' + where + 'parts "' + r.parts + '" do not fit ' + r.form + ' (' + (isSat_(prof) ? 'RW, MATH, RW1, RW2, M1, M2' : prof.parts.map(function (p) { return p.part; }).join(', ')) + ')'); problems++; return; }
+    if (scopeKey_(prof, parseParts_(prof, r.parts)) === 'full') out.push('⚠ ' + where + 'parts "' + r.parts + '" = the whole form (Full test): only useful for a student whose track does not have ' + r.form + ' (others already see it)');
     if (isYes_(r.active)) act++;
   });
   out.unshift('· Assignments: ' + rows.length + ' rows, ' + act + ' active');

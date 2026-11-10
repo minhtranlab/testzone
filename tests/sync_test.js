@@ -39,7 +39,7 @@ const set = G.table('Settings');
 check(set.some(s => s.key === 'teacher_code' && s.value === '') && set.find(s => s.key === 'app_name').meaning === 'Name shown in the app', 'Settings: teacher_code row added (empty = off), meanings in English');
 check(/^v1\.\d.* · dev$/.test(set.find(s => s.key === 'code_version').value), 'code_version stamp updated');
 const readme = G.sheets.README.rows.map(r => (r || []).join(' ')).join('\n');
-check(/Start in the Report tab/.test(readme) && !/Sheet này/.test(readme) && G.sheets.README.rows.length >= 30, 'README rewritten in English (old rows gone)');
+check(/Xem kết quả một bài ở đâu\?/.test(readme) && !/database của app/.test(readme) && G.sheets.README.rows.filter(r => (r || []).some(String)).length === G.ctx.README_ROWS_.filter(r => !Array.isArray(r) || r.length).length, 'README rewritten (Vietnamese, v1.11; old rows gone)');
 check(G.table('Dictionary').length > 100 && !G.table('Dictionary').some(x => /trạng thái/.test(x.meaning || '')), 'Dictionary rewritten in English');
 check(G.order.includes('Score_Scale') && G.sheets.Score_Scale.rows.length >= 152 && G.sheets.Score_Scale.rows[0][13] === 'key', 'Score_Scale tab created (scale A:L + rules N:P)');
 G.sheets.Score_Scale.rows[1 + 0][13]; // rules row exists

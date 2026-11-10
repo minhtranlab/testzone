@@ -1,45 +1,41 @@
 /**
- * Test Zone — the text tabs of the Sheet (English since 2026-11-09). Written by syncSheetTexts_() (Sync.gs) on every
+ * Test Zone — the text tabs of the Sheet (English since 2026-11-09; README in Vietnamese since v1.11, Minh's request). Written by syncSheetTexts_() (Sync.gs) on every
  * deploy, so README / Interpretation / Dictionary and the Settings "meaning" column always match the code.
  * Edit the text HERE (then push), not in the Sheet: edits made in those tabs are overwritten by the next deploy.
  */
 
+/** README (#32): Vietnamese and short, by Minh's request (the one exception to "the Sheet is in English"; tab / column
+ *  names stay English). Rows with q: true are Minh's questions: light-yellow cells, bold question (writeReadme_, Sync.gs). */
 var README_ROWS_ = [
-  ['Test Zone – Data'],
-  ['This Sheet is the database of the Test Zone app. The app writes the data; the teacher only reads it and edits the tabs Students, Assignments, Settings, Score_Scale, Time_Norms, the Questions keys and the tutor_note column.'],
-  ['Start in the Report tab: pick an attempt in cell B2.', 'Report of one attempt: score (and estimated SAT score), reliable or not, summary, next steps, by unit / domain, error types, time per question, wrong answers. Menu Test Zone → Refresh report updates the list.'],
-  ['Teacher view in the app', 'Sign in to the app with Settings → teacher_code: students → attempts → the result page the student saw → every question with the student\'s answer; "Show answer" reveals the key.'],
+  ['Test Zone – Data', 'Sheet này là dữ liệu của app Test Zone. App tự ghi; thầy chỉ sửa các tab Students, Assignments, Questions (cột key), Settings, Time_Norms, Score_Scale.'],
   [],
-  ['Read in this order'],
-  ['1. Report', 'Full report of one attempt (pick it in B2).'],
-  ['2. Student_Report', 'One row per attempt: score, estimated SAT score, weakest units / domains, main error type, timing, summary, reliable, sittings.'],
-  ['3. Topic_Summary', 'Student × unit / topic (AP CED) or domain / skill (SAT): accuracy, time against standard time, counts per error type, verdict. Reliable attempts only.'],
-  ['4. Interpretation', 'What the result types, flags, thresholds and the reliability rule mean, with a teaching suggestion for each.'],
-  ['5. Responses', 'Every question of every attempt: first / final answer, changes, time, marked for review, result type.'],
-  ['6. Sessions', 'One row per attempt: start, submit, scores, time used, status (paused = a part is done, the rest comes later).'],
-  ['7. Part_Log', 'One row per part (module) of an attempt: start / end time, submitted or time up, which sitting.'],
-  ['8. Events', 'Raw log of every action (open question, choose, cross out, calculator…). Only for close checks.'],
+  { q: true, row: ['Xem kết quả một bài ở đâu?', 'Tab Report: chọn bài ở ô B2 → báo cáo đầy đủ + biểu đồ thời gian từng câu.'] },
+  { q: true, row: ['Danh sách mọi bài của mọi em?', 'Tab Student_Report: mỗi bài một dòng (điểm, điểm ước tính, có tin được không, nhận xét).'] },
+  { q: true, row: ['Xem từng câu em chọn gì, đúng sai?', 'Vào app bằng mã giáo viên (Settings → teacher_code): chọn em → chọn bài → bấm từng câu. Dữ liệu gốc: tab Responses.'] },
+  { q: true, row: ['Học sinh đang làm thì xem ở đâu?', 'Tab Sessions, cột progress: phần đang làm, số câu đã trả lời, câu đang ở, thời gian còn lại (ví dụ "M1 · 14/22 answered · Q15 · 12:30 left"); last_saved_at = lần lưu gần nhất (khoảng mỗi phút). status: in_progress = đang làm, paused = tạm dừng. Kết quả chỉ có sau khi em nộp bài.'] },
+  { q: true, row: ['Bài "paused" là gì?', 'Em đã bấm Save and Continue Later, chưa nộp. Em mở lại app, làm tiếp và nộp thì mới có kết quả.'] },
+  { q: true, row: ['Ẩn bài cũ / bài thử?', 'Menu Test Zone → Hide attempts…: gõ mã học sinh (ẩn mọi bài của em đó) hoặc để trống (ẩn bài đang chọn ở Report!B2). Bài ẩn không còn ở Report, Student_Report, Topic_Summary và chế độ giáo viên; dữ liệu gốc vẫn giữ (Sessions, cột hidden = Yes). Hiện lại: menu Test Zone → Show hidden attempts.'] },
+  { q: true, row: ['Giao một phần đề?', 'Tab Assignments: (1) chọn student_code và form; (2) cột parts: RW, MATH, RW1, RW2, M1, M2 (nhiều phần: M1, M2; đề AP: A hoặc B); (3) active = Yes → em thấy thẻ "Assigned by your teacher" ở đầu My Tests; (4) xong thì active = No (bài đã làm vẫn giữ, em xem lại ở "Past assignments").'] },
+  { q: true, row: ['Sửa đáp án?', 'Tab Questions, cột key (SPR: nhiều đáp án cách nhau bằng |; phân số gõ dấu \' trước, ví dụ \'3/4). Rồi menu Test Zone → Re-grade after a key change.'] },
   [],
-  ['Settings tabs'],
-  ['Students', 'Add students: login code (hard to guess, e.g. AN-7Q4), name, track (AP Calc AB / SAT / ALL). active = No locks the code.'],
-  ['Assignments', 'Give one student only part of a form (e.g. only Math Module 1). One row: student_code, form (dropdown), parts (dropdown: SAT RW, MATH, RW1, RW2, M1, M2 — several with a comma, e.g. M1, M2; AP A, B), active = Yes. The student then sees an extra card at the top of My Tests ("Assigned by your teacher"); active = No hides it again (attempts are kept). A whole section (RW or MATH) gets that section\'s estimated score; a single module gets no estimated score.'],
-  ['Questions', 'Question metadata: key, unit / topic, difficulty, flags. No question text. The key here is the one used for grading: change it here to fix a key (SPR: accepted answers separated by |; type an apostrophe before a fraction such as \'3/4). Then menu Test Zone → Re-grade after a key change: submitted attempts are graded again (also done after every new version).'],
-  ['Forms', 'Forms and their parts / modules (questions, minutes, calculator). data_file_id = the form file on Drive (filled automatically).'],
-  ['Settings', 'Thresholds, reliability rule, teacher_code, Desmos key. Change values here, not in the code.'],
-  ['Time_Norms', 'Usual time per question type + difficulty (seconds): target, fast_below (= rushed), slow_above (= slow). Editable; after a change use menu Test Zone → Re-grade after a key change (also done after every new version).'],
-  ['Score_Scale', 'SAT estimated score: raw → scaled table (route hard) and the rules (weights, thresholds, range widths). Editable; the app reads it on every result.'],
-  ['Dictionary', 'Meaning of every column of every tab.'],
-  [],
-  ['Rules'],
-  ['Do not edit by hand', 'Sessions, Responses, Events, Part_Log (written by the app); Student_Report, Topic_Summary, Report (recomputed by the app); README, Interpretation, Dictionary (written from the code).'],
-  ['Privacy', 'Question content is only for Minh\'s students (the AP exam is College Board classroom material; the SAT forms are third-party). Never share this Sheet, the app or the form files publicly.'],
-  ['Retakes', 'Students choose a test and may retake it as often as they like; attempt_no goes up.'],
-  ['Breaks (AP)', 'After Part A the student may press "Save and Continue Later" and do Part B another day. Part B time starts only at Begin.'],
-  ['SAT forms', 'Five predicted forms (third-party, not College Board): SAT · August 2026, September 2026 A / B, October 2026, November 2026. Each: RW Module 1 + 2 (27 questions, 32 min each), 10-minute break, Math Module 1 + 2 (22 questions, 35 min each, Desmos + Reference). Students with track SAT (or ALL) see them.'],
-  ['SAT break', 'RW1 → RW2 and M1 → M2 run straight on, like the real test. The 10-minute break shows a countdown; at 0:00 Math Module 1 starts by itself. Only on the break screen can the student press "Save and Continue Later". An attempt done in 2+ sittings is marked on the result and in the reports.'],
-  ['SAT in the reports', 'Grouped by domain (e.g. Standard English Conventions), then skill. Score "RW x/54 · Math y/44 · total z/98" plus the estimated score (400–1600) from Score_Scale. Topic_Summary: form_id ALL-SAT = every reliable SAT attempt (AP: ALL).'],
-  ['Part attempts', 'An attempt of an assignment has Sessions.scope = its parts (e.g. M1); full tests have scope full (blank in older rows). Student_Report.scope and the Report tab show "Part: Math Module 1"; Topic_Summary keeps them apart (form_id "SAT-2026-08 · Part: Math Module 1"); the ALL / ALL-SAT rows include them.'],
-  ['SAT keys', 'key_source = the key printed in the source file; key = the key the app uses (the same unless Minh changed it — flag key_changed_by_minh).']
+  ['Các tab khác'],
+  ['Report', 'Báo cáo một bài (chọn ở B2).'],
+  ['Student_Report', 'Mỗi bài một dòng; cột scope: Full test hoặc Part: … (bài giao một phần).'],
+  ['Topic_Summary', 'Từng em × từng kỹ năng: tỉ lệ đúng, thời gian, nhận xét (chỉ bài tin được).'],
+  ['Interpretation', 'Nghĩa của các loại lỗi, cờ và ngưỡng (tiếng Anh).'],
+  ['Dictionary', 'Nghĩa từng cột của mọi tab (tiếng Anh).'],
+  ['Responses', 'Từng câu của từng bài (dữ liệu gốc, ghi khi nộp bài).'],
+  ['Sessions', 'Mỗi bài một dòng: bắt đầu, nộp, điểm, status, progress, hidden.'],
+  ['Part_Log', 'Từng phần (module) của từng bài: giờ bắt đầu / kết thúc, lần ngồi.'],
+  ['Events', 'Nhật ký mọi thao tác (chỉ để kiểm tra kỹ).'],
+  ['Students', 'Mã đăng nhập, tên, track (AP Calc AB / SAT / ALL); active = No là khóa mã.'],
+  ['Assignments', 'Giao một phần đề (xem trên).'],
+  ['Questions', 'Đáp án và thông tin câu hỏi (không có nội dung câu).'],
+  ['Forms', 'Các đề và phần (số câu, phút, máy tính).'],
+  ['Settings', 'Ngưỡng, teacher_code, Desmos key.'],
+  ['Time_Norms', 'Thời gian thường của từng loại câu (giây); sửa xong dùng Re-grade after a key change.'],
+  ['Score_Scale', 'Bảng quy đổi điểm SAT ước tính.'],
+  ['Không sửa tay', 'Sessions, Responses, Events, Part_Log, Student_Report, Topic_Summary, Report, README, Interpretation, Dictionary (app tự ghi; README / Interpretation / Dictionary được ghi lại sau mỗi bản mới).']
 ];
 
 var INTERPRETATION_ROWS_ = [
@@ -131,6 +127,8 @@ var DICTIONARY_ROWS_ = [
   ['Sessions', 'events_saved', 'Events already written to the Events tab', '214'],
   ['Sessions', 'state_json', 'Saved test state (answers, marks, crossed-out choices…) to resume after a reload or lost connection. Do not edit', '{"parts":{…}}'],
   ['Sessions', 'reliable', 'Yes = a real attempt that can be used. No = not reliable (too little time, many answers under 15 s, or many blanks; see Interpretation). No = left out of Topic_Summary', 'No'],
+  ['Sessions', 'progress', 'Live progress, written at every autosave: part · answered · current question · time left; "Break before Math", "Paused before Math", "Submitted"', 'M1 · 14/22 answered · Q15 · 12:30 left'],
+  ['Sessions', 'hidden', 'Yes = hidden by the menu Test Zone → Hide attempts… (not in Report, Student_Report, Topic_Summary, teacher lists; rows kept). Blank = shown', 'Yes'],
   ['Sessions', 'scope', 'full = the whole form; otherwise the parts of an assignment (Assignments tab). Blank = full (attempts from before v1.10)', 'M1'],
   ['Sessions', 'copy_token', 'Set by the app each time the attempt is opened: only the most recently opened window may save or submit (another open window of the same attempt is stopped)', 'k3x9…'],
   ['Sessions', 'n_sittings', '1 = done in one go; 2+ = continued later (Save and Continue Later, or back after more than 30 minutes)', '2'],

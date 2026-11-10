@@ -255,7 +255,7 @@ function analyse_(session, rows, S, studentName) {
     qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer }; }),
     wrong: wrongList, std_text: stdText, timing: timing, types: types,
     sat: sat, sections: sections, paces: paces, estimate: estimate, estimate_text: estimate ? satEstimateText_(estimate) : '',
-    score_line: sat ? sections.map(function (x) { return x.id + ' ' + x.right + '/' + x.n; }).join(' · ') + ' · total ' + right + '/' + n : ''
+    score_line: sat ? sections.map(function (x) { return x.id + ' ' + x.right + '/' + x.n; }).join(' · ') + (sections.length > 1 ? ' · total ' + right + '/' + n : '') : '' // #32 t3
   };
 }
 
@@ -422,7 +422,7 @@ function rebuildStudent_(studentCode) {
   var st = findStudent_(codeN);
   var name = st ? String(st.name || '') : codeN;
   var sessions = readTable_('Sessions').rows.filter(function (r) {
-    return normCode_(r.student_code) === codeN && (String(r.status) === 'completed' || String(r.status) === 'timeout');
+    return normCode_(r.student_code) === codeN && (String(r.status) === 'completed' || String(r.status) === 'timeout') && !isHidden_(r); // hidden (#32): out of the summaries
   }).filter(function (r) { return !!regEntry_(String(r.form_id)); }); // a form without its data (old id) cannot be analysed
   var ids = {};
   sessions.forEach(function (s) { ids[String(s.session_id)] = s; });

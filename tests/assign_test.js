@@ -48,7 +48,12 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   off('T03', 'RW1'); add('T03', FORM, 'MATH');
   await page.reload(); await page.waitForSelector('.form-card.assigned');
   check(/— Math$/.test(await page.textContent('.form-card.assigned h2')) && (await page.textContent('.form-card.assigned .fc-time')) === '1 h 10 min', 'card "… — Math", 1 h 10 min');
-  await page.click('.form-card.assigned .btn-blue'); await page.waitForSelector('#btn-begin'); await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on');
+  { // #32 t2: right after a submitted test, "Loading your test…" shows no old header / timer / "Saved …"
+    const t2 = await page.evaluate(() => { document.querySelector('.form-card.assigned .btn-blue').click(); const tm = document.getElementById('timer');
+      return { title: document.getElementById('tb-title').textContent, timer: tm.style.visibility, saved: document.getElementById('save-dot').textContent, wait: /Loading your test/.test(document.getElementById('v-wait').textContent) }; });
+    check(t2.wait && t2.title === '' && t2.timer === 'hidden' && t2.saved === '', '#32 t2 while loading: no old title / timer / Saved (' + JSON.stringify(t2) + ')');
+  }
+  await page.waitForSelector('#btn-begin'); await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on');
   await answer('M1', 16); await endModule();
   await page.waitForSelector('#qwrap .q.on'); await sleep(300);
   check((await page.textContent('#tb-title')).trim() === 'Section 2, Module 2: Math' && !(await page.$('#v-break.on')), 'M2 starts right after M1 (no break)');
@@ -87,6 +92,15 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   off('T03', 'M2');
   await page.reload(); await page.waitForSelector('.form-card');
   check(!(await page.$('.form-card.assigned')), 'active = No → the card is gone');
+  { // #32 n1: the attempts stay under "Past assignments"
+    const past = await page.$$eval('.past-asg .past-row', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
+    check(past.length === 4 && past.some(t => /Math Module 2 · #1/.test(t)) && past.some(t => /Reading and Writing Module 1 · #1/.test(t)) && await page.isVisible('.past-asg h3:has-text("Past assignments")'),
+      '#32 n1 "Past assignments": ' + past.length + ' attempts (' + past.map(t => t.split(' · #')[0].split(' — ').pop()).join(', ') + ')');
+    await shot(page, 'r32_past_assignments');
+    await page.click('.past-asg .past-row:has-text("Math Module 2") .btn-plain'); await page.waitForSelector('#scr-result.on .res-score', { timeout: 15000 });
+    check(/Math Module 2/.test(await page.textContent('.res-meta')), '#32 n1 View result opens the old assignment result');
+    await home();
+  }
 
   console.log('[AP: Part B only]');
   add('T01', AP, 'B');

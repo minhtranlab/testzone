@@ -50,7 +50,9 @@ var EXPECTED_HEADERS = {
              // #21 N1: which open copy (browser tab / device) of the attempt is the live one
              'copy_token',
              // #29 assignments: 'full' or the parts of the attempt ('M1', 'RW1,RW2'); blank = full (older rows)
-             'scope'],
+             'scope',
+             // #32: live progress (written at every autosave) · hidden = Yes → out of Report / Student_Report / Topic_Summary / teacher lists
+             'progress', 'hidden'],
   Part_Log: ['session_id', 'student_code', 'form_id', 'attempt_no', 'part', 'started_at', 'ended_at', 'end_reason', 'time_used_min', 'sitting_no'],
   Report: null,
   Responses: ['session_id', 'student_code', 'form_id', 'attempt_no', 'qid', 'part', 'display_no', 'unit', 'topic', 'final_answer',

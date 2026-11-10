@@ -26,6 +26,7 @@ var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (long
 function onOpen() {
   try { SpreadsheetApp.getUi().createMenu('Test Zone').addItem('Refresh report', 'refreshReport')
       .addItem('Re-grade after a key change', 'regradeFromMenu')
+      .addSeparator().addItem('Hide attempts…', 'hideAttemptsMenu').addItem('Show hidden attempts', 'showHiddenMenu')
       .addSeparator().addItem('Update after new version', 'updateAfterNewVersion').addToUi(); } catch (e) {}
 }
 
@@ -112,7 +113,7 @@ function refreshReportList_() {
   readTable_('Students').rows.forEach(function (r) { students[normCode_(r.student_code)] = String(r.name || r.student_code); });
   var rel = {};
   try { readTable_('Student_Report').rows.forEach(function (r) { rel[String(r.session_id)] = String(r.reliable || ''); }); } catch (e) {}
-  var list = readTable_('Sessions').rows.filter(function (s) { return String(s.status) === 'completed' || String(s.status) === 'timeout'; })
+  var list = readTable_('Sessions').rows.filter(function (s) { return (String(s.status) === 'completed' || String(s.status) === 'timeout') && !isHidden_(s); }) // hidden (#32): not in B2
     .sort(function (a, b) { return (toMs_(b.submitted_at) - toMs_(a.submitted_at)) || (b._row - a._row); }); // newest first
   var seen = {};
   var rows = list.map(function (s) {

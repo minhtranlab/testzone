@@ -100,7 +100,7 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   check(/Test Student/.test(await tp.textContent('#t-list')) && /Mock form/.test(await tp.textContent('#t-list')), 'teacher: students with their attempts');
   check(!(await tp.evaluate(() => localStorage.getItem('tz_code'))), 'teacher code is not stored on the device');
   await shot(tp, 'r2_teacher_list');
-  check(/Practice view — nothing here is saved\./.test(await tp.textContent('#scr-teacher')) && !/Read-only/.test(await tp.textContent('#scr-teacher')), '#28 t4 teacher page: "Practice view — nothing here is saved."');
+  check(!/Practice view|nothing here is saved|Read-only/.test(await tp.textContent('#scr-teacher')), '#32 teacher page: no "Practice view" / "Read-only" note');
   await tp.fill('#t-filter', 'nobody'); check(/No students match/.test(await tp.textContent('#t-list')), 'filter'); await tp.fill('#t-filter', '');
   await tp.click(`.t-open[data-sid="${sid}"]`); await tp.waitForSelector('#scr-result.on .score-total');
   check(/Test Student — Results/.test(await tp.textContent('#result-body')) && (await tp.textContent('.score-total')).trim() === '2 / 4', 'teacher sees the student\'s result page (same score)');

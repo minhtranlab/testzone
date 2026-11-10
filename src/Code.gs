@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.10 (2026-11-10, assignments)';
+var APP_VERSION = 'v1.11 (2026-11-11, README VN, progress, hide)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -481,12 +481,23 @@ function listForms(code) {
     var parts = f.parts.filter(function (p) { return a.parts.indexOf(p.part) >= 0; });
     var n = parts.reduce(function (x, p) { return x + p.n; }, 0);
     var brk = sp && sp.sections ? Math.round(sp.parts.reduce(function (m, p) { return Math.max(m, Number(p.break_after_sec) || 0); }, 0) / 60) : 0;
-    asg.push({ form_id: a.form_id, exam: f.exam, scope: a.scope, assigned: true, label: a.label, available: !!fe,
-               title: fe ? (fe.profile.title || '') + ' — ' + a.label : a.label, parts: parts, n: n, break_min: brk,
+    var label = a.label || 'Full test'; // #32 t1: the whole form assigned (student outside the track)
+    asg.push({ form_id: a.form_id, exam: f.exam, scope: a.scope, assigned: true, label: label, available: !!fe,
+               title: fe ? (fe.profile.title || '') + ' — ' + label : label, parts: parts, n: n, break_min: brk,
                minutes: parts.reduce(function (x, p) { return x + p.minutes; }, 0),
                attempts: attemptsOf_(sessions, a.form_id, a.scope, fe, n) });
   });
-  return { ok: true, forms: asg.concat(out) };
+  // #32 n1: attempts whose card is gone (assignment set to No) stay reachable under "Past assignments" (View result only)
+  var shown = {}; asg.concat(out).forEach(function (f) { shown[f.form_id + '|' + f.scope] = 1; });
+  var pastKeys = {};
+  sessions.forEach(function (s) { var k = String(s.form_id) + '|' + scopeOf_(s); if (!shown[k] && regEntry_(String(s.form_id))) pastKeys[k] = 1; });
+  var past = Object.keys(pastKeys).map(function (k) {
+    var fid = k.split('|')[0], scope = k.split('|')[1], fe = regEntry_(fid), f = forms[fid] || {};
+    var lbl = scope === 'full' ? 'Full test' : scopeLabel_(fe.profile, scope);
+    return { form_id: fid, scope: scope, exam: f.exam || fe.profile.exam || '', title: (fe.profile.title || fid) + ' — ' + lbl,
+             attempts: attemptsOf_(sessions, fid, scope, fe, Number(f.n) || 0).filter(function (a) { return a.status !== 'abandoned'; }) };
+  }).filter(function (x) { return x.attempts.length; });
+  return { ok: true, forms: asg.concat(out), past: past };
 }
 
 /** Attempts of one card (form + scope) for My Tests. */
@@ -941,11 +952,34 @@ function autosave(code, sessionId, payload) {
       part_started_at: (cur && state.part_starts[cur]) ? fmtDate_(new Date(state.part_starts[cur]), 'yyyy-MM-dd HH:mm:ss') : '',
       last_saved_at: nowIso_(),
       events_saved: evSaved,
-      state_json: compactState_(state)
+      state_json: compactState_(state),
+      progress: progressText_(session, state, nowMs) // #32: readable live progress for the Sheet
     });
     appendPartLog_(logRows);
     return { ok: true, server_now: nowMs, events_saved: evSaved, part_starts: state.part_starts, ended: state.ended, route: route, status: status };
   } finally { lock.releaseLock(); }
+}
+
+/** Sessions.progress (#32): "M1 · 14/22 answered · Q15 · 12:30 left", "Break before Math · 7:30 left", "Paused before Math",
+ *  "M2 · not started (directions)". Written at every autosave; "Submitted" at submit. */
+function progressText_(session, state, nowMs) {
+  try {
+    var st = state || {}, cur = String(st.current_part || ''), prof = profileOf_(session, true);
+    var sat = !!(prof.sections && prof.sections.length);
+    var name = function (p) { return sat ? p : 'Part ' + p; };
+    var secOf = function (p) { var x = (prof.sections || []).filter(function (s) { return s.parts.indexOf(p) >= 0; })[0]; return x ? (x.title || x.id) : name(p); };
+    var mmss = function (sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2); };
+    if (st.pause_explicit && statusFor_(st) === 'paused') return 'Paused before ' + (cur ? secOf(cur) : 'the next part'); // Save and Continue Later
+    if (st.phase === 'break' && st.break_until) return 'Break before ' + secOf(cur) + ' · ' + mmss((Number(st.break_until) - nowMs) / 1000) + ' left';
+    if (!cur) return '';
+    var def = prof.parts.filter(function (p) { return p.part === cur; })[0] || {};
+    var start = (st.part_starts || {})[cur];
+    if (!start) return name(cur) + ' · not started (directions)';
+    var ps = (st.parts || {})[cur] || {}, ans = ps.ans || {};
+    var answered = Object.keys(ans).filter(function (k) { return ans[k] !== '' && ans[k] !== null && ans[k] !== undefined; }).length;
+    var left = (Number(def.time_limit_sec) || 0) - (nowMs - Number(start)) / 1000;
+    return name(cur) + ' · ' + answered + '/' + (Number(def.n) || '?') + ' answered · Q' + ((Number(ps.cur) || 0) + 1) + ' · ' + (left > 0 ? mmss(left) + ' left' : 'time up');
+  } catch (e) { return ''; }
 }
 
 /** Adaptive routing (SAT-ready): part.route = {from:'M1', min_correct:N, hard:'M2H', easy:'M2E'} on the routed group. */
@@ -1223,7 +1257,7 @@ function submit(code, sessionId, payload) {
     });
     appendObjects_('Responses', cleanResp);
     var total = 0, n = 0;
-    var fields = { submitted_at: nowIso_(), events_saved: evSaved, last_saved_at: nowIso_(), current_part: '',
+    var fields = { submitted_at: nowIso_(), events_saved: evSaved, last_saved_at: nowIso_(), current_part: '', progress: 'Submitted',
                    state_json: compactState_(state), n_sittings: state.sit };
     Object.keys(g.partScores).forEach(function (p) { total += g.partScores[p].score; n += g.partScores[p].n; });
     // score_<X> / time_used_<X>_min per section: AP → per part (A, B); SAT → RW, Math (modules summed)
@@ -1334,7 +1368,7 @@ function requireTeacher_(code) {
 function teacherOverview(code) {
   requireTeacher_(code);
   var students = readTable_('Students').rows;
-  var sessions = readTable_('Sessions').rows.filter(isFinished_);
+  var sessions = readTable_('Sessions').rows.filter(function (s) { return isFinished_(s) && !isHidden_(s); }); // hidden (#32): not listed
   var titles = {};
   var out = students.map(function (st) {
     var c = normCode_(st.student_code);

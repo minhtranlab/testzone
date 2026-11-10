@@ -91,8 +91,24 @@ function writeTextTab_(name, rows) {
   if (oldW > w) sh.getRange(1, w + 1, vals.length, oldW - w).clearContent();
 }
 
+/** README (#32): Vietnamese rows; Minh's questions in light-yellow cells with the question in bold. */
+function writeReadme_() {
+  var rows = README_ROWS_.map(function (r) { return Array.isArray(r) ? r : r.row; });
+  writeTextTab_('README', rows);
+  var sh = ss_().getSheetByName('README'), n = Math.max(sh.getLastRow(), rows.length);
+  try {
+    sh.getRange(1, 1, n, 2).setBackground(null).setFontWeight('normal').setWrap(true).setVerticalAlignment('top');
+    sh.setColumnWidth(1, 260); sh.setColumnWidth(2, 760);
+    sh.getRange(1, 1).setFontWeight('bold').setFontSize(14);
+    README_ROWS_.forEach(function (r, i) {
+      if (r && r.q) { sh.getRange(i + 1, 1, 1, 2).setBackground('#fff2cc'); sh.getRange(i + 1, 1).setFontWeight('bold'); }
+      else if (Array.isArray(r) && r.length === 1 && r[0]) sh.getRange(i + 1, 1).setFontWeight('bold');
+    });
+  } catch (e) { console.warn('README FORMAT: ' + e); }
+}
+
 function syncSheetTexts_() {
-  writeTextTab_('README', README_ROWS_);
+  writeReadme_();
   writeTextTab_('Interpretation', INTERPRETATION_ROWS_);
   writeTextTab_('Dictionary', DICTIONARY_ROWS_);
   var n = 0;
