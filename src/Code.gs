@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.9.2 (2026-11-10, polish)';
+var APP_VERSION = 'v1.10 (2026-11-10, assignments)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -467,16 +467,37 @@ function listForms(code) {
     f.available = !!fe;
     f.title = fe ? (fe.profile.title || '') : '';
     if (fe && fe.profile.sections) f.break_min = Math.round(fe.profile.parts.reduce(function (m, p) { return Math.max(m, Number(p.break_after_sec) || 0); }, 0) / 60);
-    f.attempts = sessions.filter(function (s) { return String(s.form_id) === id; }).map(function (s) {
-      return { session_id: String(s.session_id), attempt_no: Number(s.attempt_no) || 0, status: String(s.status || ''),
-               started_at: dateStr_(s.started_at), submitted_at: dateStr_(s.submitted_at),
-               total_correct: s.total_correct === '' ? null : Number(s.total_correct),
-               total_questions: Number(s.total_questions) || f.n,
-               paused: String(s.status) === 'paused' && fe ? pausedInfo_(s, profileFor_(id)) : null };
-    }).sort(function (a, b) { return a.attempt_no - b.attempt_no; });
+    f.scope = 'full';
+    f.attempts = attemptsOf_(sessions, id, 'full', fe, f.n);
     out.push(f);
   });
-  return { ok: true, forms: out };
+  // assignments (#29): one card per active row, at the top; only the assigned parts, own attempts
+  var asg = [];
+  assignmentsFor_(codeN).forEach(function (a) {
+    var f = forms[a.form_id];
+    // an assignment is shown even outside the student's track; the whole form only when it is not already a normal card
+    if (!f || (a.scope === 'full' && trackAllows_(st.track, f.exam, a.form_id))) return;
+    var fe = regEntry_(a.form_id), sp = fe ? scopedProfile_(profileFor_(a.form_id), a.scope) : null;
+    var parts = f.parts.filter(function (p) { return a.parts.indexOf(p.part) >= 0; });
+    var n = parts.reduce(function (x, p) { return x + p.n; }, 0);
+    var brk = sp && sp.sections ? Math.round(sp.parts.reduce(function (m, p) { return Math.max(m, Number(p.break_after_sec) || 0); }, 0) / 60) : 0;
+    asg.push({ form_id: a.form_id, exam: f.exam, scope: a.scope, assigned: true, label: a.label, available: !!fe,
+               title: fe ? (fe.profile.title || '') + ' — ' + a.label : a.label, parts: parts, n: n, break_min: brk,
+               minutes: parts.reduce(function (x, p) { return x + p.minutes; }, 0),
+               attempts: attemptsOf_(sessions, a.form_id, a.scope, fe, n) });
+  });
+  return { ok: true, forms: asg.concat(out) };
+}
+
+/** Attempts of one card (form + scope) for My Tests. */
+function attemptsOf_(sessions, formId, scope, fe, n) {
+  return sessions.filter(function (s) { return String(s.form_id) === formId && scopeOf_(s) === scope; }).map(function (s) {
+    return { session_id: String(s.session_id), attempt_no: Number(s.attempt_no) || 0, status: String(s.status || ''),
+             started_at: dateStr_(s.started_at), submitted_at: dateStr_(s.submitted_at),
+             total_correct: s.total_correct === '' ? null : Number(s.total_correct),
+             total_questions: Number(s.total_questions) || n,
+             paused: String(s.status) === 'paused' && fe ? pausedInfo_(s, profileOf_(s)) : null };
+  }).sort(function (a, b) { return a.attempt_no - b.attempt_no; });
 }
 
 /** "Part A completed · 06 Nov, 19:52 — Continue Part B" data for a paused attempt (student-facing → English).
@@ -549,18 +570,30 @@ function getTest(code, formId, opts) {
   opts = opts || {};
   var st = requireStudent_(code);
   var codeN = normCode_(st.student_code);
-  var profile = profileFor_(formId);
-  if (!profile) throw new Error('FORM: This test is not available yet.');
-  if (!trackAllows_(st.track, profile.exam, formId)) throw new Error('FORM: This test is not part of your program.');
+  var fullProfile = profileFor_(formId);
+  if (!fullProfile) throw new Error('FORM: This test is not available yet.');
   var fd = formData_(formId);
   if (!fd) throw new Error('FORM: This test is not available yet.');
+  // scope (#29): a resumed attempt keeps its own; a new one = 'full' or the parts of an ACTIVE assignment of this student
+  var scope = 'full';
+  if (opts.resume) { var rs = findSession_(opts.resume); if (rs && normCode_(rs.student_code) === codeN) scope = scopeOf_(rs); }
+  else if (opts.scope) {
+    var pp = parseParts_(fullProfile, String(opts.scope).replace(/,/g, ' '));
+    scope = pp ? scopeKey_(fullProfile, pp) : '';
+    if (!scope || (scope !== 'full' && !hasAssignment_(codeN, formId, scope))) throw new Error('FORM: This assignment is no longer open. Ask your teacher.');
+  }
+  // the student's track, or an active assignment of this form (#29: a teacher may assign a form outside the track)
+  if (!trackAllows_(st.track, fullProfile.exam, formId) && !hasAssignment_(codeN, formId, scope)) throw new Error('FORM: This test is not part of your program.');
+  var profile = scopedProfile_(fullProfile, scope);
+  var inScope = {}; profile.parts.forEach(function (p) { inScope[p.part] = 1; });
+  var questions = fd.questions.filter(function (q) { return inScope[q.part]; });
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   var session, state = null, resumed = false, copy = '';
   try {
     var t = readTable_('Sessions');
-    var mine = t.rows.filter(function (r) { return normCode_(r.student_code) === codeN && String(r.form_id) === formId; });
+    var mine = t.rows.filter(function (r) { return normCode_(r.student_code) === codeN && String(r.form_id) === formId && scopeOf_(r) === scope; });
     var open = mine.filter(function (r) { return isOpenStatus_(r.status); });
     if (opts.resume) open = open.filter(function (r) { return String(r.session_id) === String(opts.resume); });
     if (opts.fresh) {
@@ -575,10 +608,10 @@ function getTest(code, formId, opts) {
       updateRow_('Sessions', session._row, { copy_token: copy }); // this window is now the live copy; older ones stop (N1)
     } else {
       var attemptNo = mine.reduce(function (m, r) { return Math.max(m, Number(r.attempt_no) || 0); }, 0) + 1;
-      var sid = 'S-' + fmtDate_(new Date(), 'yyyyMMdd') + '-' + codeN + '-' + formId + '-' + attemptNo;
+      var sid = 'S-' + fmtDate_(new Date(), 'yyyyMMdd') + '-' + codeN + '-' + formId + (scope === 'full' ? '' : '-' + scope.replace(/,/g, '')) + '-' + attemptNo;
       session = {
-        session_id: sid, student_code: codeN, form_id: formId, attempt_no: attemptNo,
-        started_at: nowIso_(), status: 'in_progress', total_questions: fd.questions.length,
+        session_id: sid, student_code: codeN, form_id: formId, attempt_no: attemptNo, scope: scope,
+        started_at: nowIso_(), status: 'in_progress', total_questions: questions.length,
         device: txt_(String(opts.device || '').slice(0, 60)), events_saved: 0, last_saved_at: nowIso_(), copy_token: copy // m6: text (#21)
       };
       appendObjects_('Sessions', [session]);
@@ -590,13 +623,13 @@ function getTest(code, formId, opts) {
   return {
     ok: true,
     session: { session_id: String(session.session_id), attempt_no: Number(session.attempt_no), form_id: formId,
-               student_name: String(st.name || ''), events_saved: Number(session.events_saved) || 0 },
+               student_name: String(st.name || ''), events_saved: Number(session.events_saved) || 0, scope: scope },
     resumed: resumed,
     state: state,
     copy: copy,
     server_now: Date.now(),
     profile: profile,
-    questions: fd.questions.map(clientQuestion_),
+    questions: questions.map(clientQuestion_),
     settings: { app_name: s.app_name, autosave_sec: s.autosave_sec, five_min_warning_sec: s.five_min_warning_sec,
                 desmos_api_key: desmosKey, show_results: s.show_results }
   };
@@ -1099,7 +1132,7 @@ function deriveMetrics_(partEvents, qids) {
 function gradeSession_(session, state, events) {
   var formId = String(session.form_id);
   var fd = formData_(formId);
-  var profile = profileFor_(formId);
+  var profile = profileOf_(session); // only the parts of this attempt (#29)
   var S = getSettings_();
   var tags = tagMap_(formId);
   var seq = (state && state.seq_parts) || profile.parts.map(function (p) { return p.part; });
@@ -1194,7 +1227,7 @@ function submit(code, sessionId, payload) {
                    state_json: compactState_(state), n_sittings: state.sit };
     Object.keys(g.partScores).forEach(function (p) { total += g.partScores[p].score; n += g.partScores[p].n; });
     // score_<X> / time_used_<X>_min per section: AP → per part (A, B); SAT → RW, Math (modules summed)
-    sectionsOf_(profileFor_(String(session.form_id))).forEach(function (sec) {
+    sectionsOf_(profileOf_(session)).forEach(function (sec) {
       var taken = sec.parts.filter(function (p) { return g.partScores[p]; });
       if (!taken.length) return;
       fields['score_' + sec.id] = taken.reduce(function (a, p) { return a + g.partScores[p].score; }, 0);
@@ -1209,7 +1242,7 @@ function submit(code, sessionId, payload) {
     fields.n_flagged = g.responses.filter(function (r) { return r.final_marked; }).length;
     if (payload.device) fields.device = txt_(String(payload.device).slice(0, 60));
     var secUsed = {}; Object.keys(fields).forEach(function (k) { var m = /^time_used_(.+)_min$/.exec(k); if (m) secUsed[m[1]] = fields[k]; });
-    var v = validity_(g.responses, g.partTimes, profileFor_(String(session.form_id)), getSettings_(), secUsed);
+    var v = validity_(g.responses, g.partTimes, profileOf_(session), getSettings_(), secUsed);
     fields.reliable = v.reliable ? 'Yes' : 'No';
     updateRow_('Sessions', session._row, fields);
     appendPartLog_(logRows);
@@ -1235,7 +1268,7 @@ function resultView_(session, rows, asTeacher) {
   var S = getSettings_();
   var st = findStudent_(session.student_code);
   var name = st ? String(st.name || '') : String(session.student_code);
-  var profile = profileFor_(String(session.form_id));
+  var profile = profileOf_(session);
   var a = analyse_(session, rows, S, name);
   var v = studentView_(a, profile, !!asTeacher);
   v.show = asTeacher ? 'score_and_right_wrong' : S.show_results;
@@ -1249,7 +1282,7 @@ function resultView_(session, rows, asTeacher) {
  *  right / wrong, time. NEVER the key (clientQuestion_ whitelist; status comes from Responses). */
 function reviewData_(session, rows) {
   var formId = String(session.form_id);
-  var fd = formData_(formId), profile = profileFor_(formId);
+  var fd = formData_(formId), profile = profileOf_(session);
   if (!fd) throw new Error('FORM: This test is not available.');
   var by = {};
   rows.forEach(function (r) { by[String(r.qid)] = r; });
@@ -1309,9 +1342,9 @@ function teacherOverview(code) {
       .sort(function (a, b) { return toMs_(b.submitted_at) - toMs_(a.submitted_at); });
     return { code: c, name: String(st.name || c), track: String(st.track || ''), active: isYes_(st.active),
       attempts: mine.map(function (s) {
-        var f = String(s.form_id);
-        if (!(f in titles)) { var e = regEntry_(f); titles[f] = e ? formTitle_(e.profile, f) : f; }
-        return { session_id: String(s.session_id), form_id: f, title: titles[f], attempt_no: Number(s.attempt_no) || 0,
+        var f = String(s.form_id), tk = f + '|' + scopeOf_(s);
+        if (!(tk in titles)) { var e = regEntry_(f); titles[tk] = e ? formTitle_(scopedProfile_(e.profile, scopeOf_(s)), f) : f; }
+        return { session_id: String(s.session_id), form_id: f, title: titles[tk], attempt_no: Number(s.attempt_no) || 0, scope: scopeOf_(s),
                  date: dateStr_(s.submitted_at), right: s.total_correct === '' ? null : Number(s.total_correct),
                  n: Number(s.total_questions) || null, reliable: String(s.reliable || ''), sittings: Number(s.n_sittings) || 1,
                  available: !!regEntry_(f) };

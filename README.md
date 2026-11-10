@@ -70,8 +70,9 @@ cp dist/Forms_Registry.gs src/                                    # profiles onl
 The server finds `<form_id>.json` by name in the Form Files folder, caches it (CacheService, ≤ 10 min to pick up a replaced file) and never sends keys to the browser.
 A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive shows as "Coming soon".
 
-## What the app does (v1.9)
+## What the app does (v1.10)
 - Students sign in with their code (Students tab) → My Tests → AP Calc AB 2012 and the SAT forms (SAT · August 2026, September 2026 A / B, October 2026, November 2026; a form without its Drive file shows "Coming soon").
+- Assignments (v1.10, Sheet tab `Assignments`): one row = one student + form + parts (`RW`, `MATH`, `RW1`, `RW2`, `M1`, `M2`, several with a comma; AP `A`, `B`) + active Yes. The student gets an extra card "Assigned by your teacher" at the top of My Tests: only those parts, normal order and time, the break only when RW + Math parts are assigned. Result limited to those parts; estimated score only for a whole section. `Sessions.scope` = `full` or the parts; Student_Report / Report tab show "Part: Math Module 1". Code: `src/Assign.gs`.
 - My Tests: each card shows the title and the total time (light grey, top right); the section / module lines are on the start screen.
 - Result page (all exams, English, never a key): SAT estimated score first (total, then RW / Math ranges with x/y correct and Module 1 / Module 2), no method text for students (teacher sees a short note); "What to practise first" = short tips + the mode of the practice app (Settings `practice_app_name`, `practice_mode <skill>`); results by skill with missed-question chips (V1-21, V2-05, M1-21, M2-07; AP A-12 / B-04); types of mistakes with badges **S** (slow) / **R** (rushed) on chips and grid cells.
 - Slow / rushed: per question type and difficulty from the `Time_Norms` tab (created once from SC's `sat_time_norms.csv` via `tools/build_time_norms.py` → `src/TimeNorms.gs`; Minh may edit it, every re-grade re-times the rows).

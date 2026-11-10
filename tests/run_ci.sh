@@ -10,6 +10,8 @@ run node score_test.js                           # SAT estimated score vs SC's a
 run node qa16_test.js                           # #16 QA fixes: answers as text, re-grade, lock-out, answer check, Report tab
 run node qa21_test.js                           # #21: Report pick without Drive (B1), pick kept (N2), m6 rest, sign-in limit, copy token
 run node copies_test.js                         # #21 N1: two windows of one attempt (QA case)
+run node qa29_test.js                           # #29 v1.10: Assignments tab, part codes, scope, estimate per part, reports
+run node assign_test.js                         # #29 v1.10: assignment cards + flows in the browser (RW1, MATH, RW1+M1 break, M2, AP B)
 run node qa24_test.js                           # #24 v1.9: Time_Norms from CSV, codes + badges, no method text, practise tips
 run node sync_test.js                            # per-deploy Sheet update on the old Sheet layout + Questions-tab keys
 run node spr_test.js

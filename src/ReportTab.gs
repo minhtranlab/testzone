@@ -117,7 +117,8 @@ function refreshReportList_() {
   var seen = {};
   var rows = list.map(function (s) {
     var r = String(s.reliable || rel[String(s.session_id)] || '');
-    var label = [students[normCode_(s.student_code)] || s.student_code, s.form_id, 'Attempt ' + s.attempt_no,
+    var sc = scopeOf_(s), lbl = sc === 'full' ? '' : scopeLabel_(profileFor_(String(s.form_id), true), sc);
+    var label = [students[normCode_(s.student_code)] || s.student_code, s.form_id + (lbl ? ' · ' + partTag_(lbl) : ''), 'Attempt ' + s.attempt_no,
       s.submitted_at ? fmtDate_(new Date(toMs_(s.submitted_at)), 'dd/MM HH:mm') : '',
       (s.total_correct === '' ? '?' : s.total_correct) + '/' + (s.total_questions || '?'),
       r === 'No' ? '⚠ not reliable' : '✓'].join(' · ');
@@ -203,7 +204,7 @@ function renderReport_(sh, sessionId) {
   var partsTxt = a.parts.map(function (p) { return 'Part ' + p.part + ' ' + p.right + '/' + p.n; }).join(' · ');
   var paceTxt = a.paces.map(function (x) { return x.label + ' about ' + paceStr_(x.sec, a.sat); }).join(', ');
   add([a.student], { bold: true, size: 16, merge: true, h: 30 });
-  para(a.form + ' · Attempt ' + a.attempt + ' · ' + a.date, { color: '#424242' });
+  para((a.scope === 'full' ? a.form : a.form.replace(' — ' + a.scope_label, '') + ' · ' + partTag_(a.scope_label)) + ' · Attempt ' + a.attempt + ' · ' + a.date, { color: '#424242' });
   if (a.sittings) para(a.sittings + (a.n_sittings > 1 ? ' — not like the real test (done in ' + a.n_sittings + ' sittings); the score may be higher than on the real test.' : ''), { color: a.n_sittings > 1 ? RPT_COLOR.warn : '#424242', bold: a.n_sittings > 1 });
   if (a.sat) { // SAT: "RW 40/54 · Math 30/44 · total 70/98", the estimate, then the modules and the time per section
     para(a.score_line + ' (' + a.pct + '%)', { bold: true, size: 12 });

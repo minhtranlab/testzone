@@ -155,7 +155,8 @@ function createGas(appDir, dataDir, tabs, opts = {}) {
     getSheets: () => order.map(n => sheets[n]._proxy)
   }, 'Spreadsheet');
   const rule = () => { const o = { kind: null, src: null, allowInvalid: true }; const b = strict({
-    requireValueInRange(r, show) { o.kind = 'range'; o.src = r; return b; }, setAllowInvalid(v) { o.allowInvalid = v; return b; }, build() { return o; } }, 'DV'); return b; };
+    requireValueInRange(r, show) { o.kind = 'range'; o.src = r; return b; }, requireValueInList(l, show) { o.kind = 'list'; o.list = l.slice(); return b; },
+    setAllowInvalid(v) { o.allowInvalid = v; return b; }, setHelpText(t) { o.help = t; return b; }, build() { return o; } }, 'DV'); return b; };
   const ctx = {
     console, JSON, Math, Object, Array, String, Number, Boolean, RegExp, Error, isNaN, parseInt, parseFloat, Promise,
     Date: SDate,

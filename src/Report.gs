@@ -121,7 +121,7 @@ function topicNames_(formId) {
 /** Everything about one completed attempt. session = Sessions row, rows = its Responses rows. */
 function analyse_(session, rows, S, studentName) {
   var formId = String(session.form_id);
-  var profile = profileFor_(formId, true); // works without Drive (Report tab simple trigger, #21 B1)
+  var profile = profileOf_(session, true); // works without Drive (Report tab simple trigger, #21 B1); only the attempt's parts (#29)
   var sat = isSat_(profile);
   var types = typesFor_(sat);
   var tags = tagMap_(formId);
@@ -248,6 +248,7 @@ function analyse_(session, rows, S, studentName) {
     sittings: sit.text, n_sittings: sit.n,
     session_id: String(session.session_id), student_code: normCode_(session.student_code), student: String(studentName || session.student_code),
     form_id: formId, form: formTitle_(profile, formId), attempt: Number(session.attempt_no),
+    scope: scopeOf_(session), scope_label: profile.scope_label || '',
     date: session.submitted_at ? fmtDate_(new Date(toMs_(session.submitted_at)), 'dd MMM yyyy, HH:mm') : '',
     n: n, right: right, pct: n ? Math.round(100 * right / n) : 0, parts: parts, used: v.used, limit: v.limit,
     valid: v.reliable, reasons: v.reasons, summary: summary, actions: actions, units: units, counts: counts, r2w: r2w, elimKey: elimKey,
@@ -444,11 +445,12 @@ function rebuildStudent_(studentCode) {
   var topicRows = [];
   var latest = {};
   reliable.forEach(function (s) {
-    var f = String(s.form_id);
-    if (!latest[f] || Number(s.attempt_no) > Number(latest[f].attempt_no)) latest[f] = s;
+    // full test → form id; part of a form (#29) → "SAT-2026-08 · Part: Math Module 1", so the two never mix
+    var a = reports[String(s.session_id)], f = String(s.form_id) + (a.scope === 'full' ? '' : ' · ' + partTag_(a.scope_label));
+    if (!latest[f] || toMs_(s.submitted_at) > toMs_(latest[f].submitted_at) || (toMs_(s.submitted_at) === toMs_(latest[f].submitted_at) && Number(s.attempt_no) > Number(latest[f].attempt_no))) latest[f] = s;
   });
   Object.keys(latest).sort().forEach(function (f) {
-    topicRows = topicRows.concat(topicSummaryRows_(codeN, f, bySession[String(latest[f].session_id)] || [], f, S, updated));
+    topicRows = topicRows.concat(topicSummaryRows_(codeN, f, bySession[String(latest[f].session_id)] || [], String(latest[f].form_id), S, updated));
   });
   // ALL rows per exam: AP → "ALL", SAT → "ALL-SAT" (every reliable SAT attempt) — never mixed
   var byExam = {};
@@ -534,7 +536,8 @@ function studentReportRow_(s, a, S) {
     submitted_at: a.date ? fmtDate_(new Date(toMs_(s.submitted_at)), 'yyyy-MM-dd HH:mm') : '',
     total_correct: a.right, percent: a.n ? round_(a.right / a.n, 4) : 0, weakest_topics: weak, main_error_profile: main,
     timing_pattern: a.timing, summary: (a.score_line ? a.score_line + '. ' : '') + stripTags_(a.summary), reliable: a.valid ? 'Yes' : 'No',
-    sittings: a.sittings, estimated_score: a.estimate_text || ''
+    sittings: a.sittings, estimated_score: a.estimate_text || '',
+    scope: a.scope === 'full' ? 'Full test' : partTag_(a.scope_label)
   };
 }
 

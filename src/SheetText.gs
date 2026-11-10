@@ -6,7 +6,7 @@
 
 var README_ROWS_ = [
   ['Test Zone – Data'],
-  ['This Sheet is the database of the Test Zone app. The app writes the data; the teacher only reads it and edits the tabs Students, Settings, Score_Scale, Time_Norms, the Questions keys and the tutor_note column.'],
+  ['This Sheet is the database of the Test Zone app. The app writes the data; the teacher only reads it and edits the tabs Students, Assignments, Settings, Score_Scale, Time_Norms, the Questions keys and the tutor_note column.'],
   ['Start in the Report tab: pick an attempt in cell B2.', 'Report of one attempt: score (and estimated SAT score), reliable or not, summary, next steps, by unit / domain, error types, time per question, wrong answers. Menu Test Zone → Refresh report updates the list.'],
   ['Teacher view in the app', 'Sign in to the app with Settings → teacher_code: students → attempts → the result page the student saw → every question with the student\'s answer; "Show answer" reveals the key.'],
   [],
@@ -22,6 +22,7 @@ var README_ROWS_ = [
   [],
   ['Settings tabs'],
   ['Students', 'Add students: login code (hard to guess, e.g. AN-7Q4), name, track (AP Calc AB / SAT / ALL). active = No locks the code.'],
+  ['Assignments', 'Give one student only part of a form (e.g. only Math Module 1). One row: student_code, form (dropdown), parts (dropdown: SAT RW, MATH, RW1, RW2, M1, M2 — several with a comma, e.g. M1, M2; AP A, B), active = Yes. The student then sees an extra card at the top of My Tests ("Assigned by your teacher"); active = No hides it again (attempts are kept). A whole section (RW or MATH) gets that section\'s estimated score; a single module gets no estimated score.'],
   ['Questions', 'Question metadata: key, unit / topic, difficulty, flags. No question text. The key here is the one used for grading: change it here to fix a key (SPR: accepted answers separated by |; type an apostrophe before a fraction such as \'3/4). Then menu Test Zone → Re-grade after a key change: submitted attempts are graded again (also done after every new version).'],
   ['Forms', 'Forms and their parts / modules (questions, minutes, calculator). data_file_id = the form file on Drive (filled automatically).'],
   ['Settings', 'Thresholds, reliability rule, teacher_code, Desmos key. Change values here, not in the code.'],
@@ -37,6 +38,7 @@ var README_ROWS_ = [
   ['SAT forms', 'Five predicted forms (third-party, not College Board): SAT · August 2026, September 2026 A / B, October 2026, November 2026. Each: RW Module 1 + 2 (27 questions, 32 min each), 10-minute break, Math Module 1 + 2 (22 questions, 35 min each, Desmos + Reference). Students with track SAT (or ALL) see them.'],
   ['SAT break', 'RW1 → RW2 and M1 → M2 run straight on, like the real test. The 10-minute break shows a countdown; at 0:00 Math Module 1 starts by itself. Only on the break screen can the student press "Save and Continue Later". An attempt done in 2+ sittings is marked on the result and in the reports.'],
   ['SAT in the reports', 'Grouped by domain (e.g. Standard English Conventions), then skill. Score "RW x/54 · Math y/44 · total z/98" plus the estimated score (400–1600) from Score_Scale. Topic_Summary: form_id ALL-SAT = every reliable SAT attempt (AP: ALL).'],
+  ['Part attempts', 'An attempt of an assignment has Sessions.scope = its parts (e.g. M1); full tests have scope full (blank in older rows). Student_Report.scope and the Report tab show "Part: Math Module 1"; Topic_Summary keeps them apart (form_id "SAT-2026-08 · Part: Math Module 1"); the ALL / ALL-SAT rows include them.'],
   ['SAT keys', 'key_source = the key printed in the source file; key = the key the app uses (the same unless Minh changed it — flag key_changed_by_minh).']
 ];
 
@@ -85,6 +87,7 @@ var DICTIONARY_ROWS_ = [
   ['Student_Report', 'summary', 'Rule-based summary (no AI), same as the Report tab. SAT: starts with the score line', 'RW 40/54 · Math 30/44 · total 70/98. An is solid in …'],
   ['Student_Report', 'reliable', 'As Sessions.reliable', 'Yes'],
   ['Student_Report', 'sittings', 'Number of sittings and the time of each part / module', '2 sittings: RW1 06/11 19:00–19:32 · …'],
+  ['Student_Report', 'scope', 'Full test, or Part: … for an attempt of an assignment', 'Part: Math Module 1'],
   ['Student_Report', 'estimated_score', 'SAT only: estimated total (range) · RW · Math, from Score_Scale; [method] when a module rule applied', '1420 (1390–1450) · RW 720 (700–740) · Math 700 (680–720)'],
   ['Topic_Summary', 'student_code', 'Student code', 'AN-7Q4'],
   ['Topic_Summary', 'form_id', 'Form, or ALL (every AP attempt) / ALL-SAT (every SAT attempt)', 'ALL-SAT'],
@@ -128,6 +131,7 @@ var DICTIONARY_ROWS_ = [
   ['Sessions', 'events_saved', 'Events already written to the Events tab', '214'],
   ['Sessions', 'state_json', 'Saved test state (answers, marks, crossed-out choices…) to resume after a reload or lost connection. Do not edit', '{"parts":{…}}'],
   ['Sessions', 'reliable', 'Yes = a real attempt that can be used. No = not reliable (too little time, many answers under 15 s, or many blanks; see Interpretation). No = left out of Topic_Summary', 'No'],
+  ['Sessions', 'scope', 'full = the whole form; otherwise the parts of an assignment (Assignments tab). Blank = full (attempts from before v1.10)', 'M1'],
   ['Sessions', 'copy_token', 'Set by the app each time the attempt is opened: only the most recently opened window may save or submit (another open window of the same attempt is stopped)', 'k3x9…'],
   ['Sessions', 'n_sittings', '1 = done in one go; 2+ = continued later (Save and Continue Later, or back after more than 30 minutes)', '2'],
   ['Sessions', 'score_RW / score_Math', 'SAT: right answers in Reading and Writing (of 54) / Math (of 44). AP: empty', '41'],
@@ -192,7 +196,12 @@ var DICTIONARY_ROWS_ = [
   ['Settings', 'key / value / meaning', 'App settings; change the value column', ''],
   ['Score_Scale', 'A:L (route … note)', 'SAT raw → scaled table. route hard = what the app uses (scaled_est, interpolated); m1only = reference only', 'hard / RW / 40 / … / 650'],
   ['Score_Scale', 'N:P (key, value, meaning)', 'Rules of the estimate (weights, thresholds, cap, range widths)', 'm1_weak_cap 600'],
-  ['Report', '(whole tab)', 'Report of one attempt: pick in B2 (type a name to filter). Redrawn when B2 changes; menu Test Zone → Refresh report updates the list. Hidden R:S = the B2 list; J:O (grouped) = chart data. Do not edit', '']
+  ['Report', '(whole tab)', 'Report of one attempt: pick in B2 (type a name to filter). Redrawn when B2 changes; menu Test Zone → Refresh report updates the list. Hidden R:S = the B2 list; J:O (grouped) = chart data. Do not edit', ''],
+  ['Assignments', 'student_code', 'The student (dropdown from Students)', 'AN-7Q4'],
+  ['Assignments', 'form', 'Form id (dropdown)', 'SAT-2026-08'],
+  ['Assignments', 'parts', 'Parts to take. SAT: RW (= RW1 + RW2), MATH (= M1 + M2), RW1, RW2, M1, M2; several with a comma. AP: A, B. A typed combination not in the list is allowed (yellow warning)', 'M1, M2'],
+  ['Assignments', 'active', 'Yes = the card is on the student\'s My Tests; No = hidden (attempts are kept)', 'Yes'],
+  ['Assignments', 'note', 'Free note for the teacher (not shown to the student)', 'Try Math Module 1 before Friday']
 ];
 
 /* Settings: key → meaning (the value column is never touched) */

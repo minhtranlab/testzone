@@ -33,7 +33,9 @@ var EXPECTED_HEADERS = {
   Student_Report: ['session_id', 'student_code', 'form_id', 'attempt_no', 'submitted_at', 'total_correct', 'percent',
                    'weakest_topics', 'main_error_profile', 'timing_pattern', 'summary',
                    // added in fix round 1 / 2, SAT round 2:
-                   'reliable', 'sittings', 'estimated_score'],
+                   'reliable', 'sittings', 'estimated_score',
+                   // #29: full test or the assigned parts
+                   'scope'],
   Topic_Summary: ['student_code', 'form_id', 'unit', 'topic', 'topic_name', 'n_attempted', 'n_correct', 'accuracy',
                   'avg_pace_ratio', 'n_fast_wrong', 'n_slow_wrong', 'n_slow_right', 'n_blank', 'n_changed_R_to_W', 'verdict', 'updated_at'],
   Students: ['student_code', 'name', 'track', 'active', 'note'],
@@ -46,7 +48,9 @@ var EXPECTED_HEADERS = {
              // added in the SAT round (sections; AP keeps score_A/B, time_used_A/B):
              'score_RW', 'score_Math', 'time_used_RW_min', 'time_used_Math_min',
              // #21 N1: which open copy (browser tab / device) of the attempt is the live one
-             'copy_token'],
+             'copy_token',
+             // #29 assignments: 'full' or the parts of the attempt ('M1', 'RW1,RW2'); blank = full (older rows)
+             'scope'],
   Part_Log: ['session_id', 'student_code', 'form_id', 'attempt_no', 'part', 'started_at', 'ended_at', 'end_reason', 'time_used_min', 'sitting_no'],
   Report: null,
   Responses: ['session_id', 'student_code', 'form_id', 'attempt_no', 'qid', 'part', 'display_no', 'unit', 'topic', 'final_answer',
@@ -61,6 +65,7 @@ var EXPECTED_HEADERS = {
           // SAT round 2: Drive file of the form (filled automatically when blank; may also be typed to point at another file)
           'data_file_id'],
   Settings: ['key', 'value', 'meaning'],
+  Assignments: ['student_code', 'form', 'parts', 'active', 'note'], // = ASSIGN_HEADERS (Assign.gs)
   Dictionary: ['tab', 'column', 'meaning', 'example'],
   Score_Scale: null
 };
@@ -76,7 +81,7 @@ function checkSheet_() {
   var ss = ss_();
   Object.keys(EXPECTED_HEADERS).forEach(function (tab) {
     var sh = ss.getSheetByName(tab);
-    if (!sh && (tab === 'Report' || tab === 'Part_Log' || tab === 'Score_Scale')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends, Score_Scale by the update after a deploy)'); return; }
+    if (!sh && (tab === 'Report' || tab === 'Part_Log' || tab === 'Score_Scale' || tab === 'Assignments')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends, Score_Scale and Assignments by the update after a deploy)'); return; }
     if (!sh) { out.push('✗ ' + tab + ': TAB MISSING'); problems++; return; }
     var exp = EXPECTED_HEADERS[tab];
     if (!exp) { out.push('✓ ' + tab + ' (free text, not checked)'); return; }
@@ -106,6 +111,8 @@ function checkSheet_() {
     var seen = {};
     st.forEach(function (r) { var c = normCode_(r.student_code); if (seen[c]) { out.push('✗ duplicate student_code ' + c); problems++; } seen[c] = 1; });
   } catch (e) {}
+  // Assignments (#29)
+  try { var ca = checkAssignments_(); out = out.concat(ca.lines); problems += ca.problems; } catch (e) { out.push('✗ Assignments: ' + e); problems++; }
   // Forms vs data files
   var formsRows = readTable_('Forms').rows;
   Object.keys(formRegistry_()).filter(function (fid) { return !regEntry_(fid); }).forEach(function (fid) {
@@ -152,7 +159,7 @@ function addMissingColumns_() {
     var exp = EXPECTED_HEADERS[tab];
     if (!exp) return;
     var sh = ss_().getSheetByName(tab);
-    if (!sh) { log.push('skip ' + tab + ' (tab missing — create it by hand)'); return; }
+    if (!sh) { if (tab !== 'Assignments') log.push('skip ' + tab + ' (tab missing — create it by hand)'); return; } // Assignments: its own update step
     var have = headers_(tab);
     var lastUsed = 0; have.forEach(function (h, i) { if (h !== '') lastUsed = i + 1; });
     var missing = exp.filter(function (h) { return have.indexOf(h) < 0; });

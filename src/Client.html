@@ -172,8 +172,12 @@
   function formCard(f) {
     var c = el('div', { class: 'form-card' });
     var total = f.parts.reduce(function (a, p) { return a + (Number(p.minutes) || 0); }, 0);
-    A.cardInfo = A.cardInfo || {}; A.cardInfo[f.form_id] = { title: cardTitle(f.exam, f.title), lines: partLines(f.parts, f.break_min), total: hmin(total) };
-    c.innerHTML = '<div class="fc-head"><h2>' + esc(cardTitle(f.exam, f.title)) + '</h2><span class="fc-time">' + hmin(total) + '</span></div>';
+    var scope = f.scope || 'full', okey = f.form_id + '|' + scope;
+    A.cardInfo = A.cardInfo || {}; A.cardInfo[okey] = { title: cardTitle(f.exam, f.title), lines: partLines(f.parts, f.break_min), total: hmin(total) };
+    c.innerHTML = '<div class="fc-head"><h2>' + esc(cardTitle(f.exam, f.title)) + '</h2><span class="fc-time">' + hmin(total) + '</span></div>' +
+      (f.assigned ? '<div class="fc-assigned">Assigned by your teacher</div>' : '');
+    if (f.assigned) { c.classList.add('assigned'); c.dataset.scope = scope; }
+    var startOpts = function (o) { if (scope !== 'full') o.scope = scope; return o; };
     var actions = el('div', { class: 'actions' });
     var open = f.attempts.filter(function (a) { return a.status === 'in_progress' || a.status === 'paused'; }).pop();
     if (!f.available) actions.innerHTML = '<span class="tag abandoned">Coming soon</span>';
@@ -186,13 +190,13 @@
       var b2 = el('button', { class: 'btn-outline', type: 'button' }, 'Start Over');
       b2.onclick = function () {
         modal('Start a new attempt?', 'Your unfinished attempt ' + open.attempt_no + ' will be closed and will not be scored.', [
-          { label: 'Cancel', value: false, cls: 'btn-outline' }, { label: 'Start new attempt', value: true }]).then(function (ok) { if (ok) openTest(f.form_id, { fresh: true }); });
+          { label: 'Cancel', value: false, cls: 'btn-outline' }, { label: 'Start new attempt', value: true }]).then(function (ok) { if (ok) openTest(f.form_id, startOpts({ fresh: true })); });
       };
       actions.appendChild(b1); actions.appendChild(b2);
     } else {
       var done = f.attempts.filter(function (a) { return a.status === 'completed' || a.status === 'timeout'; }).length;
       var b = el('button', { class: 'btn-blue', type: 'button' }, done ? 'Take again' : 'Start test');
-      b.onclick = function () { openTest(f.form_id, {}); };
+      b.onclick = function () { openTest(f.form_id, startOpts({})); };
       actions.appendChild(b);
     }
     actions.style.marginTop = '14px';
@@ -446,7 +450,7 @@
     $('#tb-title').textContent = d.title || ('Part ' + d.part);
     renderTimer();
     var n = qlist().length;
-    var ci = (A.cardInfo || {})[A.st.form_id], firstPart = A.st.seq_parts.indexOf(d.part) === 0 && !Object.keys(A.st.part_starts || {}).length;
+    var ci = (A.cardInfo || {})[A.st.form_id + '|' + ((A.test && A.test.session && A.test.session.scope) || 'full')], firstPart = A.st.seq_parts.indexOf(d.part) === 0 && !Object.keys(A.st.part_starts || {}).length;
     var overview = ci && firstPart ? '<div class="test-overview"><div class="to-h"><b>' + esc(ci.title) + '</b><span class="fc-time">' + esc(ci.total) + '</span></div>' + ci.lines + '</div>' : '';
     $('#v-directions').innerHTML = '<div class="page dir-page">' + overview + '<h1>' + esc(d.title || 'Part ' + d.part) + '</h1>' +
       '<div class="part-facts"><div><b>' + n + '</b>questions</div><div><b>' + fmt(d.time_limit_sec * 1000) + '</b>time</div><div><b>' + (d.calculator ? 'Yes' : 'No') + '</b>calculator</div></div>' +
@@ -941,7 +945,7 @@
       if (e && e.total) h += '<div class="est"><div class="est-lbl">Estimated score</div><div class="est-total">' + e.total.low + '–' + e.total.high + '</div></div>';
       h += '<div class="sec-cards">' + res.sections.map(function (x) {
         var ex = e && e[x.id];
-        return '<div class="sec-card"><div class="sec-t">' + esc(x.title) + '</div>' + (ex ? '<div class="sec-est">' + ex.low + '–' + ex.high + '</div>' : '') +
+        return '<div class="sec-card"><div class="sec-t">' + esc(x.title) + '</div>' + (ex ? (e.total ? '' : '<div class="est-lbl">Estimated score</div>') + '<div class="sec-est">' + ex.low + '–' + ex.high + '</div>' : '') +
           '<div class="sec-raw"><b>' + x.right + '/' + x.n + '</b> correct</div>' + modLine(x.modules || []) + '</div>';
       }).join('') + '</div>';
       if (teacher && e && e.teacher_note) h += '<p class="est-note muted">Teacher note: ' + esc(e.teacher_note) + '</p>';
