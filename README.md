@@ -4,7 +4,8 @@ Bluebook-style mock-test web app for Minh's SAT / AP students. Google Apps Scrip
 
 | What | Where |
 |---|---|
-| **Live app (students)** | https://script.google.com/macros/s/AKfycbxCLbgQdFZ0ykhVx5q0vw5dpTtwi4zSUnaWUrc59-7wQIhmyXIi3EWfQ19WOD84cm1D/exec |
+| **Live app (students + teacher)** | **https://minhtranlab.github.io/testzone/** (nice link, see "Nice link" below) |
+| Same app, script link (still works) | https://script.google.com/macros/s/AKfycbxCLbgQdFZ0ykhVx5q0vw5dpTtwi4zSUnaWUrc59-7wQIhmyXIi3EWfQ19WOD84cm1D/exec |
 | Deployment id | in [`.deployment`](.deployment) — every deploy is a new version of this one deployment, so the link never changes |
 | Sheet "Test Zone – Data" | `1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY` (Google account minhtranipad@gmail.com, private) |
 | Apps Script project (bound to the Sheet) | script id in [`.clasp.json`](.clasp.json) |
@@ -83,6 +84,12 @@ A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive
 - One live window per attempt: each opening gets a new copy token (`Sessions.copy_token`); an older window is told "This test is open in another window. Close this one." and stops.
 - Sign-in lock-out: 10 wrong codes in 15 min per code / per device → wait 15 min; 30 wrong codes in 15 min in total → every sign-in waits 5 min.
 - Report tab: picking an attempt in B2 works without Drive (the simple trigger has no Drive rights; tags come from the Questions tab). The Drive form list is only cached after a successful read.
+
+## Nice link (GitHub Pages, ticket #25)
+- https://minhtranlab.github.io/testzone/ = `site/index.html`: one page that shows the Apps Script web app full screen (iframe). No code, data or keys on it; every rule stays on the Apps Script side. The script link above keeps working (same app).
+- `src/Code.gs` serves the app with `XFrameOptionsMode.ALLOWALL` so it may be shown inside that page.
+- Published from the `gh-pages` branch (only `site/` files): after changing `site/`, push `main` and run `bash tools/publish_site.sh`. Pages for this repo only; nothing on `minhtranlab.github.io` itself.
+- Tested by `tests/site_test.js` (wrapper and app on two different sites: full screen, sign-in kept after reload, resume, one live window, Save and Continue Later, Desmos, teacher; desktop + iPad sizes).
 
 ## How to test live
 - Use the test student **Minh (test)** only; never a real student's code. Never write the teacher code in a file, report, log or commit.
