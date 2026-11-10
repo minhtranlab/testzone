@@ -89,6 +89,7 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   await tp.click(`.t-open[data-sid="${sid}"]`); await tp.waitForSelector('#scr-result.on .score-total');
   check(/Test Student — Results/.test(await tp.textContent('#result-body')) && (await tp.textContent('.score-total')).trim() === '2 / 4', 'teacher sees the student\'s result page (same score)');
   { const L = await H.badgeLayout(tp); check(L.cells === 4 && L.size && L.sym && L.R >= 1 && new Set(L.dy).size === 1 && L.chipsWithBadge === 0 && L.keys === L.parts, '#27 teacher page: same cells + badges inside (R ' + L.R + ')'); }
+  for (const [sel, n] of [['.res-types', 'r27_teacher_types'], ['.res-part', 'r27_teacher_grid']]) { const e = await tp.$('#result-body ' + sel); await e.scrollIntoViewIfNeeded(); await e.screenshot({ path: H.SHOTS + '/' + n + '.png' }); }
   await tp.setViewportSize({ width: 1100, height: 420 });
   await tp.evaluate(() => { document.querySelector('#result-body .rgrid .rcell.wrong').scrollIntoView({ block: 'center' }); });
   const ty0 = await tp.evaluate(() => document.querySelector('#scr-result').scrollTop);
