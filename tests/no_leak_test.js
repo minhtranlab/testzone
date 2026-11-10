@@ -15,7 +15,8 @@ for (const f of files) {
   if (/(^|\/)Data_[^/]*\.gs$/.test(f)) bad(f, 'built form data file (questions + keys)');
   if (/(^|\/)Questions_[^/]*\.csv$/.test(f)) bad(f, 'Questions export (keys)');
   if (/(^|\/)questions\.json$/.test(f) && !inFixtures) bad(f, 'question bank outside tests/fixtures');
-  if (/\.(png|jpe?g|gif|webp|pdf)$/i.test(f) && !inFixtures) bad(f, 'image/PDF outside tests/fixtures');
+  const siteIcon = /^site\/icon-\d+\.png$/.test(f) && fs.statSync(path.join(ROOT, f)).size < 10000; // #25: the nice link's home-screen icon only
+  if (/\.(png|jpe?g|gif|webp|pdf)$/i.test(f) && !inFixtures && !siteIcon) bad(f, 'image/PDF outside tests/fixtures');
   if (/(^|\/)\.clasprc\.json$|creds?\.json$|\.pem$|\.p12$/.test(f)) bad(f, 'credentials file');
   if (/\.json$/.test(f) && /^(APCAB|SAT)-/.test(path.basename(f)) && !f.startsWith('tools/profiles/')) bad(f, 'form JSON (Drive file) in the repo');
   if (/\.(png|jpe?g|gif|webp|pdf)$/i.test(f)) continue;

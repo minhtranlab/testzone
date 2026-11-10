@@ -22,6 +22,7 @@ run node pause_test.js
 run node minors.js
 run DATA_DIR=.work/gas_sat node sat.js           # adaptive routing engine
 run DATA_DIR=.work/gas_sat98 node sat98.js       # SAT end to end
+run node site_test.js                           # #25 nice link: GitHub Pages wrapper (cross-site frame), desktop + iPad sizes
 run node result_test.js                          # result page, read-only review, teacher mode + Show answer
 run DATA_DIR=.work/gas_sat98 node break_test.js  # break countdown auto-starts Math; SAT estimate on the result
 echo "ALL SUITES PASSED"

@@ -27,7 +27,7 @@ function doGet(e) {
   return t.evaluate()
     .setTitle(getSettings_().app_name || 'Test Zone')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=5')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function include(name) {
