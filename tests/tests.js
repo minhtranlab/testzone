@@ -151,7 +151,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   await page.waitForSelector('#scr-result.on .score-total', { timeout: 15000 });
   const expect1 = 2 + nB; // A1, A2 right, A3 wrong, rest of A blank, all B right
   check((await page.textContent('.score-total')).trim() === `${expect1} / ${nA + nB}`, `result shows ${expect1} / ${nA + nB}`);
-  check(await page.$$eval('.rcell.wrong', a => a.length) === 1, 'result grid marks 1 wrong');
+  check(await page.$$eval('.rgrid .rcell.wrong', a => a.length) === 1, 'result grid marks 1 wrong');
   check(!/[A-E] is correct|Correct answer:/.test(await page.textContent('#result-body')), 'result shows no key / correct answers');
   await shot(page, 'desktop_12_result');
   // sheet checks
@@ -271,7 +271,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
     await startTest(page, E, 'T06'); await begin(page);
     await toReviewAndEnd(page); await page.waitForSelector('#btn-cont'); await page.click('#btn-cont'); await begin(page);
     await toReviewAndEnd(page); await page.waitForSelector('#scr-result.on .score-total', { timeout: 15000 });
-    check((await page.textContent('.score-total')).trim() === `0 / ${nA + nB}` && await page.$$eval('.rcell.blank', a => a.length) === nA + nB, 'result 0 / N, all blank');
+    check((await page.textContent('.score-total')).trim() === `0 / ${nA + nB}` && await page.$$eval('.rgrid .rcell.blank', a => a.length) === nA + nB, 'result 0 / N, all blank');
     const sess = sessionsOf(E, 'T06')[0];
     const rr = respOf(E, sess.session_id);
     check(rr.every(r => r.profile === 'BLANK' && r.correct === ''), 'Responses all BLANK, correct empty');

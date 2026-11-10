@@ -66,10 +66,10 @@ const typeable = k => /^-?(\d+|\d*\.\d+|\d+\.|\d+\/\d+)$/.test(k) && k.length <=
       if (part === 'RW2') { await page.waitForSelector('#v-break.on'); await page.click('#btn-resume'); }
     }
     check(!probs.length, `all 98 questions render cleanly (MathJax, figures, passage / SPR panes, 4 choices, no sideways scroll)` + (probs.length ? ' → ' + probs.join(' | ') : ''));
-    await page.waitForSelector('#scr-result.on .score-total', { timeout: 30000 });
-    const tot = (await page.textContent('.score-total')).trim();
+    await page.waitForSelector('#scr-result.on .res-score', { timeout: 30000 });
+    const tot = await H.satTotal(page);
     check(tot === '98 / 98', `answered every question with its key in the app (SPR typed) → ${tot}`);
-    check(/54 \/ 54\s*Reading and Writing/.test(await page.textContent('.score-secs')) && /44 \/ 44\s*Math/.test(await page.textContent('.score-secs')), 'section scores 54/54 · 44/44');
+    check(/Reading and Writing[\s\S]*54\/54 correct[\s\S]*Math[\s\S]*44\/44 correct/.test(await page.textContent('.sec-cards')), 'section scores 54/54 · 44/44');
     await shot(page, `${FORM}_result`);
     await ctx.close();
   }

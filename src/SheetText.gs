@@ -6,7 +6,7 @@
 
 var README_ROWS_ = [
   ['Test Zone – Data'],
-  ['This Sheet is the database of the Test Zone app. The app writes the data; the teacher only reads it and edits the tabs Students, Settings, Score_Scale, the Questions keys and the tutor_note column.'],
+  ['This Sheet is the database of the Test Zone app. The app writes the data; the teacher only reads it and edits the tabs Students, Settings, Score_Scale, Time_Norms, the Questions keys and the tutor_note column.'],
   ['Start in the Report tab: pick an attempt in cell B2.', 'Report of one attempt: score (and estimated SAT score), reliable or not, summary, next steps, by unit / domain, error types, time per question, wrong answers. Menu Test Zone → Refresh report updates the list.'],
   ['Teacher view in the app', 'Sign in to the app with Settings → teacher_code: students → attempts → the result page the student saw → every question with the student\'s answer; "Show answer" reveals the key.'],
   [],
@@ -25,6 +25,7 @@ var README_ROWS_ = [
   ['Questions', 'Question metadata: key, unit / topic, difficulty, flags. No question text. The key here is the one used for grading: change it here to fix a key (SPR: accepted answers separated by |; type an apostrophe before a fraction such as \'3/4). Then menu Test Zone → Re-grade after a key change: submitted attempts are graded again (also done after every new version).'],
   ['Forms', 'Forms and their parts / modules (questions, minutes, calculator). data_file_id = the form file on Drive (filled automatically).'],
   ['Settings', 'Thresholds, reliability rule, teacher_code, Desmos key. Change values here, not in the code.'],
+  ['Time_Norms', 'Usual time per question type + difficulty (seconds): target, fast_below (= rushed), slow_above (= slow). Editable; after a change use menu Test Zone → Re-grade after a key change (also done after every new version).'],
   ['Score_Scale', 'SAT estimated score: raw → scaled table (route hard) and the rules (weights, thresholds, range widths). Editable; the app reads it on every result.'],
   ['Dictionary', 'Meaning of every column of every tab.'],
   [],
@@ -41,11 +42,11 @@ var README_ROWS_ = [
 
 var INTERPRETATION_ROWS_ = [
   ['Type / flag', 'Condition', 'Meaning', 'Teaching suggestion'],
-  ['Standard time (pace)', 'Part (module) time ÷ number of questions. AP Calc AB 2012: Part A ≈ 2 min per question (118 s), Part B ≈ 3 min (176 s). SAT: RW ≈ 71 s, Math ≈ 95 s per question.', 'The yardstick for the time on each question. pace_ratio = time on the question ÷ standard time.'],
-  ['FAST_WRONG — Rushed and wrong', 'Wrong and pace_ratio < fast_ratio (Settings, default 0.5)', 'Rushed: misread the question or fell for a trap answer.', 'Practise careful reading: underline the conditions, check the answer before moving on.'],
-  ['SLOW_WRONG — Didn\'t know (slow and wrong)', 'Wrong and pace_ratio > slow_ratio (default 1.5)', 'Gap in knowledge or no method.', 'Reteach the topic / skill, then practise from easy to hard.'],
+  ['Usual time (Time_Norms)', 'Per question type and difficulty (tab Time_Norms: target, fast_below, slow_above seconds; SAT RW by skill, SAT Math by difficulty and MCQ / SPR, AP by part). A type with no row: part time ÷ number of questions × fast_ratio / slow_ratio.', 'The yardstick for the time on each question. pace_ratio = time on the question ÷ target.'],
+  ['FAST_WRONG — Rushed and wrong', 'Wrong and time < fast_below_sec of its type (Time_Norms)', 'Rushed: misread the question or fell for a trap answer.', 'Practise careful reading: underline the conditions, check the answer before moving on.'],
+  ['SLOW_WRONG — Didn\'t know (slow and wrong)', 'Wrong and time > slow_above_sec of its type (Time_Norms)', 'Gap in knowledge or no method.', 'Reteach the topic / skill, then practise from easy to hard.'],
   ['WRONG — Wrong', 'Wrong, normal time', 'Cause not clear from the timing; look at the flags and the topic.', 'Go over it with the student in class.'],
-  ['SLOW_RIGHT — Slow but right', 'Right but pace_ratio > slow_ratio', 'Knows it but slow; risks running out of time on the real test.', 'Timed practice on the same question type; teach a shorter method.'],
+  ['SLOW_RIGHT — Slow but right', 'Right but time > slow_above_sec of its type (Time_Norms)', 'Knows it but slow; risks running out of time on the real test.', 'Timed practice on the same question type; teach a shorter method.'],
   ['RIGHT — Right', 'Right, normal or fast time', 'Fine.'],
   ['BLANK — Blank', 'No answer', 'Time ran out or the question was skipped.', 'Practise time management; always answer when time is nearly up (no penalty).'],
   [],
@@ -147,7 +148,7 @@ var DICTIONARY_ROWS_ = [
   ['Responses', 'visits', 'Times the question was opened', '3'],
   ['Responses', 'time_total_sec', 'Total time on the question over all visits', '214'],
   ['Responses', 'time_first_visit_sec', 'Time of the first visit', '150'],
-  ['Responses', 'pace_ratio', 'time_total_sec ÷ standard time of the part (see Interpretation)', '1.22'],
+  ['Responses', 'pace_ratio', 'time_total_sec ÷ usual time of the question type (Time_Norms; see Interpretation)', '1.22'],
   ['Responses', 'order_first_seen', 'Order in which the question was first opened in the part', '5'],
   ['Responses', 'calc_used', 'Calculator open while on this question', 'TRUE'],
   ['Responses', 'profile', 'Result type: FAST_WRONG, SLOW_WRONG, WRONG, SLOW_RIGHT, RIGHT, BLANK', 'SLOW_WRONG'],
@@ -197,8 +198,8 @@ var DICTIONARY_ROWS_ = [
 /* Settings: key → meaning (the value column is never touched) */
 var SETTINGS_MEANING_ = {
   app_name: 'Name shown in the app',
-  fast_ratio: 'pace_ratio below this = fast',
-  slow_ratio: 'pace_ratio above this = slow',
+  fast_ratio: 'Only for a question type with no row in Time_Norms: pace_ratio below this = rushed',
+  slow_ratio: 'Only for a question type with no row in Time_Norms: pace_ratio above this = slow',
   guess_window_sec: 'Old rule, kept: last seconds of a part in which a very quick answer is also GUESS_LIKELY',
   guess_min_time_sec: 'An answer chosen with less time than this on the question = GUESS_LIKELY; also used for the reliability rule',
   weak_accuracy: 'Unit / topic / domain / skill accuracy below this = Needs reteaching',
@@ -212,8 +213,33 @@ var SETTINGS_MEANING_ = {
   valid_blank_ratio: 'Not reliable if ≥ this share of the questions is blank',
   unit_slow_ratio: 'A unit / domain with ≥ this share of slow questions = Slow',
   teacher_code: 'Teacher sign-in code for the app (teacher view + Show answer). Empty = teacher view off. Use a long, hard-to-guess code',
-  code_version: 'Code version + commit whose Sheet update has run (set automatically after each deploy)'
+  code_version: 'Code version + commit whose Sheet update has run (set automatically after each deploy)',
+  practice_app_name: 'Name of the practice app shown on the result page ("Practise: <mode> in the …")',
+  'practice_mode CAS.WIC': 'Practice app mode for the SAT skill Words in Context (shown under "What to practise first"). Empty = no app line',
+  'practice_mode CAS.TSP': 'Practice app mode for the SAT skill Text Structure and Purpose (shown under "What to practise first"). Empty = no app line',
+  'practice_mode CAS.CTC': 'Practice app mode for the SAT skill Cross-Text Connections (shown under "What to practise first"). Empty = no app line',
+  'practice_mode INI.CID': 'Practice app mode for the SAT skill Central Ideas and Details (shown under "What to practise first"). Empty = no app line',
+  'practice_mode INI.COE-T': 'Practice app mode for the SAT skill Command of Evidence: Textual (shown under "What to practise first"). Empty = no app line',
+  'practice_mode INI.COE-Q': 'Practice app mode for the SAT skill Command of Evidence: Quantitative (shown under "What to practise first"). Empty = no app line',
+  'practice_mode INI.INF': 'Practice app mode for the SAT skill Inferences (shown under "What to practise first"). Empty = no app line',
+  'practice_mode SEC.BOU': 'Practice app mode for the SAT skill Boundaries (shown under "What to practise first"). Empty = no app line',
+  'practice_mode SEC.FSS': 'Practice app mode for the SAT skill Form, Structure, and Sense (shown under "What to practise first"). Empty = no app line',
+  'practice_mode EOI.TRA': 'Practice app mode for the SAT skill Transitions (shown under "What to practise first"). Empty = no app line',
+  'practice_mode EOI.SYN': 'Practice app mode for the SAT skill Rhetorical Synthesis (shown under "What to practise first"). Empty = no app line'
 };
 
 /* Settings rows the app adds when missing (value as given; Minh fills / changes it) */
-var SETTINGS_NEW_ROWS_ = [['teacher_code', '']];
+var SETTINGS_NEW_ROWS_ = [['teacher_code', ''],
+  // #24 C: SAT verbal skill → mode of Minh's practice app (Math gets no app line)
+  ['practice_app_name', 'SAT practice app'],
+  ['practice_mode CAS.WIC', 'Vocabulary'],
+  ['practice_mode CAS.TSP', 'Text Structure & Purpose'],
+  ['practice_mode CAS.CTC', 'Cross-Text Connections'],
+  ['practice_mode INI.CID', 'Main Idea / Details'],
+  ['practice_mode INI.COE-T', 'Support-Undermine / Command of Evidence'],
+  ['practice_mode INI.COE-Q', 'Data Reading'],
+  ['practice_mode INI.INF', 'Logical Completion'],
+  ['practice_mode SEC.BOU', 'Grammar'],
+  ['practice_mode SEC.FSS', 'Grammar'],
+  ['practice_mode EOI.TRA', 'Transition'],
+  ['practice_mode EOI.SYN', 'Rhetorical Synthesis']];

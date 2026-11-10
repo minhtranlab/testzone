@@ -62,4 +62,10 @@ let FAILS = 0, PASSES = 0;
 function check(cond, msg) { if (cond) { PASSES++; console.log('  ✓ ' + msg); } else { FAILS++; console.log('  ✗ FAIL: ' + msg); } }
 function summary() { console.log(`\n${PASSES} passed, ${FAILS} failed`); return FAILS; }
 
-module.exports = { setup, sleep, shot, grab, englishOnly, login, waitMath, check, summary, SHOTS };
+/** SAT result page (v1.9): no overall "x / 98" line — the raw total is the sum of the section cards ("25/54 correct"). */
+async function satTotal(page) {
+  const r = await page.$$eval('.sec-raw b', a => a.map(x => x.textContent));
+  const t = r.reduce((acc, s) => { const [x, y] = s.split('/').map(Number); return [acc[0] + x, acc[1] + y]; }, [0, 0]);
+  return t[0] + ' / ' + t[1];
+}
+module.exports = { setup, sleep, shot, grab, englishOnly, login, waitMath, check, summary, SHOTS, satTotal };

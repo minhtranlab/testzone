@@ -80,7 +80,7 @@ check(/^RW \d+\/54 · Math \d+\/44 · total \d+\/98\. /.test(R1.summary), 'summa
 check(/^\d{3,4} \(\d{3,4}–\d{3,4}\) · RW \d{3} \(\d{3}–\d{3}\)/.test(R1.estimated_score), 'Student_Report.estimated_score: ' + R1.estimated_score);
 check(/Standard English Conventions \(\d+\/\d+\)/.test(R1.weakest_topics) && !/Unit/.test(R1.weakest_topics), 'weakest_topics by domain (English names): ' + R1.weakest_topics);
 check(/^2 sittings: RW1 \d\d\/\d\d \d\d:\d\d–\d\d:\d\d · RW2 .* · M1 \d\d\/\d\d .* · M2 /.test(R1.sittings), 'sittings per module: ' + R1.sittings);
-check(/min RW1/.test(R1.timing_pattern) && /RW ≈ 71 s per question, Math ≈ 95 s per question/.test(R1.timing_pattern), 'timing: per module + standard time RW ≈ 71 s, Math ≈ 95 s (from the profile): ' + R1.timing_pattern);
+check(/min RW1/.test(R1.timing_pattern) && /usual time for each question type \(Time_Norms tab\): \d+ slow, \d+ rushed/.test(R1.timing_pattern), 'timing: per module + slow / rushed against Time_Norms (#24 F): ' + R1.timing_pattern);
 check(/Math: only 6 of 70 minutes used/.test(R2.summary) && R2.weakest_topics === '— (not reliable)', 'unreliable reason names the section: ' + R2.summary.slice(0, 120));
 
 console.log('[Topic_Summary]');
@@ -117,12 +117,15 @@ check(/^Math \| Advanced Math \|/.test(dom.find(([t]) => /Advanced Math/.test(t)
 const bou = rowOf(/^ \| Boundaries \| /); check(bou > 0 && sh.rowDepth[bou] === 1, 'skill row "Boundaries" grouped under its domain');
 const ini = dom.find(([t]) => /Information and Ideas/.test(t))[1];
 check(!sh.hiddenRows[dom.find(([t]) => /Standard English Conventions/.test(t))[1] + 1] && (/\| OK$/.test(T[ini - 1]) ? sh.hiddenRows[ini + 1] : true), 'weak domain expanded, OK domains collapsed');
-check(/module time ÷ number of questions: RW about 71 s per question, Math about 95 s per question/.test(T[rowOf(/^Standard time = /) - 1]), 'standard time text: RW ≈ 71 s, Math ≈ 95 s');
+check(rowOf(/^Slow \/ rushed = against the usual time for each question type/) > 0, 'time text: slow / rushed against Time_Norms');
 const iAct = rowOf(/^Next steps/); check(/^1\. Reteach (Standard English Conventions \(RW\)|Advanced Math \(Math\))\. Missed skills: /.test(T[iAct]), 'action 1: ' + T[iAct].slice(0, 90));
 const iW = rowOf(/^Wrong and blank answers/); check(/^Question \| Skill \| Type \| Time \| Note/.test(T[iW]) && /^(RW1|RW2|M1|M2) \d+ \| [A-Z]/.test(T[iW + 1]), 'wrong list: "RW1 3 | Boundaries | …"');
 check(sh.charts.length === 1 && sh.charts[0].ranges[0].getValues().length === 99 && sh.charts[0].ranges[0].getValues()[1][0] === 'RW1-1', 'chart: 98 questions labelled RW1-1 …');
 const cd = sh.charts[0].ranges[0].getValues();
-check(Math.abs(cd[1][5] - 1.19) < 0.01 && Math.abs(cd[60][5] - 1.59) < 0.01, 'chart standard-time line: RW 1.19 min, Math 1.59 min');
+{ const fq = qs98 => qs98; const all = G.ctx.formDataRaw_('MOCK-SAT98').questions, tg = G.ctx.tagMap_('MOCK-SAT98');
+  const want = q => Math.round(G.ctx.timeNormFor_(true, q.part, q.type, tg[q.qid]).target / 60 * 100) / 100;
+  const q1 = all.find(q => q.part === 'RW1' && q.display_no === 1), q60 = all.filter(q => q.part === 'M1' || q.part === 'M2')[5];
+  check(Math.abs(cd[1][5] - want(q1)) < 0.01 && new Set(cd.slice(1).map(r => r[5])).size > 3, 'chart usual-time line per question from Time_Norms (RW1-1 ' + cd[1][5] + ' min, ' + new Set(cd.slice(1).map(r => r[5])).size + ' different values)'); }
 check(!T.some(t => /Unit|Part A|AP Calc/.test(t)), 'no AP wording (Unit / Part A / AP Calc) in a SAT report');
 fs.writeFileSync(OUT + '/sat_report_real.html', '<meta charset="utf-8"><body style="margin:16px;background:#f2f2f2">' + dump(sh) + '</body>');
 

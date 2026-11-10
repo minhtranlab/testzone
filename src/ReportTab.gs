@@ -19,7 +19,7 @@ var RPT_COLOR = { bad: '#c62828', warn: '#a15c00', good: '#2e7d32', none: '#7575
 var RPT_SYMBOL = { RIGHT: '✓', SLOW_RIGHT: '◔', FAST_WRONG: '✗', SLOW_WRONG: '✗', WRONG: '✗', BLANK: '–' };
 var REPORT_TITLE_ = 'Attempt report · Test Zone';
 var REPORT_HINT_ = 'Pick an attempt in cell B2 (type a student name to filter). List out of date? Menu Test Zone → Refresh report.';
-var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (more than 1.5 × the standard time) · red = wrong · grey = blank. Dashed line = standard time per question (module time ÷ number of questions).';
+var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (longer than the usual time for the question type, Time_Norms tab) · red = wrong · grey = blank. Dashed line = usual time per question (module time ÷ number of questions).';
 
 /* ============================== triggers + menu ============================== */
 
@@ -250,7 +250,7 @@ function renderReport_(sh, sessionId) {
     para('✓ right · ◔ right but slow · ✗ wrong · – blank', { color: '#616161', size: 9 });
     // 6. error types
     heading('Error types');
-    para('Standard time = ' + (a.sat ? 'module' : 'part') + ' time ÷ number of questions: ' + paceTxt + '.', { color: '#616161', size: 9 });
+    para('Slow / rushed = against the usual time for each question type and difficulty (tab Time_Norms).', { color: '#616161', size: 9 });
     add(['Type', '', 'Questions', 'Meaning', ''], { bold: true, bottom: true, mergeBC: true, mergeEF: true });
     ['SLOW_WRONG', 'FAST_WRONG', 'WRONG', 'BLANK', 'SLOW_RIGHT'].forEach(function (k) {
       add([a.types[k].t, '', a.counts[k], a.types[k].m, ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0], grey: !a.counts[k] });

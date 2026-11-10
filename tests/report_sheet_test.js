@@ -98,7 +98,7 @@ const u1 = unitRows.find(([t]) => t.startsWith('Unit 1 |'))[1];
 check(sh.hiddenRows[u1 + 1] && !sh.hiddenRows[u6[1] + 1] && sh.groupCtl === 'BEFORE', 'groups: Unit 1 topics collapsed, Unit 6 (Needs reteaching) expanded, toggle on the unit row');
 const iTy = rowOf(/^Type \|  \| Questions \| Meaning/); check(iTy > 0 && /^Didn't know \(slow and wrong\) \|  \| 7 \| Long time and still wrong/.test(T[iTy]) && /^Changed right → wrong \|  \| 1 \|/.test(T[iTy + 5]), 'Error types table (7 / … / changed right → wrong 1)');
 const iT = rowOf(/^Time per question/); check(iT > 0 && sh.charts.length === 1 && sh.charts[0].pos.r === iT + 3 && sh.charts[0].type === 'combo', 'one combo chart under "Time per question"');
-check(/^Bar colours: green = right · yellow = right but slow .* · red = wrong · grey = blank\. Dashed line = standard time per question/.test(T[iT]), 'one-line colour legend right above the chart (Minh 2026-11-09)');
+check(/^Bar colours: green = right · yellow = right but slow .* · red = wrong · grey = blank\. Dashed line = usual time per question/.test(T[iT]), 'one-line colour legend right above the chart (Minh 2026-11-09)');
 const cd = sh.charts[0].ranges[0].getValues();
 check(cd.length === 46 && cd[0].join() === 'Question,Right,Right but slow,Wrong,Blank,Standard time' && cd[6][3] > 4 && cd[1][5] > 1.9 && cd[30][5] > 2.9, 'chart data: 45 questions, A6 in "Sai" column, standard line ≈2 / ≈3 min');
 check(sh.charts[0].options.series[4].type === 'line' && sh.charts[0].options.isStacked && sh.charts[0].hidden === 'SHOW_BOTH' && sh.hiddenCols[10] && sh.colDepth[10] === 1, 'chart: stacked bars + dashed line, data block J:O grouped+collapsed, hidden data shown');

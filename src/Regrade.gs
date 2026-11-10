@@ -51,12 +51,14 @@ function regradeAll_() {
     if (!ids[sid] || (t !== 'select' && t !== 'change')) return;
     ((evBy[sid] = evBy[sid] || {})[String(e.qid)] = evBy[sid][String(e.qid)] || []).push(e);
   });
-  var log = [], evFixed = 0, cellsFixed = 0, regraded = 0, touched = {};
+  var log = [], evFixed = 0, cellsFixed = 0, regraded = 0, retimed = 0, touched = {};
   sessions.forEach(function (s) {
     var sid = String(s.session_id), fid = String(s.form_id);
     var fd = formData_(fid);
     if (!fd) return;
     var qmap = {}; fd.questions.forEach(function (q) { qmap[q.qid] = q; });
+    var profile = profileFor_(fid, true), sat = isSat_(profile), tags = tagMap_(fid), nInPart = {};
+    fd.questions.forEach(function (q) { nInPart[q.part] = (nInPart[q.part] || 0) + 1; });
     var st = parseState_(s) || {}, ans = {};
     Object.keys(st.parts || {}).forEach(function (p) { var a = (st.parts[p] || {}).ans || {}; Object.keys(a).forEach(function (q) { ans[q] = String(a[q]); }); });
     var hasState = !!st.parts;
@@ -83,13 +85,14 @@ function regradeAll_() {
       if (!sameCell_(r.first_answer, first)) f.first_answer = txt_(first);
       if (Number(r.n_changes) !== nCh) f.n_changes = nCh;
       if (String(r.change_pattern) !== pattern) f.change_pattern = pattern;
+      // the question's type (rushed / slow / …) from its time and the current Time_Norms (#24 F): recomputed every run
+      var tSec = Number(r.time_total_sec) || 0, partDef = (profile.parts.filter(function (p) { return p.part === String(r.part); })[0]) || {};
+      var tp = timeProfile_(!!fin, !!corr, tSec, timeNormFor_(sat, String(r.part), q.type, tags[q.qid]),
+                            (partDef.time_limit_sec || 0) / Math.max(1, nInPart[String(r.part)] || 1), S);
+      if (String(r.profile) !== tp.profile) f.profile = tp.profile;
+      if (Math.abs((Number(r.pace_ratio) || 0) - round_(tp.ratio, 2)) > 0.005) f.pace_ratio = round_(tp.ratio, 2);
       if (oldCorr !== newCorr) {
         f.correct = newCorr;
-        var ratio = Number(r.pace_ratio) || 0, prof;
-        if (!fin) prof = 'BLANK';
-        else if (!corr) prof = ratio < S.fast_ratio ? 'FAST_WRONG' : (ratio > S.slow_ratio ? 'SLOW_WRONG' : 'WRONG');
-        else prof = ratio > S.slow_ratio ? 'SLOW_RIGHT' : 'RIGHT';
-        f.profile = prof;
         log.push(sid + ' · ' + q.qid + ': ' + (oldCorr === 1 ? 'right' : oldCorr === 0 ? 'wrong' : 'blank') + ' → ' + (newCorr === 1 ? 'right' : newCorr === 0 ? 'wrong' : 'blank') + ' (answer ' + (fin || '–') + ')');
         regraded++;
       }
@@ -107,7 +110,9 @@ function regradeAll_() {
         updateRow_('Responses', r._row, f);
         Object.keys(f).forEach(function (k) { r[k] = f[k] === undefined ? r[k] : String(f[k]).replace(/^'/, ''); });
         r.correct = f.correct !== undefined ? f.correct : r.correct;
-        if (f.correct === undefined) cellsFixed++;
+        if (f.profile) r.profile = f.profile;
+        var onlyTime = Object.keys(f).every(function (k) { return k === 'profile' || k === 'pace_ratio'; });
+        if (onlyTime) retimed++; else if (f.correct === undefined) cellsFixed++;
         touched[sid] = true;
       }
     });
@@ -129,7 +134,7 @@ function regradeAll_() {
     if (Object.keys(f).length) { updateRow_('Sessions', s._row, f); totals++; log.push(sid + ' · totals: ' + JSON.stringify(f)); }
   });
   _formCache = {};
-  var msg = 'Re-graded ' + regraded + ' answers (key changes) in ' + totals + ' attempts; repaired ' + cellsFixed + ' answer rows, ' + evFixed + ' event cells';
+  var msg = 'Re-graded ' + regraded + ' answers (key changes) in ' + totals + ' attempts; repaired ' + cellsFixed + ' answer rows, ' + evFixed + ' event cells; re-timed ' + retimed + ' rows (Time_Norms)';
   console.log('REGRADE: ' + msg + (log.length ? '\n' + log.join('\n') : ''));
   return msg;
 }

@@ -17,11 +17,17 @@ const FORM = 'MOCK-SAT98';
   console.log('[My Tests]');
   await H.login(page, E.url, 'T03'); await page.waitForSelector('.form-card .btn-blue');
   const card = await page.textContent('.form-card');
-  check(/SAT — Mock Practice Test/.test(card) && /Section 1, Module 1: Reading and Writing: 27 questions · 32 min · no calculator/.test(card) &&
-        /Section 2, Module 2: Math: 22 questions · 35 min · calculator/.test(card) && /10-minute break between sections/.test(card), 'card: 4 modules + 10-minute break');
+  check(/SAT — Mock Practice Test/.test(card) && (await page.textContent('.form-card .fc-time')).trim() === '2 h 14 min' && !/Module 1|break between/.test(card),
+        'card (#24 A): title + total time "2 h 14 min" on the same line, no module lines');
+  check(await page.$eval('.form-card .fc-time', x => getComputedStyle(x).color) !== await page.$eval('.form-card h2', x => getComputedStyle(x).color) &&
+        Math.abs(await page.$eval('.form-card .fc-time', x => x.getBoundingClientRect().top) - await page.$eval('.form-card h2', x => x.getBoundingClientRect().top)) < 12, 'card time: light grey, same line as the title');
   check(!/AP Calculus/.test(card), 'SAT-track student does not see AP forms');
   await shot(page, 'sat98_00_mytests');
   await page.click('.form-card .btn-blue');
+  await page.waitForSelector('#btn-begin');
+  const ov = await page.textContent('.test-overview');
+  check(/Section 1, Module 1: Reading and Writing: 27 questions · 32 min · no calculator/.test(ov) && /Section 2, Module 2: Math: 22 questions · 35 min · calculator/.test(ov) &&
+        /10-minute break between sections/.test(ov) && /2 h 14 min/.test(ov), 'start screen (#24 A): the 4 modules + 10-minute break + total time');
 
   console.log('[RW1]');
   await page.waitForSelector('#btn-begin');
@@ -129,15 +135,15 @@ const FORM = 'MOCK-SAT98';
   await page.waitForSelector('#v-review.on'); await page.click('#btn-next');
   check(/Submit your test\?/.test(await page.textContent('#modal-root')), 'last module → Submit your test?');
   await page.click('#modal-root .btns .btn-blue');
-  await page.waitForSelector('#scr-result.on .score-total', { timeout: 20000 });
+  await page.waitForSelector('#scr-result.on .res-score', { timeout: 20000 });
   // expected: RW1 10 right (odd 1..19) + RW2 15 = 25 · M1: MCQ odd non-SPR + 6 SPR right · M2: MCQ 1..10 non-SPR
   const mcqOddM1 = qs.filter(x => x.part === 'M1' && x.type !== 'spr' && x.display_no % 2).length;
   const m2 = qs.filter(x => x.part === 'M2' && x.type !== 'spr' && x.display_no <= 10).length;
   const want = 25 + mcqOddM1 + 6 + m2;
-  const tot = (await page.textContent('.score-total')).trim();
-  check(tot === want + ' / 98', 'result total ' + tot + ' (expected ' + want + ' / 98; all 6 typed SPR answers graded right)');
-  const secs = await page.textContent('.score-secs');
-  check(new RegExp('25 / 54\\s*Reading and Writing').test(secs) && new RegExp((mcqOddM1 + 6 + m2) + ' / 44\\s*Math').test(secs), 'result: section scores RW /54, Math /44');
+  const tot = await H.satTotal(page);
+  check(tot === want + ' / 98' && !/questions correct/.test(await page.textContent('#result-body')), 'result total ' + tot + ' (expected ' + want + ' / 98; all 6 typed SPR answers graded right)');
+  const secs = await page.$$eval('.sec-card', a => a.map(x => x.textContent).join(' | '));
+  check(/Reading and Writing[^|]*25\/54 correct/.test(secs) && new RegExp('Math[^|]*' + (mcqOddM1 + 6 + m2) + '/44 correct').test(secs) && /Module 1: \d+\/27/.test(secs), 'result: section cards RW x/54, Math y/44 + module scores (' + secs.slice(0, 160) + ')');
   await shot(page, 'sat98_08_result');
   S = G.table('Sessions').find(r => r.student_code === 'T03');
   check(S.status === 'completed' && S.score_RW === 25 && S.score_Math === mcqOddM1 + 6 + m2 && S.total_questions === 98 && S.time_used_RW_min > 0 && S.time_used_Math_min > 0 && S.score_A === '',

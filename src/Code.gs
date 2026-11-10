@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.8 (2026-11-10, re-test fixes)';
+var APP_VERSION = 'v1.9 (2026-11-10, screens)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -586,7 +586,7 @@ function getTest(code, formId, opts) {
   } finally { lock.releaseLock(); }
 
   var s = getSettings_();
-  var desmosKey = s.desmos_api_key || 'dcb31709b452b1cf9dc26972add0fda6'; // Desmos public demo key (testing only)
+  var desmosKey = desmosKey_();
   return {
     ok: true,
     session: { session_id: String(session.session_id), attempt_no: Number(session.attempt_no), form_id: formId,
@@ -769,6 +769,8 @@ function cleanAnswers_(formId, state) {
   return state;
 }
 /** Answer events (select / change) carry only a valid answer (else ''), so first_answer / changes can't hold junk (#21 m6). */
+function desmosKey_() { return getSettings_().desmos_api_key || 'dcb31709b452b1cf9dc26972add0fda6'; } // empty = Desmos public demo key (testing only)
+
 function cleanEvents_(formId, events) {
   if (!Array.isArray(events)) return events;
   var fd = formDataRaw_(formId), qm = {};
@@ -819,7 +821,7 @@ function qRowsTags_(formId, map) {
   try {
     readTable_('Questions').rows.forEach(function (r) {
       if (String(r.form_id) !== formId || !r.qid) return;
-      map[String(r.qid)] = { unit: r.unit, topic: r.topic === '' ? '' : String(r.topic), topic_name: r.topic_name, difficulty: r.difficulty };
+      map[String(r.qid)] = { unit: r.unit, topic: r.topic === '' ? '' : String(r.topic), topic_name: r.topic_name, difficulty: r.difficulty, type: String(r.type || 'mcq') };
     });
   } catch (e) {}
   return map;
@@ -992,7 +994,7 @@ function tagMap_(formId) {
   if (!fd) { qRowsTags_(formId, map); return map; }
   fd.questions.forEach(function (q) {
     var t = q.tags || {};
-    map[q.qid] = { unit: t.unit, topic: t.topic, topic_name: t.topic_name, difficulty: t.difficulty };
+    map[q.qid] = { unit: t.unit, topic: t.topic, topic_name: t.topic_name, difficulty: t.difficulty, type: q.type || 'mcq' };
   });
   try {
     readTable_('Questions').rows.forEach(function (r) {
@@ -1129,11 +1131,9 @@ function gradeSession_(session, state, events) {
       if (first && !fin) pattern = 'cleared';
       else if (first && fin && first !== fin) pattern = (firstCorr ? 'R' : 'W') + '→' + (corr ? 'R' : 'W');
       var timeSec = mm.time_ms / 1000;
-      var ratio = timeSec / pace;
-      var profileName;
-      if (!fin) profileName = 'BLANK';
-      else if (!corr) profileName = ratio < S.fast_ratio ? 'FAST_WRONG' : (ratio > S.slow_ratio ? 'SLOW_WRONG' : 'WRONG');
-      else profileName = ratio > S.slow_ratio ? 'SLOW_RIGHT' : 'RIGHT';
+      // rushed / slow from the time norm of this question type + difficulty (Time_Norms tab, #24 F)
+      var tp = timeProfile_(!!fin, !!corr, timeSec, timeNormFor_(isSat_(profile), partId, q.type, tags[q.qid]), pace, S);
+      var ratio = tp.ratio, profileName = tp.profile;
       var elim = ((ps.elim && ps.elim[q.qid]) || []).slice().sort();
       var flags = [];
       if (pattern === 'R→W') flags.push('CHANGED_R_TO_W');
@@ -1236,7 +1236,7 @@ function resultView_(session, rows, asTeacher) {
   var name = st ? String(st.name || '') : String(session.student_code);
   var profile = profileFor_(String(session.form_id));
   var a = analyse_(session, rows, S, name);
-  var v = studentView_(a, profile);
+  var v = studentView_(a, profile, !!asTeacher);
   v.show = asTeacher ? 'score_and_right_wrong' : S.show_results;
   if (asTeacher) { v.student = name; v.student_code = normCode_(session.student_code); v.teacher = true; }
   if (v.show === 'none') return { ok: true, show: 'none', session_id: v.session_id, title: v.title, attempt: v.attempt };
@@ -1252,18 +1252,23 @@ function reviewData_(session, rows) {
   if (!fd) throw new Error('FORM: This test is not available.');
   var by = {};
   rows.forEach(function (r) { by[String(r.qid)] = r; });
+  var sat = isSat_(profile);
+  // the parts as in the test (layout, calculator, reference, directions) so the review can use the test screen (#24 G)
   var parts = profile.parts.filter(function (p) { return rows.some(function (r) { return String(r.part) === p.part; }); }).map(function (p) {
-    return { part: p.part, title: p.title, layout: p.layout || 'single', spr_layout: p.spr_layout || '', choices: p.choices || 5 };
+    return { part: p.part, title: p.title, layout: p.layout || 'single', spr_layout: p.spr_layout || '', choices: p.choices || 5,
+             calculator: !!p.calculator, reference: !!p.reference, annotate: p.annotate !== false, directions_html: p.directions_html || '' };
   });
   var qs = fd.questions.filter(function (q) { return by[q.qid]; }).map(function (q) {
     var r = by[q.qid], o = clientQuestion_(q);
     o.answer = answerText_(r.final_answer);
     o.status = String(r.profile) === 'BLANK' || o.answer === '' ? 'blank' : (Number(r.correct) === 1 ? 'right' : 'wrong');
     o.time_s = Math.round(Number(r.time_total_sec) || 0);
+    o.code = qCode_(q.part, q.display_no, sat); o.badge = qBadge_(String(r.profile));
     return o;
   });
-  return { ok: true, session_id: String(session.session_id), title: formTitle_(profile, formId), parts: parts, questions: qs,
-           question_font: profile.question_font || '' };
+  return { ok: true, session_id: String(session.session_id), form_id: formId, title: formTitle_(profile, formId), parts: parts, questions: qs,
+           question_font: profile.question_font || '', reference_sheet: profile.reference_sheet || '', reference_html: profile.reference_html || '',
+           annotate_label: profile.annotate_label || '', settings: { desmos_api_key: desmosKey_() } };
 }
 
 /** My Tests → "View result" of a past attempt. */

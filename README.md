@@ -69,10 +69,13 @@ cp dist/Forms_Registry.gs src/                                    # profiles onl
 The server finds `<form_id>.json` by name in the Form Files folder, caches it (CacheService, ≤ 10 min to pick up a replaced file) and never sends keys to the browser.
 A form listed in `Forms_Registry.gs` / the Forms tab but without a file on Drive shows as "Coming soon".
 
-## What the app does (v1.8)
+## What the app does (v1.9)
 - Students sign in with their code (Students tab) → My Tests → AP Calc AB 2012 and the SAT forms (SAT · August 2026, September 2026 A / B, October 2026, November 2026; a form without its Drive file shows "Coming soon").
-- Result page (all exams, English, never a key): score, estimated SAT score range (Score_Scale tab, SC's formula), results by section → domain → skill (AP: unit → topic), types of mistakes, "What to practise first", 2-sittings note, and a read-only review of every question (own answer, right / wrong, time).
-- Teacher mode: sign in with `Settings → teacher_code` → students → attempts → the same result page → each question with the student's answer; **Show answer** fetches that one key only when pressed.
+- My Tests: each card shows the title and the total time (light grey, top right); the section / module lines are on the start screen.
+- Result page (all exams, English, never a key): SAT estimated score first (total, then RW / Math ranges with x/y correct and Module 1 / Module 2), no method text for students (teacher sees a short note); "What to practise first" = short tips + the mode of the practice app (Settings `practice_app_name`, `practice_mode <skill>`); results by skill with missed-question chips (V1-21, V2-05, M1-21, M2-07; AP A-12 / B-04); types of mistakes with badges **S** (slow) / **R** (rushed) on chips and grid cells.
+- Slow / rushed: per question type and difficulty from the `Time_Norms` tab (created once from SC's `sat_time_norms.csv` via `tools/build_time_norms.py` → `src/TimeNorms.gs`; Minh may edit it, every re-grade re-times the rows).
+- Opening a question (student or teacher) shows the real test screen (split pane, Highlight, Desmos + Reference in Math; timer hidden). Student: read-only, no key. Teacher: may select / eliminate (not saved) + **Show answer** (fetches that one key). **Back to result** keeps the scroll position.
+- Teacher mode: sign in with `Settings → teacher_code` → students → attempts → the same result page.
 - SAT break: 10:00 countdown, Math Module 1 starts by itself at 0:00; "Save and Continue Later" only on the break screen.
 - Keys: the Questions-tab `key` overrides the data file (grading, reports). SPR: accepted answers separated by `|`; a rounded decimal key (e.g. 0.651 next to 441/677) only matches as typed text.
 - The Sheet is English: README / Interpretation / Dictionary / Settings meanings are written from `src/SheetText.gs` on every deploy (edit them there).

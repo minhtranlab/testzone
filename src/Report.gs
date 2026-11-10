@@ -17,8 +17,8 @@ var UNIT_EN_ = {
 /* Result types. t = name (teacher + student), m = what it means. */
 var TYPE_EN_ = {
   RIGHT: { t: 'Right', m: 'Right, in normal time.' },
-  SLOW_RIGHT: { t: 'Slow but right', m: 'Right, but took more than 1.5 × the standard time. On the real test this costs time.' },
-  FAST_WRONG: { t: 'Rushed and wrong', m: 'Wrong in less than half the standard time: skimmed the question or fell for a trap.' },
+  SLOW_RIGHT: { t: 'Slow but right', m: 'Right, but took longer than the usual time for this type of question (Time_Norms). On the real test this costs time.' },
+  FAST_WRONG: { t: 'Rushed and wrong', m: 'Wrong in less than half the usual time for this type of question: skimmed the question or fell for a trap.' },
   SLOW_WRONG: { t: "Didn't know (slow and wrong)", m: 'Long time and still wrong: a gap in knowledge or no method.' },
   WRONG: { t: 'Wrong', m: 'Wrong in normal time: the timing does not show why — go over it with the student.' },
   BLANK: { t: 'Blank', m: 'No answer. Wrong answers cost nothing on the AP exam, so always answer.' }
@@ -26,8 +26,8 @@ var TYPE_EN_ = {
 /* The same types on the student's own result page: spoken to the student (#16 m7). The teacher wording above stays in the Sheet. */
 var TYPE_STUDENT_M_ = {
   RIGHT: 'Right, in normal time.',
-  SLOW_RIGHT: 'Right, but you took more than 1.5 × the standard time. On the real test this costs time.',
-  FAST_WRONG: 'Wrong in less than half the standard time: you may have skimmed the question or fallen for a trap.',
+  SLOW_RIGHT: 'Right, but you took longer than usual for this type of question. On the real test this costs time.',
+  FAST_WRONG: 'Wrong, and much faster than usual for this type of question: you may have skimmed it or fallen for a trap.',
   SLOW_WRONG: 'You spent a long time and it was still wrong: this skill needs more practice.',
   WRONG: 'Wrong in normal time. Open these questions in the review below and find out what went wrong.'
 };
@@ -138,8 +138,9 @@ function analyse_(session, rows, S, studentName) {
     var tg = tags[String(r.qid)] || {};
     var topic = String(tg.topic || r.topic || '?');
     var pp = parts.filter(function (p) { return p.part === String(r.part); })[0] || { pace: 1 };
+    var nm = timeNormFor_(sat, String(r.part), tg.type, tg); // usual time for this question type + difficulty (#24 F)
     return { qid: String(r.qid), part: String(r.part), no: Number(r.display_no), unit: String(tg.unit || r.unit || '?'), topic: topic,
-             name: names[topic] || tg.topic_name || '', p: String(r.profile), s: Number(r.time_total_sec) || 0, pace: pp.pace,
+             name: names[topic] || tg.topic_name || '', p: String(r.profile), s: Number(r.time_total_sec) || 0, pace: nm ? nm.target : pp.pace,
              flags: String(r.flags || ''), pattern: String(r.change_pattern || ''), diff: String(tg.difficulty || ''),
              answer: r.final_answer === undefined ? '' : String(r.final_answer) };
   }).sort(function (a, b) { return (partOrder.indexOf(a.part) - partOrder.indexOf(b.part)) || (a.no - b.no); });
@@ -177,7 +178,7 @@ function analyse_(session, rows, S, studentName) {
              pace: nn ? ps.reduce(function (x, p) { return x + p.limit_min * 60; }, 0) / nn : 0 };
   }).filter(function (x) { return x.n; }) : [];
   var paces = sat ? sections.map(function (x) { return { label: x.id, sec: x.pace }; }) : parts.map(function (p) { return { label: 'Part ' + p.part, sec: p.pace }; });
-  var stdText = sat ? 'standard time (' + paces.map(function (x) { return x.label + ' ≈ ' + paceStr_(x.sec, true); }).join(', ') + ')' : standardTimeText_(parts);
+  var stdText = 'usual time for each question type (Time_Norms tab)';
   // SAT estimated score (from the module scores; ticket #2)
   var estimate = null;
   if (sat) {
@@ -221,7 +222,7 @@ function analyse_(session, rows, S, studentName) {
                        : '<b>Reteach Unit ' + U.u + ' – ' + escHtml_(U.name) + '.</b> Missed topics: ' + bad.map(escHtml_).join('; ') + '.');
     });
     if (counts.FAST_WRONG >= 2) actions.push('<b>Read carefully.</b> ' + counts.FAST_WRONG + ' answers were wrong because they were too fast: underline the conditions, reread the question before choosing.');
-    if (counts.SLOW_RIGHT >= 2) actions.push('<b>Build speed.</b> ' + counts.SLOW_RIGHT + ' answers were right but took 1.5 × the standard time: timed practice on the same question types.');
+    if (counts.SLOW_RIGHT >= 2) actions.push('<b>Build speed.</b> ' + counts.SLOW_RIGHT + ' answers were right but slower than usual for their question type: timed practice on the same question types.');
     if (counts.BLANK) actions.push('<b>Never leave a blank.</b> ' + plural_(counts.BLANK, 'question') + ' left blank: with 2 minutes left, answer every remaining question.');
     if (r2w) actions.push('<b>Change answers only for a reason.</b> ' + plural_(r2w, 'answer') + ' changed from right to wrong.');
     if (!actions.length) actions.push('<b>Keep it up.</b> Give a new form at the same level or harder.');
@@ -238,7 +239,7 @@ function analyse_(session, rows, S, studentName) {
   var fastN = answeredQs.filter(function (q) { return q.s < S.fast_ratio * q.pace; }).length;
   var timing = 'Used ' + parts.map(function (p) { return round_(p.used_min, 1) + '/' + p.limit_min + ' min ' + partLbl_(p.part, sat) + (p.used_min >= p.limit_min - 0.05 ? ' (time up)' : ''); }).join(', ') + '. ';
   if (answeredQs.length && fastN >= 0.8 * answeredQs.length) timing += 'Very fast overall: ' + fastN + '/' + answeredQs.length + ' answers in under half the ' + stdText + '.';
-  else timing += 'Against the ' + stdText + ': ' + slowN + ' slower than 1.5 ×, ' + fastN + ' faster than half.';
+  else timing += 'Against the ' + stdText + ': ' + slowN + ' slow, ' + fastN + ' rushed.';
   var sit = sittingsOf_(session, profile);
   return {
     sittings: sit.text, n_sittings: sit.n,
@@ -305,68 +306,105 @@ function topicCmp_(a, b) {
 
 /** "You took this test in 2 sittings." (#16 m4: no "on different days" — the sittings can be on the same day) */
 function studentSittingsNote_(n) { return 'You took this test in ' + n + ' sittings. Your score on the real test may be lower than this result.'; }
-var ESTIMATE_NOTE_ = 'Estimated from public score charts for the real SAT (hard Module 2 route). This is a practice form, so your real score can differ.';
 
 /** The result page of one attempt — same content for the student and for the teacher (teacher adds nothing secret here).
  *  No key, no explanations. a = analyse_() output. */
-function studentView_(a, profile) {
-  var sat = a.sat;
+/** Short question code (#24 D): SAT RW1 → V1-21, RW2 → V2-05, M1 → M1-21, M2 → M2-07 (V = verbal module); AP A → A-12. */
+function qCode_(part, no, sat) {
+  var n = String(no).length < 2 ? '0' + no : String(no);
+  if (!sat) return String(part) + '-' + n;
+  var m = /^RW(\d)/.exec(String(part)); if (m) return 'V' + m[1] + '-' + n;
+  m = /^M(\d)/.exec(String(part)); if (m) return 'M' + m[1] + '-' + n;
+  return String(part) + '-' + n;
+}
+/** Badge of a question type (#24 E): S = slow (right or wrong), R = rushed (and wrong), '' = none. */
+function qBadge_(p) { return p === 'SLOW_RIGHT' || p === 'SLOW_WRONG' ? 'S' : p === 'FAST_WRONG' ? 'R' : ''; }
+function qStatus_(p) { return p === 'BLANK' ? 'blank' : (isRightP_(p) ? 'right' : 'wrong'); }
+function qRef_(q, sat) { return { qid: q.qid, code: qCode_(q.part, q.no, sat), status: qStatus_(q.p), badge: qBadge_(q.p) }; }
+
+/** Practice-app mode of a SAT verbal skill (Settings "practice_mode <skill code>", #24 C); '' = none (Math, AP). */
+function practiceMode_(S, sat, skillCode) {
+  if (!sat || !skillCode) return '';
+  return String(S['practice_mode ' + skillCode] || '').trim();
+}
+
+/** The result page of one attempt (student app; teacher mode adds teacherNotes). Never a key; no method text for students. */
+function studentView_(a, profile, asTeacher) {
+  var sat = a.sat, S = getSettings_();
+  var appName = String(S.practice_app_name || '').trim() || 'SAT practice app';
   var out = {
     ok: true, session_id: a.session_id, form_id: a.form_id, title: a.form, attempt: a.attempt, date: a.date, sat: sat,
     total: { right: a.right, n: a.n, pct: a.pct },
     parts: a.parts.map(function (p) { return { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; }),
-    sections: a.sections.map(function (s) { return { id: s.id, title: s.title || SECTION_EN_[s.id] || s.id, right: s.right, n: s.n }; }),
+    sections: a.sections.map(function (s) {
+      var secParts = a.parts.filter(function (p) { return (sectionsOf_(profile).filter(function (x) { return x.id === s.id; })[0] || { parts: [] }).parts.indexOf(p.part) >= 0; });
+      return { id: s.id, title: s.title || SECTION_EN_[s.id] || s.id, right: s.right, n: s.n,
+               modules: secParts.map(function (p) { return { part: p.part, title: p.title, right: p.right, n: p.n }; }) };
+    }),
     valid: a.valid, reasons: a.reasons, n_sittings: a.n_sittings,
-    sittings_note: a.n_sittings > 1 ? studentSittingsNote_(a.n_sittings) : ''
+    sittings_note: a.n_sittings > 1 ? studentSittingsNote_(a.n_sittings) : '',
+    app_name: appName
   };
   if (a.valid && a.estimate && (a.estimate.RW || a.estimate.Math)) { // no estimate from an attempt that cannot be used
-    var e = a.estimate, pick = function (x) { return x ? { score: x.score, low: x.low, high: x.high, note: x.note } : null; };
-    out.estimate = { total: e.total, RW: pick(e.RW), Math: pick(e.Math), note: ESTIMATE_NOTE_ };
+    var e = a.estimate, pick = function (x) { return x ? { score: x.score, low: x.low, high: x.high } : null; };
+    out.estimate = { total: e.total, RW: pick(e.RW), Math: pick(e.Math) }; // students: the numbers only (#24 B2)
+    if (asTeacher) out.estimate.teacher_note = [e.RW && e.RW.note ? 'RW: ' + e.RW.note : '', e.Math && e.Math.note ? 'Math: ' + e.Math.note : '']
+      .filter(String).concat(['From public score charts (hard Module 2 route); a practice form, so the real score can differ.']).join(' ');
   }
-  // section → domain → skill (SAT) / units → topics (AP): "x/y correct"
+  // section → domain → skill (SAT) / units → topics (AP): "x/y correct" + the missed questions of each skill (#24 D)
+  var byTopic = {};
+  a.qs.forEach(function (q) { (byTopic[q.unit + '|' + q.topic] = byTopic[q.unit + '|' + q.topic] || []).push(q); });
   var groupDefs = sat ? out.sections.map(function (s) { return { id: s.id, title: s.title }; }) : [{ id: '', title: 'Units' }];
   out.groups = groupDefs.map(function (g) {
     var us = a.units.filter(function (U) { return sat ? U.section === g.id : true; });
     return { id: g.id, title: g.title, rows: us.map(function (U) {
       return { name: sat ? U.name : 'Unit ' + U.u + ' · ' + U.name, right: U.k, n: U.t,
-               items: U.topics.map(function (T) { return { name: sat ? T.name : T.code + ' ' + T.name, right: T.k, n: T.t }; }) };
+               items: U.topics.map(function (T) {
+                 var tq = byTopic[U.u + '|' + T.code] || [];
+                 return { name: sat ? T.name : T.code + ' ' + T.name, right: T.k, n: T.t,
+                          missed: tq.filter(function (q) { return !isRightP_(q.p); }).map(function (q) { return qRef_(q, sat); }),
+                          slow: tq.filter(function (q) { return q.p === 'SLOW_RIGHT'; }).map(function (q) { return qRef_(q, sat); }) };
+               }) };
     }) };
   });
-  // error types (plain English)
+  // error types + their questions (#24 E)
   out.types = ['FAST_WRONG', 'SLOW_WRONG', 'WRONG', 'SLOW_RIGHT', 'BLANK'].map(function (k) {
-    return { type: k, label: a.types[k].t, n: a.counts[k] || 0, meaning: TYPE_STUDENT_M_[k] || a.types[k].m }; // BLANK: the exam-specific text
+    return { type: k, label: a.types[k].t, n: a.counts[k] || 0, meaning: TYPE_STUDENT_M_[k] || a.types[k].m, badge: qBadge_(k),
+             status: k === 'BLANK' ? 'blank' : (k === 'SLOW_RIGHT' ? 'right' : 'wrong'),
+             qs: a.qs.filter(function (q) { return q.p === k; }).map(function (q) { return qRef_(q, sat); }) };
   });
-  // what to practise first (≤ 4): quick wins (easy/medium missed) → weakest skills → habits
+  // what to practise first (≤ 4 short tips; SAT verbal skills point to the practice app mode, #24 C)
   var practise = [];
+  var tip = function (text, skill) { var m = practiceMode_(S, sat, skill); var o = { text: text }; if (m) { o.mode = m; o.app = appName; } practise.push(o); };
   if (!a.valid) {
-    practise.push('Take the test again in real test conditions: the full time, in one go, answering every question.');
+    tip('Take the test again in real test conditions: the full time, in one go, answering every question.');
   } else {
     var missedEM = a.qs.filter(function (q) { return !isRightP_(q.p) && (q.diff === 'E' || q.diff === 'M'); });
     var bySkill = {};
-    missedEM.forEach(function (q) { var k = q.name || q.topic; (bySkill[k] = bySkill[k] || []).push(q); });
+    missedEM.forEach(function (q) { (bySkill[q.topic] = bySkill[q.topic] || []).push(q); });
+    var used = {};
     Object.keys(bySkill).sort(function (x, y) { return bySkill[y].length - bySkill[x].length; }).slice(0, 2).forEach(function (k) {
-      var list = bySkill[k];
-      practise.push('Quick win — ' + k + ': you missed ' + plural_(list.length, 'easier question') + ' (' + list.map(function (q) { return partLbl_(q.part, sat) + ' Q' + q.no; }).join(', ') + ').');
+      var list = bySkill[k], nm = list[0].name || k;
+      used[k] = 1;
+      tip('Quick win: ' + (sat ? nm : k + ' ' + nm) + ' — you missed ' + plural_(list.length, 'easier question') + '.', k);
     });
     var skills = [];
-    a.units.forEach(function (U) { U.topics.forEach(function (T) { if (T.t >= 2 && T.k / T.t < 0.6) skills.push(T); }); });
+    a.units.forEach(function (U) { U.topics.forEach(function (T) { if (T.t >= 2 && T.k / T.t < 0.6 && !used[T.code]) skills.push(T); }); });
     skills.sort(function (x, y) { return (x.k / x.t - y.k / y.t) || (y.t - x.t); });
     skills.forEach(function (T) {
       if (practise.length >= 3) return;
-      var nm = sat ? T.name : T.code + ' ' + T.name;
-      if (practise.some(function (p) { return p.indexOf(nm) >= 0; })) return;
-      practise.push('Practise ' + nm + ': ' + T.k + ' of ' + T.t + ' right.');
+      tip('Needs work: ' + (sat ? T.name : T.code + ' ' + T.name) + ' — ' + T.k + ' of ' + T.t + ' right.', T.code);
     });
-    if (a.counts.FAST_WRONG >= 2 && practise.length < 4) practise.push('Slow down: ' + a.counts.FAST_WRONG + ' answers were quick and wrong. Read every question to the end before you choose.');
-    if (a.counts.BLANK && practise.length < 4) practise.push('Never leave a question blank: ' + plural_(a.counts.BLANK, 'blank') + '. A guess costs nothing.');
-    if (a.counts.SLOW_RIGHT >= 2 && practise.length < 4) practise.push('Work on speed: ' + a.counts.SLOW_RIGHT + ' answers were right but slow.');
-    if (!practise.length) practise.push('Great work. Try a new practice test at the same level.');
+    if (a.counts.FAST_WRONG >= 2 && practise.length < 4) tip('Slow down: ' + a.counts.FAST_WRONG + ' answers were rushed and wrong. Read each question to the end.');
+    if (a.counts.BLANK && practise.length < 4) tip('Never leave a blank: ' + plural_(a.counts.BLANK, 'blank') + '. A guess costs nothing.');
+    if (a.counts.SLOW_RIGHT >= 2 && practise.length < 4) tip('Work on speed: ' + a.counts.SLOW_RIGHT + ' answers were right but slow.');
+    if (!practise.length) tip('Great work. Try a new practice test at the same level.');
   }
   out.practise = practise.slice(0, 4);
-  // questions for the review list: by part, ✓ ✗ – (no key)
+  // questions for the review grids: by part, right / wrong / blank + badge (no key)
   out.review = a.parts.map(function (p) {
     return { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
-      return { qid: q.qid, no: q.no, status: q.p === 'BLANK' ? 'blank' : (isRightP_(q.p) ? 'right' : 'wrong'), time_s: Math.round(q.s) };
+      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); return o;
     }) };
   });
   return out;
