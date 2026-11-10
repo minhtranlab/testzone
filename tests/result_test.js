@@ -54,7 +54,22 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   const y0 = await page.evaluate(() => document.querySelector('#scr-result').scrollTop);
 
   console.log('[review (student) = the test screen, read-only]');
-  await page.click('#result-body .rgrid .rcell.wrong'); await page.waitForSelector('#scr-test.on.viewing #qwrap .q.on'); await sleep(400);
+  { // #28 n1: the codes always start on a new line under the text (1440, 820, 743 px)
+    const vp = page.viewportSize(), res = [];
+    for (const w of [1440, 820, 743]) {
+      await page.setViewportSize({ width: w, height: vp.height }); await sleep(150);
+      res.push(w + ':' + await page.$$eval('#result-body .res-types .chips', cs => cs.every(c => { const td = c.parentElement, tr = td.getBoundingClientRect(), r = c.getBoundingClientRect(), pl = parseFloat(getComputedStyle(td).paddingLeft) || 0;
+        const rg = document.createRange(); rg.setStartBefore(td.firstChild); rg.setEndBefore(c); const tb = rg.getBoundingClientRect();
+        return Math.abs(r.left - (tr.left + pl)) < 1.5 && r.top >= tb.bottom - 1; }) && cs.length > 0));
+    }
+    await page.setViewportSize(vp);
+    check(res.every(x => /true$/.test(x)), '#28 n1 types of mistakes: chips start on a new line under the text (' + res.join(' ') + ')');
+  }
+  // #28 t1: the review header is set before "Loading questions…" (no old part name / "Submitting" / timer)
+  const t1 = await page.evaluate(() => { document.querySelector('#result-body .rgrid .rcell.wrong').click();
+    const t = document.getElementById('timer'); return { title: document.getElementById('tb-title').textContent, timer: !!t && t.offsetParent !== null, wait: /Loading questions/.test(document.getElementById('v-wait').textContent) }; });
+  check(t1.title === 'Review' && !t1.timer && t1.wait, '#28 t1 while loading: title "Review", timer hidden (' + JSON.stringify(t1) + ')');
+  await page.waitForSelector('#scr-test.on.viewing #qwrap .q.on'); await sleep(400);
   const info = await page.textContent('#view-bar');
   check(new RegExp('Your answer: ' + other(key('A', 2))).test(info) && /✗ Incorrect/.test(info) && /Time: /.test(info) && /A-02/.test(info), 'review: code A-02, own answer, ✗ Incorrect, time');
   check(!(await page.$('#rv-show')) && !/Correct answer/.test(await page.textContent('#scr-test')), 'student review: no "Show answer", no correct answer');
@@ -85,6 +100,7 @@ const FORM = 'MOCK-APCAB', CARD = 'Mock form', TCODE = 'TEACH-9X2Q';
   check(/Test Student/.test(await tp.textContent('#t-list')) && /Mock form/.test(await tp.textContent('#t-list')), 'teacher: students with their attempts');
   check(!(await tp.evaluate(() => localStorage.getItem('tz_code'))), 'teacher code is not stored on the device');
   await shot(tp, 'r2_teacher_list');
+  check(/Practice view — nothing here is saved\./.test(await tp.textContent('#scr-teacher')) && !/Read-only/.test(await tp.textContent('#scr-teacher')), '#28 t4 teacher page: "Practice view — nothing here is saved."');
   await tp.fill('#t-filter', 'nobody'); check(/No students match/.test(await tp.textContent('#t-list')), 'filter'); await tp.fill('#t-filter', '');
   await tp.click(`.t-open[data-sid="${sid}"]`); await tp.waitForSelector('#scr-result.on .score-total');
   check(/Test Student — Results/.test(await tp.textContent('#result-body')) && (await tp.textContent('.score-total')).trim() === '2 / 4', 'teacher sees the student\'s result page (same score)');

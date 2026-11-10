@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.9.1 (2026-11-10, badges in cells)';
+var APP_VERSION = 'v1.9.2 (2026-11-10, polish)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -1208,7 +1208,8 @@ function submit(code, sessionId, payload) {
     fields.n_blank = g.responses.filter(function (r) { return r.profile === 'BLANK'; }).length;
     fields.n_flagged = g.responses.filter(function (r) { return r.final_marked; }).length;
     if (payload.device) fields.device = txt_(String(payload.device).slice(0, 60));
-    var v = validity_(g.responses, g.partTimes, profileFor_(String(session.form_id)), getSettings_());
+    var secUsed = {}; Object.keys(fields).forEach(function (k) { var m = /^time_used_(.+)_min$/.exec(k); if (m) secUsed[m[1]] = fields[k]; });
+    var v = validity_(g.responses, g.partTimes, profileFor_(String(session.form_id)), getSettings_(), secUsed);
     fields.reliable = v.reliable ? 'Yes' : 'No';
     updateRow_('Sessions', session._row, fields);
     appendPartLog_(logRows);

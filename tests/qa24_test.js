@@ -108,4 +108,14 @@ G.ctx._timeNorms = null;
 const rb = G.admin('rebuildAll');
 check(/re-timed [1-9]\d* rows/.test(rb) && G.table('Responses').find(r => r.qid === FORM + '-RW1-02' && r.session_id === sid).profile === 'RIGHT', 'slow_above 60 → 80: V1-02 (70 s) is now plain right; ' + rb.split('; ').pop());
 
+console.log('[#28 t3 minutes rounded once: "can\'t be used" reason = Sessions time_used_<section>_min]');
+rowS('valid_min_time_ratio')[hS.indexOf('value')] = 0.5;   // this mock form switches the time rule off; on for this check
+const sRow = G.table('Sessions').find(r => r.session_id === sid), js28 = JSON.stringify(G.call('getResult', ['T03', sid]));
+const mRW = /RW: only ([\d.]+) of 64 minutes used/.exec(js28), mM = /Math: only ([\d.]+) of 70 minutes used/.exec(js28);
+check(mRW && Number(mRW[1]) === Number(sRow.time_used_RW_min) && mM && Number(mM[1]) === Number(sRow.time_used_Math_min),
+  `reason RW ${mRW && mRW[1]} / Math ${mM && mM[1]} min = Sessions ${sRow.time_used_RW_min} / ${sRow.time_used_Math_min}`);
+const prof28 = G.ctx.profileFor_(FORM, true), S28 = Object.assign({}, G.ctx.getSettings_(), { valid_min_time_ratio: 0.5 }), rows28 = [{ profile: 'RIGHT', time_total_sec: 60, part: 'RW1' }, { profile: 'RIGHT', time_total_sec: 60, part: 'RW2' }];
+const v28 = G.ctx.validity_(rows28, { RW1: 5.25, RW2: 5.15 }, prof28, S28, { RW: 10.3 });   // modules 5.2 + 5.1 → the old text said 10.4
+check(v28.reasons.some(r => r === 'RW: only 10.3 of 64 minutes used'), 'module minutes 5.25 + 5.15 with Sessions 10.3 → "RW: only 10.3 of 64 minutes used"');
+
 console.log(`\nqa24_test: ${P} passed, ${F} failed`); process.exit(F ? 1 : 0);

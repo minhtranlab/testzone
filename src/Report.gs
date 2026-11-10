@@ -80,7 +80,8 @@ function standardTimeText_(parts) {
  * Not reliable when: time used < valid_min_time_ratio × limit (SAT: per section), or ≥ valid_quick_ratio of answered
  * questions took < guess_min_time_sec, or ≥ valid_blank_ratio blank.
  */
-function validity_(rows, partTimesMin, profile, S) {
+/** secUsedMin (optional): {RW: 10.3, Math: …} = Sessions.time_used_<section>_min, so the reason text shows the same number (#28 t3). */
+function validity_(rows, partTimesMin, profile, S, secUsedMin) {
   var n = rows.length;
   var blank = rows.filter(function (r) { return String(r.profile) === 'BLANK'; }).length;
   var answered = n - blank;
@@ -99,6 +100,7 @@ function validity_(rows, partTimesMin, profile, S) {
     profile.sections.forEach(function (sec) {
       var su = 0, sl = 0;
       profile.parts.forEach(function (p) { if (seen[p.part] && sec.parts.indexOf(p.part) >= 0) { sl += p.time_limit_sec / 60; su += Number(partTimesMin[p.part]) || 0; } });
+      if (secUsedMin && secUsedMin[sec.id] !== undefined && secUsedMin[sec.id] !== '') su = Number(secUsedMin[sec.id]) || 0; // the Sessions number, rounded once
       su = Math.round(su * 10) / 10; sl = Math.round(sl);
       if (sl && su < S.valid_min_time_ratio * sl) reasons.push(sec.id + ': only ' + su + ' of ' + sl + ' minutes used');
     });
@@ -147,7 +149,8 @@ function analyse_(session, rows, S, studentName) {
   var n = qs.length;
   var right = qs.filter(function (q) { return isRightP_(q.p); }).length;
   var partTimes = {}; parts.forEach(function (p) { partTimes[p.part] = p.used_min; });
-  var v = validity_(qs.map(function (q) { return { profile: q.p, time_total_sec: q.s, part: q.part }; }), partTimes, profile, S);
+  var secUsed = {}; sectionsOf_(profile).forEach(function (sec) { var c = 'time_used_' + sec.id + '_min'; if (session[c] !== undefined && session[c] !== '') secUsed[sec.id] = session[c]; });
+  var v = validity_(qs.map(function (q) { return { profile: q.p, time_total_sec: q.s, part: q.part }; }), partTimes, profile, S, secUsed);
   // units → topics
   var unitsMap = {};
   qs.forEach(function (q) { (unitsMap[q.unit] = unitsMap[q.unit] || { u: q.unit, qs: [] }).qs.push(q); });
