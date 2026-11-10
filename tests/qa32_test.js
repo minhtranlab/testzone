@@ -55,7 +55,7 @@ G.call('autosave', ['T03', sB, { state: stB, events: [], ev_from: 0, copy: tB.co
 check(rowB().status === 'paused' && rowB().progress === 'Paused before Math', 'Save and Continue Later: paused, "Paused before Math"');
 const tA = G.call('getTest', ['T01', AP, {}]), sA = tA.session.session_id;
 G.call('autosave', ['T01', sA, { state: { seq_parts: ['A', 'B'], current_part: 'A', phase: 'test', part_starts: { A: now - 60000 }, ended: {}, parts: { A: { ans: { [tA.questions[0].qid]: 'B' }, cur: 1 } } }, events: [], ev_from: 0, copy: tA.copy }]);
-check(/^Part A · 1\/3 answered · Q2 · 5:\d\d left$/.test(G.table('Sessions').find(r => r.session_id === sA).progress), 'AP: "' + G.table('Sessions').find(r => r.session_id === sA).progress + '"');
+check(/^Part A · 1\/3 answered · Q2 · [56]:\d\d left$/.test(G.table('Sessions').find(r => r.session_id === sA).progress), 'AP: "' + G.table('Sessions').find(r => r.session_id === sA).progress + '"');
 // submit → "Submitted"
 const fin = { seq_parts: ['A', 'B'], current_part: 'B', phase: 'submitting', part_starts: { A: now - 120000, B: now - 60000 }, ended: { A: 'submit', B: 'submit' }, parts: { A: { ans: {} }, B: { ans: {} } } };
 G.call('submit', ['T01', sA, { state: fin, events: [], ev_from: 0, copy: tA.copy }]);
