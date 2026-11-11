@@ -497,6 +497,8 @@ function listForms(code) {
     return { form_id: fid, scope: scope, exam: f.exam || fe.profile.exam || '', title: (fe.profile.title || fid) + ' — ' + lbl,
              attempts: attemptsOf_(sessions, fid, scope, fe, Number(f.n) || 0).filter(function (a) { return a.status !== 'abandoned'; }) };
   }).filter(function (x) { return x.attempts.length; });
+  out = out.map(function (f, i) { return [f, i]; }).sort(function (a, b) { var x = /^SAT/i.test(a[0].exam) ? 0 : 1, y = /^SAT/i.test(b[0].exam) ? 0 : 1; return x - y || a[1] - b[1]; })
+           .map(function (x) { return x[0]; }); // #35: SAT tests first, then the others (mock order); same order inside
   var hx = homeExtras_(st, asg, out, sessions); // #35: hero, pick-up, greeting (no estimate on the home)
   return { ok: true, forms: asg.concat(out), past: past, first_name: hx.first_name, welcome: hx.welcome, hero: hx.hero, pickup: hx.pickup };
 }
