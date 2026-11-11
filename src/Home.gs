@@ -65,6 +65,8 @@ function pickupOf_(f, a, s, nowMs) {
     out.sub = partName(cur); out.answered = answered; out.n = n; out.left_sec = left; out.pct = n ? Math.round(100 * answered / n) : 0;
     out.line = answered + '/' + n + ' answered · ' + (left > 0 ? Math.floor(left / 60) + ':' + ('0' + (left % 60)).slice(-2) + ' left' : 'time is up');
     out.button = 'Continue';
+  } else if (!seq.some(function (p) { return ended[p] || (st.part_starts || {})[p]; })) {
+    out.sub = 'Not started yet'; out.pct = 0; out.line = 'Opened, no part started'; out.button = 'Continue'; // opened, still on the first Directions
   } else {
     var pz = pausedInfo_(s, prof), doneParts = seq.filter(function (p) { return ended[p]; }).length;
     var sec = cur ? secOf(cur) : null, atBreak = sat && sec && prof.sections.length > 1 && prof.sections[0].parts.indexOf(cur) < 0 && sec.parts.indexOf(cur) === 0;

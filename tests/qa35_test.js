@@ -73,6 +73,10 @@ check(pb && pb.line === 'Paused at the break · Math next' && pb.button === 'Con
 check(pa && pa.sub === 'Reading and Writing · Module 1' && /^0\/27 answered · 3[12]:\d\d left$/.test(pa.line) && / — Reading and Writing Module 1$/.test(pa.title), 'assignment attempt in the pick-up: "' + pa.sub + '" · "' + pa.line + '"');
 check(h.hero === null || h.hero.kind !== 'assignment', 'the RW1 assignment is in progress → not the hero');
 
+const z = G.call('getTest', ['T11', AP, {}]);
+const pz0 = home('T11').pickup.find(p => p.session_id === z.session.session_id);
+check(pz0 && pz0.sub === 'Not started yet' && pz0.line === 'Opened, no part started' && pz0.button === 'Continue', 'opened but no part started: "Not started yet · Opened, no part started"');
+
 console.log('[no estimate on the home; past assignments]');
 const js = JSON.stringify(h);
 check(!/estimate|"low"|"high"|\b\d{3}–\d{3}\b/i.test(js), 'home payload has no estimated score');
