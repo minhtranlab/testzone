@@ -180,11 +180,11 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   console.log('    summary:', JSON.stringify(rep1 && rep1.summary));
   console.log('    timing_pattern:', rep1 && rep1.timing_pattern);
   // My Tests shows past attempt
-  await page.click('#res-home'); await page.waitForSelector('.attempts');
-  check(/#1/.test(await page.textContent('.attempts')) && /Take again/.test(await page.textContent('.form-card:has-text("' + CARD + '")')), 'My Tests lists attempt #1 + Take again');
+  await page.click('#res-home'); await page.waitForSelector('.form-card .fc-view');
+  check(/^1 done · last \d+\/\d+$/.test(await page.textContent('.form-card:has-text("' + CARD + '") .fc-s')) && /Take again/.test(await page.textContent('.form-card:has-text("' + CARD + '")')), 'My Tests tile "1 done · last x/y" + Take again');
   await shot(page, 'desktop_13_mytests_after');
   // view past result
-  await page.click('.attempts .btn-plain'); await page.waitForSelector('.score-total');
+  await page.click('.form-card:has-text("' + CARD + '") .fc-view'); await page.waitForSelector('.score-total');
   check((await page.textContent('.score-total')).trim() === `${expect1} / ${nA + nB}`, 'View result of past attempt');
   await page.context().close();
 
@@ -216,9 +216,9 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.waitForSelector('#scr-login.on'); await page.fill('#login-code', 'T04'); await page.click('#login-btn');
-    await page.waitForSelector('.form-card .btn-blue:has-text("Resume")');
+    await page.waitForSelector('.form-card .btn-blue:has-text("Continue")');
     await shot(page, 'desktop_14_mytests_resume');
-    await page.click('.form-card .btn-blue:has-text("Resume")');
+    await page.click('.form-card .btn-blue:has-text("Continue")');
     await page.waitForSelector('#v-question.on .q.on'); await sleep(300);
     const s2 = await st(page);
     check(s2.parts.A.ans[q1] === keyOf('A', 1) && s2.parts.A.cur === 1, 'resume from server state only (localStorage wiped)');

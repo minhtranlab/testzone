@@ -152,24 +152,72 @@
     A.profile = null; stopLoops(); clearTimeout(A.subT); // nothing of a test runs behind My Tests
     show('scr-home');
     $('#home-name').textContent = A.student.name;
+    $('#home-hello').textContent = '';
     $('#home-list').innerHTML = '<div class="spinner"></div>';
     call('listForms', A.code).then(function (r) {
       var box = $('#home-list'); box.innerHTML = '';
-      if (!r.forms.length) { box.innerHTML = '<div class="empty">No tests for your program yet. Ask your teacher.</div>'; return; }
-      r.forms.forEach(function (f) { box.appendChild(formCard(f)); });
-      if (r.past && r.past.length) box.appendChild(pastList(r.past));
+      var fn = r.first_name || A.student.name || '';
+      $('#home-hello').textContent = 'Hi ' + fn + '. ' + (r.welcome ? 'Welcome to Test Zone.' : r.hero ? 'Here is your next test.' : 'Here are your tests.');
+      if (!r.forms.length && !(r.past || []).length) { box.innerHTML = '<div class="empty">No tests for your program yet. Ask your teacher.</div>'; return; }
+      // #35 hero ("Assigned by your teacher" / "Next test") + "Pick up where you stopped"
+      var pick = r.pickup || [];
+      if (r.hero || pick.length) {
+        var sec = el('section', { class: 'hz-next' + (pick.length && r.hero ? '' : ' solo') });
+        if (r.hero) sec.appendChild(heroBlock(r.hero, r.forms));
+        if (pick.length) sec.appendChild(pickupBlock(pick));
+        box.appendChild(sec);
+      }
+      box.appendChild(el('h2', { class: 'hz-h2' }, 'All tests'));
+      var tiles = el('div', { class: 'hz-tiles' });
+      r.forms.forEach(function (f) {
+        var isHero = r.hero && f.form_id === r.hero.form_id && (f.scope || 'full') === r.hero.scope && !!f.assigned === (r.hero.kind === 'assignment');
+        if (f.assigned && isHero) { formInfo(f); return; } // the assignment is the big block above
+        tiles.appendChild(formCard(f));
+      });
+      box.appendChild(tiles);
+      if (r.past && r.past.length) { box.appendChild(el('h2', { class: 'hz-h2' }, 'Past assignments')); box.appendChild(pastList(r.past)); }
     }).catch(function (e) { $('#home-list').innerHTML = '<div class="empty">Could not load your tests: ' + esc(errMsg(e)) + ' <br><br><button class="btn-outline" onclick="location.reload()">Reload</button></div>'; });
   }
-  /** #32 n1: attempts of assignments that are no longer active — View result only. */
+  /** start options of a card (an assignment starts with its parts) */
+  function scopeOpts(scope, o) { o = o || {}; if (scope && scope !== 'full') o.scope = scope; return o; }
+  function heroBlock(h, forms) {
+    var f = forms.filter(function (x) { return x.form_id === h.form_id && (x.scope || 'full') === h.scope; })[0];
+    if (f) formInfo(f);
+    var a = el('article', { class: 'hz-focus', id: 'hero' });
+    a.innerHTML = '<div><p class="hz-eyebrow' + (h.kind === 'assignment' ? '' : ' nx') + '">' + (h.kind === 'assignment' ? 'Assigned by your teacher' : 'Next test') + '</p>' +
+      '<h1>' + esc(h.title) + '</h1><p class="hz-of">' + esc(h.of) + '</p><ul class="hz-facts">' +
+      h.facts.map(function (x) { return '<li>' + (x.b ? '<b>' + esc(x.b) + '</b> ' : '') + esc(x.t) + '</li>'; }).join('') + '</ul></div>' +
+      '<div class="hz-clock"><div>' + esc(h.clock) + '<small>' + esc(h.clock_unit) + '</small></div></div>';
+    var b = el('button', { class: 'hz-btn big', type: 'button', id: 'hero-start' }, esc(h.start));
+    b.onclick = function () { openTest(h.form_id, scopeOpts(h.scope, {})); };
+    a.appendChild(b);
+    return a;
+  }
+  function pickupBlock(list) {
+    var d = el('div', { class: 'hz-side', id: 'pickup' });
+    d.innerHTML = '<p class="hz-label">Pick up where you stopped</p>';
+    list.forEach(function (p) {
+      var row = el('div', { class: 'hz-resume' });
+      row.innerHTML = '<div><b>' + esc(cardTitle(p.exam, p.title)) + '</b><span>' + esc(p.sub || '') + '</span></div>';
+      var b = el('button', { class: 'hz-btn ghost', type: 'button' }, esc(p.button || 'Continue'));
+      b.onclick = function () { openTest(p.form_id, { resume: p.session_id }); };
+      row.appendChild(b);
+      row.appendChild(el('div', { class: 'hz-prog' }, '<i style="width:' + Math.max(0, Math.min(100, p.pct || 0)) + '%"></i>'));
+      row.appendChild(el('span', { class: 'w' }, esc(p.line || '')));
+      d.appendChild(row);
+    });
+    return d;
+  }
+  /** #32 n1 + #35: attempts of assignments that are no longer active — View result only. */
   function pastList(items) {
-    var d = el('div', { class: 'past-asg' });
-    d.innerHTML = '<h3>Past assignments</h3>';
+    var d = el('div', { class: 'hz-past past-asg' });
     items.forEach(function (f) {
       f.attempts.slice().reverse().forEach(function (a) {
-        var row = el('div', { class: 'past-row' }), finished = a.status === 'completed' || a.status === 'timeout';
-        row.innerHTML = '<span class="pa-t">' + esc(cardTitle(f.exam, f.title)) + ' · #' + a.attempt_no + '</span><span class="pa-d">' + esc(a.submitted_at || a.started_at) + '</span>' +
-          '<span class="pa-s">' + (finished && a.total_correct !== null ? a.total_correct + ' / ' + a.total_questions : 'Not finished') + '</span>';
-        if (finished) { var b = el('button', { class: 'btn-plain', type: 'button' }, 'View result'); b.onclick = function () { openResult(a.session_id); }; row.appendChild(b); }
+        var row = el('div', { class: 'hz-prow past-row' }), finished = a.status === 'completed' || a.status === 'timeout';
+        row.innerHTML = '<span class="nm">' + esc(cardTitle(f.exam, f.title)) + (f.attempts.length > 1 ? ' · #' + a.attempt_no : '') + '</span><span class="dt">' + esc(a.submitted_at || a.started_at) + '</span>' +
+          '<span class="ps">' + (finished && a.total_correct !== null ? a.total_correct + '/' + a.total_questions : 'Not finished') + '</span>';
+        if (finished) { var b = el('button', { class: 'hz-link', type: 'button' }, 'View result'); b.onclick = function () { openResult(a.session_id); }; row.appendChild(b); }
+        else row.appendChild(el('span'));
         d.appendChild(row);
       });
     });
@@ -185,55 +233,56 @@
     if (breakMin) l.push(breakMin + '-minute break between sections');
     return l.join('<br>');
   }
+  /** card data for the start screen (lines per part, total time) — also for a card shown as the big block */
+  function formInfo(f) {
+    var total = f.parts.reduce(function (a, p) { return a + (Number(p.minutes) || 0); }, 0);
+    A.cardInfo = A.cardInfo || {}; A.cardInfo[f.form_id + '|' + (f.scope || 'full')] = { title: cardTitle(f.exam, f.title), lines: partLines(f.parts, f.break_min), total: hmin(total) };
+    return total;
+  }
+  /** #35 tile in "All tests": title + grey time, "x done · last a/b" (no estimate), buttons; all attempts folded below. */
   function formCard(f) {
     var c = el('div', { class: 'form-card' });
-    var total = f.parts.reduce(function (a, p) { return a + (Number(p.minutes) || 0); }, 0);
-    var scope = f.scope || 'full', okey = f.form_id + '|' + scope;
-    A.cardInfo = A.cardInfo || {}; A.cardInfo[okey] = { title: cardTitle(f.exam, f.title), lines: partLines(f.parts, f.break_min), total: hmin(total) };
+    var total = formInfo(f), scope = f.scope || 'full';
     c.innerHTML = '<div class="fc-head"><h2>' + esc(cardTitle(f.exam, f.title)) + '</h2><span class="fc-time">' + hmin(total) + '</span></div>' +
       (f.assigned ? '<div class="fc-assigned">Assigned by your teacher</div>' : '');
     if (f.assigned) { c.classList.add('assigned'); c.dataset.scope = scope; }
-    var startOpts = function (o) { if (scope !== 'full') o.scope = scope; return o; };
-    var actions = el('div', { class: 'actions' });
     var open = f.attempts.filter(function (a) { return a.status === 'in_progress' || a.status === 'paused'; }).pop();
-    if (!f.available) actions.innerHTML = '<span class="tag abandoned">Coming soon</span>';
-    else if (open) {
-      var pz = open.paused;
-      if (pz) actions.appendChild(el('div', { class: 'meta', style: 'width:100%;margin:0 0 4px' },
-        '<b>' + esc(pz.done) + ' completed' + (pz.at ? ' · ' + esc(pz.at) : '') + '</b> — Attempt ' + open.attempt_no + ' is waiting for ' + esc(pz.next) + '.'));
-      var b1 = el('button', { class: 'btn-blue', type: 'button' }, pz ? 'Continue ' + esc(pz.next) : 'Resume attempt ' + open.attempt_no);
+    var done = f.attempts.filter(function (a) { return a.status === 'completed' || a.status === 'timeout'; });
+    var last = done[done.length - 1], pz = open && open.paused;
+    var status = !f.available ? 'Coming soon' : open ? (pz ? (f.break_min && pz.done && pz.next ? 'Paused at the break' : 'Paused · ' + pz.next + ' next') : 'In progress')
+      : done.length ? done.length + ' done · last ' + (last.total_correct !== null ? last.total_correct + '/' + last.total_questions : '—') : 'Not started';
+    c.appendChild(el('span', { class: 'fc-s' }, esc(status)));
+    var actions = el('div', { class: 'actions' });
+    if (f.available && open) {
+      var b1 = el('button', { class: 'btn-blue', type: 'button' }, pz ? 'Continue ' + esc(pz.next) : 'Continue');
       b1.onclick = function () { openTest(f.form_id, { resume: open.session_id }); };
-      var b2 = el('button', { class: 'btn-outline', type: 'button' }, 'Start Over');
+      var b2 = el('button', { class: 'btn-outline', type: 'button' }, 'Start over');
       b2.onclick = function () {
         modal('Start a new attempt?', 'Your unfinished attempt ' + open.attempt_no + ' will be closed and will not be scored.', [
-          { label: 'Cancel', value: false, cls: 'btn-outline' }, { label: 'Start new attempt', value: true }]).then(function (ok) { if (ok) openTest(f.form_id, startOpts({ fresh: true })); });
+          { label: 'Cancel', value: false, cls: 'btn-outline' }, { label: 'Start new attempt', value: true }]).then(function (ok) { if (ok) openTest(f.form_id, scopeOpts(scope, { fresh: true })); });
       };
       actions.appendChild(b1); actions.appendChild(b2);
-    } else {
-      var done = f.attempts.filter(function (a) { return a.status === 'completed' || a.status === 'timeout'; }).length;
-      var b = el('button', { class: 'btn-blue', type: 'button' }, done ? 'Take again' : 'Start test');
-      b.onclick = function () { openTest(f.form_id, startOpts({})); };
+    } else if (f.available) {
+      var b = el('button', { class: 'btn-blue', type: 'button' }, done.length ? 'Take again' : 'Start');
+      b.onclick = function () { openTest(f.form_id, scopeOpts(scope, {})); };
       actions.appendChild(b);
+      if (last) { var v = el('button', { class: 'btn-plain fc-view', type: 'button' }, 'View result'); v.onclick = function () { openResult(last.session_id); }; actions.appendChild(v); }
     }
-    actions.style.marginTop = '14px';
     c.appendChild(actions);
     var past = f.attempts.filter(function (a) { return a.status !== 'in_progress' && a.status !== 'paused'; });
-    if (past.length) {
+    if (past.length > 1) {
+      var det = el('details', { class: 'fc-more' });
+      det.innerHTML = '<summary>All attempts (' + past.length + ')</summary>';
       var t = el('table', { class: 'attempts' });
-      t.innerHTML = '<tr><th>Attempt</th><th>Date</th><th>Status</th><th>Score</th><th></th></tr>';
+      t.innerHTML = '<tr><th>Attempt</th><th>Date</th><th>Score</th><th></th></tr>';
       past.slice().reverse().forEach(function (a) {
-        var tr = el('tr');
-        var finished = a.status === 'completed' || a.status === 'timeout';
-        tr.innerHTML = '<td>#' + a.attempt_no + '</td><td>' + esc(a.submitted_at || a.started_at) + '</td><td><span class="tag ' + esc(a.status) + '">' +
-          esc(a.status === 'timeout' ? 'time up' : a.status) + '</span></td><td>' + (finished && a.total_correct !== null ? a.total_correct + ' / ' + a.total_questions : '—') + '</td><td></td>';
-        if (finished) {
-          var vb = el('button', { class: 'btn-plain', type: 'button' }, 'View result');
-          vb.onclick = function () { openResult(a.session_id); };
-          tr.lastChild.appendChild(vb);
-        }
+        var tr = el('tr'), finished = a.status === 'completed' || a.status === 'timeout';
+        tr.innerHTML = '<td>#' + a.attempt_no + '</td><td>' + esc(a.submitted_at || a.started_at) + '</td><td>' +
+          (finished && a.total_correct !== null ? a.total_correct + '/' + a.total_questions : esc(a.status === 'abandoned' ? 'not finished' : a.status)) + '</td><td></td>';
+        if (finished) { var vb = el('button', { class: 'btn-plain', type: 'button' }, 'View result'); vb.onclick = function () { openResult(a.session_id); }; tr.lastChild.appendChild(vb); }
         t.appendChild(tr);
       });
-      c.appendChild(t);
+      det.appendChild(t); c.appendChild(det);
     }
     return c;
   }

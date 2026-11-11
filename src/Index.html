@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Serif:wght@400;700&display=swap" rel="stylesheet">
   <?!= include('Styles'); ?>
   <script>
     window.MathJax = {
@@ -20,30 +20,29 @@
 <body>
 <div id="app" style="height:100%">
 
-  <!-- ============ Login ============ -->
-  <section id="scr-login" class="screen on">
-    <div class="login-card">
-      <div class="brand"><span class="brand-mark">TZ</span><span class="app-name">Test Zone</span></div>
-      <p>Enter your student code to sign in.</p>
-      <form id="login-form" autocomplete="off">
-        <input id="login-code" class="field" maxlength="24" placeholder="CODE" autocapitalize="characters" spellcheck="false">
-        <button class="btn-blue" id="login-btn" type="submit">Sign In</button>
+  <!-- ============ Login (v1.12, design Mẫu 2: centred) ============ -->
+  <section id="scr-login" class="screen on hz">
+    <header class="hz-top"><div class="hz-wm"><i></i>Test Zone</div></header>
+    <div class="hz-si">
+      <h1>Ready for your next test?</h1>
+      <p class="hz-si-lead">Enter your student code to see your tests.</p>
+      <form id="login-form" class="hz-form" autocomplete="off">
+        <input id="login-code" class="hz-field" maxlength="24" placeholder="Student code" aria-label="Student code" autocapitalize="characters" spellcheck="false">
+        <button class="btn-blue hz-btn" id="login-btn" type="submit">Sign In</button>
       </form>
       <div class="err" id="login-err"></div>
+      <p class="hz-help">Your teacher gives you the code. You stay signed in on this device.</p>
+      <div class="hz-chips"><span>SAT practice tests</span><span>AP Calculus AB</span><span>AP Calculus BC</span><span>Results by skill</span><span>Desmos calculator</span></div>
     </div>
   </section>
 
-  <!-- ============ My Tests ============ -->
-  <section id="scr-home" class="screen">
-    <div class="topbar-simple">
-      <div class="brand" style="font-size:20px"><span class="brand-mark" style="width:28px;height:28px;font-size:14px">TZ</span><span class="app-name">Test Zone</span></div>
-      <div><span id="home-name" style="font-weight:700;margin-right:10px"></span><button class="btn-plain" id="btn-logout">Sign out</button></div>
-    </div>
-    <div class="home-body">
-      <h1>My Tests</h1>
-      <p class="sub">Pick a practice test. You can take each test as many times as you like.</p>
+  <!-- ============ My Tests (v1.12, design Mẫu 2 · Next test focus) ============ -->
+  <section id="scr-home" class="screen hz">
+    <header class="hz-top"><div class="hz-wm"><i></i>Test Zone</div><div class="hz-who"><span id="home-name"></span><button class="hz-link" id="btn-logout" type="button">Sign out</button></div></header>
+    <main class="hz-main">
+      <p class="hz-hello" id="home-hello"></p>
       <div id="home-list"><div class="spinner"></div></div>
-    </div>
+    </main>
   </section>
 
   <!-- ============ Test ============ -->

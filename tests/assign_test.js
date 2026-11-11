@@ -21,16 +21,16 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
 
   console.log('[My Tests: the assignment card]');
   add('T03', FORM, 'RW1');
-  await H.login(page, E.url, 'T03'); await page.waitForSelector('.form-card .btn-blue');
-  const first = await page.$eval('.form-card', c => ({ h: c.querySelector('h2').textContent, t: c.querySelector('.fc-time').textContent, a: (c.querySelector('.fc-assigned') || {}).textContent,
-    color: c.querySelector('.fc-assigned') && getComputedStyle(c.querySelector('.fc-assigned')).color, cls: c.className, lines: /Section|Module 1:/.test(c.innerText) }));
-  check(/— Reading and Writing Module 1$/.test(first.h) && first.t === '32 min' && first.a === 'Assigned by your teacher' && first.color === 'rgb(154, 154, 154)' && !first.lines,
-    `top card: "${first.h}", "32 min" top right, grey "Assigned by your teacher", no module lines`);
-  check((await page.$$('.form-card:not(.assigned)')).length === 1 && /Start test/.test(await page.textContent('.form-card:not(.assigned)')), 'the full SAT card is still there');
+  await H.login(page, E.url, 'T03'); await page.waitForSelector('#hero-start');
+  const first = await page.evaluate(() => ({ eb: document.querySelector('.hz-eyebrow').textContent, h: document.querySelector('#hero h1').textContent, clock: document.querySelector('.hz-clock').textContent,
+    btn: document.getElementById('hero-start').textContent, lines: /Section|Module 1:/.test(document.getElementById('hero').innerText) }));
+  check(first.eb === 'Assigned by your teacher' && first.h === 'Reading and Writing Module 1' && first.clock === '32:00minutes' && first.btn === 'Start Reading and Writing Module 1' && !first.lines,
+    `#35 big block: "${first.eb}" · "${first.h}" · ring 32:00 · "${first.btn}", no module lines`);
+  check((await page.$$('.form-card:not(.assigned)')).length === 1 && /Not started/.test(await page.textContent('.form-card:not(.assigned)')), 'the full SAT tile is still there');
   await shot(page, 'r29_home');
 
   console.log('[RW1 only]');
-  await page.click('.form-card.assigned .btn-blue'); await page.waitForSelector('#btn-begin');
+  await page.click('#hero-start'); await page.waitForSelector('#btn-begin');
   const ov = await page.textContent('.test-overview');
   check(/Reading and Writing Module 1/.test(ov) && /27 questions · 32 min/.test(ov) && !/Math|break/.test(ov), 'start screen: only the RW1 line (' + ov.replace(/\s+/g, ' ').slice(0, 90) + '…)');
   await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on');
@@ -42,14 +42,14 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   check(lastSession().scope === 'RW1', 'Sessions.scope RW1');
   await shot(page, 'r29_result_rw1');
   await home();
-  check(/#1/.test(await page.textContent('.form-card.assigned .attempts')) && !(await page.$('.form-card:not(.assigned) .attempts')), 'the attempt is listed on the assignment card only');
+  check((await page.textContent('.form-card.assigned .fc-s')) === '1 done · last 20/27' && (await page.textContent('.form-card:not(.assigned) .fc-s')) === 'Not started', 'the attempt is on the assignment tile only ("1 done · last 20/27")');
 
   console.log('[MATH: M1 → M2 straight on, no break]');
   off('T03', 'RW1'); add('T03', FORM, 'MATH');
-  await page.reload(); await page.waitForSelector('.form-card.assigned');
-  check(/— Math$/.test(await page.textContent('.form-card.assigned h2')) && (await page.textContent('.form-card.assigned .fc-time')) === '1 h 10 min', 'card "… — Math", 1 h 10 min');
+  await page.reload(); await page.waitForSelector('#hero-start');
+  check((await page.textContent('#hero h1')) === 'Math' && (await page.textContent('.hz-clock')) === '1:10hours', 'big block "Math", ring 1:10 hours');
   { // #32 t2: right after a submitted test, "Loading your test…" shows no old header / timer / "Saved …"
-    const t2 = await page.evaluate(() => { document.querySelector('.form-card.assigned .btn-blue').click(); const tm = document.getElementById('timer');
+    const t2 = await page.evaluate(() => { document.getElementById('hero-start').click(); const tm = document.getElementById('timer');
       return { title: document.getElementById('tb-title').textContent, timer: tm.style.visibility, saved: document.getElementById('save-dot').textContent, wait: /Loading your test/.test(document.getElementById('v-wait').textContent) }; });
     check(t2.wait && t2.title === '' && t2.timer === 'hidden' && t2.saved === '', '#32 t2 while loading: no old title / timer / Saved (' + JSON.stringify(t2) + ')');
   }
@@ -66,8 +66,8 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
 
   console.log('[RW1 + M1: the break, Save and Continue Later]');
   off('T03', 'MATH'); add('T03', FORM, 'RW1, M1');
-  await page.reload(); await page.waitForSelector('.form-card.assigned');
-  await page.click('.form-card.assigned .btn-blue'); await page.waitForSelector('#btn-begin'); await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on');
+  await page.reload(); await page.waitForSelector('#hero-start');
+  await page.click('#hero-start'); await page.waitForSelector('#btn-begin'); await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on');
   await answer('RW1', 5); await endModule();
   await page.waitForSelector('#v-break.on', { timeout: 15000 });
   check(await page.isVisible('#btn-pause') && /Math/.test(await page.textContent('#break-msg')), 'break screen after RW1 (Math next), Save and Continue Later offered');
@@ -82,8 +82,8 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
 
   console.log('[M2 only: Directions + Begin, no transition]');
   off('T03', 'RW1, M1'); add('T03', FORM, 'M2');
-  await page.reload(); await page.waitForSelector('.form-card.assigned');
-  await page.click('.form-card.assigned .btn-blue'); await page.waitForSelector('#btn-begin');
+  await page.reload(); await page.waitForSelector('#hero-start');
+  await page.click('#hero-start'); await page.waitForSelector('#btn-begin');
   check((await page.textContent('#v-directions h1')).trim() === 'Section 2, Module 2: Math', 'M2 alone opens on its Directions (timer not running before Begin)');
   await page.click('#btn-begin'); await page.waitForSelector('#qwrap .q.on'); await answer('M2', 7); await endModule();
   await page.waitForSelector('#scr-result.on .res-score', { timeout: 30000 });
@@ -94,10 +94,10 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   check(!(await page.$('.form-card.assigned')), 'active = No → the card is gone');
   { // #32 n1: the attempts stay under "Past assignments"
     const past = await page.$$eval('.past-asg .past-row', rs => rs.map(r => r.innerText.replace(/\s+/g, ' ')));
-    check(past.length === 4 && past.some(t => /Math Module 2 · #1/.test(t)) && past.some(t => /Reading and Writing Module 1 · #1/.test(t)) && await page.isVisible('.past-asg h3:has-text("Past assignments")'),
-      '#32 n1 "Past assignments": ' + past.length + ' attempts (' + past.map(t => t.split(' · #')[0].split(' — ').pop()).join(', ') + ')');
+    check(past.length === 4 && past.some(t => /Math Module 2/.test(t)) && past.some(t => /Reading and Writing Module 1/.test(t)) && await page.isVisible('h2.hz-h2:has-text("Past assignments")'),
+      '#32 n1 "Past assignments": ' + past.length + ' attempts (' + past.map(t => t.split(' — ').pop().replace(/ \d.*$/, '')).join(', ') + ')');
     await shot(page, 'r32_past_assignments');
-    await page.click('.past-asg .past-row:has-text("Math Module 2") .btn-plain'); await page.waitForSelector('#scr-result.on .res-score', { timeout: 15000 });
+    await page.click('.past-asg .past-row:has-text("Math Module 2") .hz-link'); await page.waitForSelector('#scr-result.on .res-score', { timeout: 15000 });
     check(/Math Module 2/.test(await page.textContent('.res-meta')), '#32 n1 View result opens the old assignment result');
     await home();
   }
@@ -105,9 +105,9 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   console.log('[AP: Part B only]');
   add('T01', AP, 'B');
   const { page: p2 } = await E.newPage();
-  await H.login(p2, E.url, 'T01'); await p2.waitForSelector('.form-card.assigned');
-  check(/— Part B$/.test(await p2.textContent('.form-card.assigned h2')), 'AP card "… — Part B"');
-  await p2.click('.form-card.assigned .btn-blue'); await p2.waitForSelector('#btn-begin');
+  await H.login(p2, E.url, 'T01'); await p2.waitForSelector('#hero-start');
+  check((await p2.textContent('#hero h1')) === 'Part B' && (await p2.textContent('.hz-eyebrow')) === 'Assigned by your teacher', 'AP big block "Part B" (assigned)');
+  await p2.click('#hero-start'); await p2.waitForSelector('#btn-begin');
   check((await p2.textContent('#v-directions h1')).trim() === 'Section I, Part B', 'opens on Part B');
   await p2.click('#btn-begin'); await p2.waitForSelector('#qwrap .q.on');
   await p2.click('#btn-nav'); await p2.click('#nav-review'); await p2.waitForSelector('#v-review.on'); await p2.click('#btn-next'); await p2.click('#modal-root .btns .btn-blue');

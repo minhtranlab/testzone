@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.11 (2026-11-11, README VN, progress, hide)';
+var APP_VERSION = 'v1.12 (2026-11-11, new home)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -497,7 +497,8 @@ function listForms(code) {
     return { form_id: fid, scope: scope, exam: f.exam || fe.profile.exam || '', title: (fe.profile.title || fid) + ' — ' + lbl,
              attempts: attemptsOf_(sessions, fid, scope, fe, Number(f.n) || 0).filter(function (a) { return a.status !== 'abandoned'; }) };
   }).filter(function (x) { return x.attempts.length; });
-  return { ok: true, forms: asg.concat(out), past: past };
+  var hx = homeExtras_(st, asg, out, sessions); // #35: hero, pick-up, greeting (no estimate on the home)
+  return { ok: true, forms: asg.concat(out), past: past, first_name: hx.first_name, welcome: hx.welcome, hero: hx.hero, pickup: hx.pickup };
 }
 
 /** Attempts of one card (form + scope) for My Tests. */

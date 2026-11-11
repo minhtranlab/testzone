@@ -28,6 +28,8 @@ async function setup(opts = {}) {
       ? { viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
       : device === 'ipad-portrait'
       ? { viewport: { width: 820, height: 1180 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }
+      : device === 'phone' ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true }
+      : device === 'desktop1280' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 }
       : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: opts.dsf || 1 };
     const ctx = await browser.newContext(ctxOpts);
     await routes(ctx);

@@ -26,7 +26,8 @@ const FORM = process.env.AP_FORM || 'MOCK-AP45', CARD = process.env.AP_CARD || (
     await sleep(300); await H.grab(page, 'toast_saved');
     const s = G.table('Sessions').find(x => x.student_code === 'T01');
     check(s.status === 'paused', 'Sessions.status = paused');
-    check(/Part A completed · \d\d [A-Z][a-z]{2}, \d\d:\d\d — Attempt 1 is waiting for Part B/.test(await page.textContent(`.form-card:has-text("${CARD}")`)) && /^Continue Part B$/.test((await page.textContent(`.form-card:has-text("${CARD}") .btn-blue`)).trim()), 'My Tests: "Part A completed · dd MMM, HH:mm — Attempt 1 is waiting for Part B" + "Continue Part B"');
+    check((await page.textContent(`.form-card:has-text("${CARD}") .fc-s`)) === 'Paused · Part B next' && /^Continue Part B$/.test((await page.textContent(`.form-card:has-text("${CARD}") .btn-blue`)).trim()) &&
+          /Paused · Part B next/.test(await page.textContent('#pickup')), 'My Tests: tile "Paused · Part B next" + "Continue Part B", also under "Pick up where you stopped"');
     await H.shot(page, 'pause_2_mytests');
     const pl1 = G.table('Part_Log').filter(r => r.session_id === s.session_id);
     check(pl1.length === 1 && pl1[0].part === 'A' && pl1[0].sitting_no === 1 && pl1[0].end_reason === 'submit', 'Part_Log row for Part A written at once (sitting 1)');

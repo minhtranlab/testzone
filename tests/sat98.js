@@ -88,7 +88,7 @@ const FORM = 'MOCK-SAT98';
   let S = G.table('Sessions').find(r => r.student_code === 'T03');
   check(S.status === 'paused' && S.score_RW === '' , 'Sessions.status = paused at the section break');
   const c2 = await page.textContent('.form-card');
-  check(/Reading and Writing completed · \d\d [A-Z][a-z]{2}, \d\d:\d\d — Attempt 1 is waiting for Math/.test(c2) && /Continue Math/.test(c2), 'My Tests: "Reading and Writing completed · … — waiting for Math" + Continue Math');
+  check(/Paused at the break/.test(c2) && /Continue Math/.test(c2), 'My Tests: "Paused at the break" + Continue Math');
   await shot(page, 'sat98_04_mytests_paused');
   await page.click('.form-card .btn-blue'); // Continue Math
   await page.waitForSelector('#btn-begin');
