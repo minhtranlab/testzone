@@ -81,7 +81,7 @@ const eventsOf = (E, sid) => E.st.gas.table('Events').filter(r => r.session_id =
   await page.click('#hl-toolbar [data-c="p"]');
   check(await page.$$eval('#qwrap .q.on span.hl-p', x => x.length) > 0, 'highlight colour changes to pink');
   await shot(page, 'desktop_04_annotate');
-  await page.click('#hl-close');
+  if (await page.isVisible('#hl-close')) await page.click('#hl-close'); // v1.13: a colour click already closes the toolbar
   await next(page);
   // Q3: eliminator on, eliminate key + one more, pick a wrong answer
   await page.click('#qwrap .q.on .q-elim');

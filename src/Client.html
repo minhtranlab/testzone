@@ -1246,7 +1246,7 @@
       '<li><b>Mark for Review</b> — flags a question. Flags show in the question menu and on the review page.</li>' +
       '<li><b>ABC</b> — answer eliminator. Turn it on, then cross out choices you have ruled out. <i>Undo</i> brings a choice back.</li>' +
       '<li><b>Question X of N</b> — bottom centre. Jump to any question or go to the review page.</li>' +
-      '<li><b>Annotate</b> — select words in a question, then click Annotate to highlight them. Click a highlight to change colour, underline, add a note or delete it.</li>' +
+      '<li><b>Highlight</b> — select words in a question or passage: a small toolbar appears right below them (yellow, blue, pink, underline, note). Click a highlight to change it or delete it.</li>' +
       '<li><b>Calculator</b> — only in parts that allow it. Drag the dark bar to move it; drag the corner to resize.</li>' +
       '<li><b>Leaving a part</b> — after the review page you cannot go back to that part.</li>' +
       '<li>If the page reloads or the internet drops, sign in again: your answers and the time are kept.</li></ul>',
@@ -1477,9 +1477,9 @@
       });
     });
   }
-  function addHighlight(o) {
+  function addHighlight(o, c, noToolbar) {
     var ps = pst(), list = ps.hl[o.qid] || [];
-    var h = { id: 'h' + Date.now().toString(36), s: o.s, e: o.e, c: 'y', note: '' };
+    var h = { id: 'h' + Date.now().toString(36), s: o.s, e: o.e, c: c || 'y', note: '' };
     if (o.r === 'p') h.r = 'p';
     ps.hl[o.qid] = list.concat([h]);
     log('annotate', o.qid, 'add:' + (o.r === 'p' ? 'p' : '') + o.s + '-' + o.e);
@@ -1487,7 +1487,40 @@
     try { window.getSelection().removeAllRanges(); } catch (e) {}
     applyHighlights(o.qid);
     var sp = $('span.hl[data-hid="' + h.id + '"]', qBox(o.qid));
-    if (sp) openHlToolbar(o.qid, h.id, sp);
+    if (sp && !noToolbar) openHlToolbar(o.qid, h.id, sp);
+    return h;
+  }
+  /* #36 (v1.13) Bluebook-style: select text → a small toolbar right below the selection (yellow, blue, pink, underline,
+     note; trash when the selection is inside a highlight). One click applies and closes; click elsewhere / Esc closes. */
+  function annotAllowed() { var b = $('#tool-annot'); return !!(A.st && A.st.phase === 'test' && b && !b.classList.contains('hidden') && $('#scr-test').classList.contains('on')); }
+  function showSelToolbar() {
+    if (A.annotMode || !annotAllowed()) return;
+    var sel = window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    var o = selectionOffsets(); if (!o) return;
+    var inside = (pst().hl[o.qid] || []).filter(function (h) { return (h.r || 's') === o.r && h.s <= o.s && o.e <= h.e; }).pop();
+    var rects = sel.getRangeAt(0).getClientRects();
+    if (!rects.length) return;
+    if (inside) { A.hlActive = { qid: o.qid, id: inside.id }; A.hlPending = null; markToolbar(inside); }
+    else { A.hlActive = null; A.hlPending = o; markToolbar({}); }
+    var n = $('#hl-note'); n.value = inside ? inside.note || '' : ''; n.classList.toggle('hidden', !(inside && inside.note));
+    $('#hl-del').classList.toggle('hidden', !inside);
+    placeToolbarRects(rects);
+  }
+  /** below the last line of the selection (above the first line when there is no room), inside the screen */
+  function placeToolbarRects(rects) {
+    var tb = $('#hl-toolbar'), host = $('#scr-test').getBoundingClientRect();
+    var first = rects[0], last = rects[rects.length - 1], gap = A.touch ? 26 : 8; // touch: room for the selection handles
+    tb.classList.add('on');
+    var w = tb.offsetWidth, h = tb.offsetHeight;
+    var left = Math.max(8, Math.min(host.width - w - 8, last.left - host.left));
+    var top = last.bottom - host.top + gap;
+    if (top + h > host.height - 70) top = first.top - host.top - h - gap;
+    top = Math.max(8, top);
+    tb.style.left = left + 'px'; tb.style.top = top + 'px';
+  }
+  function hlApply(c) {
+    if (A.hlPending) { var o = A.hlPending; A.hlPending = null; addHighlight(o, c, true); hideHlToolbar(); return; }
+    if (A.hlActive) { updateHl({ c: c }); hideHlToolbar(); }
   }
   function initAnnotate() {
     document.addEventListener('selectionchange', function () {
@@ -1497,6 +1530,18 @@
     var maybeAuto = function () { if (!A.annotMode) return; setTimeout(function () { var o = selectionOffsets(); if (o) addHighlight(o); }, 30); };
     document.addEventListener('mouseup', maybeAuto);
     document.addEventListener('touchend', maybeAuto);
+    // #36: the toolbar at the selection — mouse / trackpad (mouseup), touch (after the handles settle), keyboard (Shift + arrows)
+    document.addEventListener('pointerdown', function (e) { A.ptrDown = true; A.touch = e.pointerType === 'touch' || e.pointerType === 'pen'; }, true);
+    document.addEventListener('pointerup', function () { A.ptrDown = false; }, true);
+    document.addEventListener('mouseup', function (e) { if (!e.target.closest('#hl-toolbar')) setTimeout(showSelToolbar, 10); });
+    document.addEventListener('keyup', function (e) { if (e.shiftKey || /^Arrow|Shift/.test(e.key)) setTimeout(showSelToolbar, 10); });
+    document.addEventListener('selectionchange', function () {
+      clearTimeout(A.selT);
+      if (!A.touch) return;
+      A.selT = setTimeout(function () { if (!A.ptrDown) showSelToolbar(); }, 450);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('#hl-toolbar').classList.contains('on')) { hideHlToolbar(); } });
+    document.addEventListener('scroll', function (e) { if (A.hlPending && !(e.target.closest && e.target.closest('#hl-toolbar'))) hideHlToolbar(); }, true);
     $('#tool-annot').onclick = function () {
       var o = selectionOffsets() || (A.lastSel && Date.now() - A.lastSel.t < 8000 && curQ() && A.lastSel.o.qid === curQ().qid ? A.lastSel.o : null);
       A.lastSel = null;
@@ -1507,14 +1552,24 @@
       toast(A.annotMode ? nm + ' is on: select words in the text or question to highlight them.' : nm + ' is off.');
     };
     var tb = $('#hl-toolbar');
-    $$('[data-c]', tb).forEach(function (b) { b.onclick = function () { updateHl({ c: b.getAttribute('data-c') }); }; });
+    $$('[data-c]', tb).forEach(function (b) {
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep the selection while clicking
+      b.onclick = function () { hlApply(b.getAttribute('data-c')); };
+    });
     $('#hl-del').onclick = function () {
       var a = A.hlActive; if (!a) return;
       pst().hl[a.qid] = (pst().hl[a.qid] || []).filter(function (h) { return h.id !== a.id; });
       log('annotate', a.qid, 'delete'); persist(); applyHighlights(a.qid); hideHlToolbar();
     };
     $('#hl-close').onclick = hideHlToolbar;
-    $('#hl-note-btn').onclick = function () { var n = $('#hl-note'); n.classList.toggle('hidden'); if (!n.classList.contains('hidden')) n.focus(); };
+    $('#hl-note-btn').onclick = function () {
+      if (A.hlPending) { // a new selection: highlight it (yellow) and open the note box
+        var o = A.hlPending; A.hlPending = null;
+        var h = addHighlight(o, 'y', true), sp = $('span.hl[data-hid="' + h.id + '"]', qBox(o.qid));
+        if (sp) openHlToolbar(o.qid, h.id, sp);
+      }
+      var n = $('#hl-note'); n.classList.toggle('hidden'); if (!n.classList.contains('hidden')) n.focus();
+    };
     $('#hl-note').addEventListener('input', function () { updateHl({ note: $('#hl-note').value }, true); });
   }
   function findHl(qid, id) { return (pst().hl[qid] || []).filter(function (h) { return h.id === id; })[0]; }
@@ -1533,21 +1588,18 @@
   }
   function markToolbar(h) { $$('#hl-toolbar [data-c]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-c') === h.c); }); }
   function placeToolbar(sp) {
-    var tb = $('#hl-toolbar'), host = $('#scr-test').getBoundingClientRect(), r = sp.getBoundingClientRect();
-    tb.classList.add('on');
-    var left = Math.max(8, Math.min(host.width - tb.offsetWidth - 8, r.left - host.left));
-    var top = r.bottom - host.top + 8;
-    if (top + tb.offsetHeight > host.height - 70) top = r.top - host.top - tb.offsetHeight - 8;
-    tb.style.left = left + 'px'; tb.style.top = top + 'px';
+    var rs = sp.getClientRects();
+    placeToolbarRects(rs.length ? rs : [sp.getBoundingClientRect()]);
   }
   function openHlToolbar(qid, id, sp) {
     var h = findHl(qid, id); if (!h) return;
-    A.hlActive = { qid: qid, id: id };
+    A.hlActive = { qid: qid, id: id }; A.hlPending = null;
+    $('#hl-del').classList.remove('hidden');
     markToolbar(h);
     var n = $('#hl-note'); n.value = h.note || ''; n.classList.toggle('hidden', !h.note);
     placeToolbar(sp);
   }
-  function hideHlToolbar() { $('#hl-toolbar').classList.remove('on'); A.hlActive = null; }
+  function hideHlToolbar() { $('#hl-toolbar').classList.remove('on'); A.hlActive = null; A.hlPending = null; }
 
   /* ================= boot ================= */
   function boot() {

@@ -52,7 +52,7 @@ const FORM = 'MOCK-SAT98';
   });
   await page.click('#tool-annot'); await sleep(200);
   check(await page.$$eval(q('.q-text-pass span.hl'), x => x.length) > 0, 'Highlights & Notes works in the passage pane');
-  await page.click('#hl-toolbar [data-c="b"]'); await page.click('#hl-close');
+  await page.click('#hl-toolbar [data-c="b"]'); if (await page.isVisible('#hl-close')) await page.click('#hl-close'); // v1.13: a colour click closes the toolbar
   // answer RW1: right on odd, wrong on even display numbers (1..20), rest blank
   for (let i = 1; i <= 27; i++) {
     const k = Q('RW1', i).key, L = i <= 20 ? (i % 2 ? k : 'ABCD'.replace(k, '')[0]) : null;

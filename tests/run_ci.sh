@@ -10,6 +10,7 @@ run node score_test.js                           # SAT estimated score vs SC's a
 run node qa16_test.js                           # #16 QA fixes: answers as text, re-grade, lock-out, answer check, Report tab
 run node qa21_test.js                           # #21: Report pick without Drive (B1), pick kept (N2), m6 rest, sign-in limit, copy token
 run node copies_test.js                         # #21 N1: two windows of one attempt (QA case)
+run node hl_test.js                             # #36 v1.13: highlight toolbar at the selection (colours, underline, note, delete, reload, review)
 run node qa35_test.js                           # #35 v1.12: home data — hero rule, pick-up, no estimate, past assignments
 run node home_test.js                           # #35 v1.12: new home + sign-in in the browser (desktop 1280 + phone 390)
 run node qa32_test.js                           # #32 v1.11: README (VN, yellow), Sessions.progress, hide / show attempts, past assignments
