@@ -38,7 +38,9 @@ var EXPECTED_HEADERS = {
                    'scope'],
   Topic_Summary: ['student_code', 'form_id', 'unit', 'topic', 'topic_name', 'n_attempted', 'n_correct', 'accuracy',
                   'avg_pace_ratio', 'n_fast_wrong', 'n_slow_wrong', 'n_slow_right', 'n_blank', 'n_changed_R_to_W', 'verdict', 'updated_at'],
-  Students: ['student_code', 'name', 'track', 'active', 'note'],
+  Students: ['student_code', 'name', 'track', 'active', 'note',
+             // #44: read-only mirror of the Classes tab (the student's active classes)
+             'classes'],
   Sessions: ['session_id', 'student_code', 'form_id', 'attempt_no', 'started_at', 'submitted_at', 'status', 'score_A', 'score_B',
              'total_correct', 'total_questions', 'percent', 'time_used_A_min', 'time_used_B_min', 'n_blank', 'n_flagged', 'device',
              // added by Chat B (2026-11-05) for autosave / resume with a server-side clock:
@@ -69,7 +71,8 @@ var EXPECTED_HEADERS = {
           // SAT round 2: Drive file of the form (filled automatically when blank; may also be typed to point at another file)
           'data_file_id'],
   Settings: ['key', 'value', 'meaning'],
-  Assignments: ['student_code', 'form', 'parts', 'active', 'note'], // = ASSIGN_HEADERS (Assign.gs)
+  Assignments: ['student_code', 'form', 'parts', 'active', 'note', 'class_id'], // = ASSIGN_HEADERS (Assign.gs); class_id #44
+  Classes: ['class_id', 'name', 'student_codes', 'active', 'note'], // = CLASS_HEADERS (Classes.gs, #44)
   Dictionary: ['tab', 'column', 'meaning', 'example'],
   Score_Scale: null
 };
@@ -85,7 +88,7 @@ function checkSheet_() {
   var ss = ss_();
   Object.keys(EXPECTED_HEADERS).forEach(function (tab) {
     var sh = ss.getSheetByName(tab);
-    if (!sh && (tab === 'Report' || tab === 'Part_Log' || tab === 'Score_Scale' || tab === 'Assignments')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends, Score_Scale and Assignments by the update after a deploy)'); return; }
+    if (!sh && (tab === 'Report' || tab === 'Part_Log' || tab === 'Score_Scale' || tab === 'Assignments' || tab === 'Classes')) { out.push('· ' + tab + ': not created yet (created automatically: Report by rebuildAll, Part_Log when a part ends, Score_Scale, Assignments and Classes by the update after a deploy)'); return; }
     if (!sh) { out.push('✗ ' + tab + ': TAB MISSING'); problems++; return; }
     var exp = EXPECTED_HEADERS[tab];
     if (!exp) { out.push('✓ ' + tab + ' (free text, not checked)'); return; }
@@ -117,6 +120,7 @@ function checkSheet_() {
   } catch (e) {}
   // Assignments (#29)
   try { var ca = checkAssignments_(); out = out.concat(ca.lines); problems += ca.problems; } catch (e) { out.push('✗ Assignments: ' + e); problems++; }
+  try { var cc = checkClasses_(); out = out.concat(cc.lines); problems += cc.problems; } catch (e) { out.push('✗ Classes: ' + e); problems++; } // #44
   // Forms vs data files
   var formsRows = readTable_('Forms').rows;
   Object.keys(formRegistry_()).filter(function (fid) { return !regEntry_(fid); }).forEach(function (fid) {
@@ -163,7 +167,7 @@ function addMissingColumns_() {
     var exp = EXPECTED_HEADERS[tab];
     if (!exp) return;
     var sh = ss_().getSheetByName(tab);
-    if (!sh) { if (tab !== 'Assignments') log.push('skip ' + tab + ' (tab missing — create it by hand)'); return; } // Assignments: its own update step
+    if (!sh) { if (tab !== 'Assignments' && tab !== 'Classes') log.push('skip ' + tab + ' (tab missing — create it by hand)'); return; } // Assignments: its own update step
     var have = headers_(tab);
     var lastUsed = 0; have.forEach(function (h, i) { if (h !== '') lastUsed = i + 1; });
     var missing = exp.filter(function (h) { return have.indexOf(h) < 0; });

@@ -16,6 +16,7 @@ var README_ROWS_ = [
   { q: true, row: ['Bài "paused" là gì?', 'Em đã bấm Save and Continue Later, chưa nộp. Em mở lại app, làm tiếp và nộp thì mới có kết quả.'] },
   { q: true, row: ['Ẩn bài cũ / bài thử?', 'Menu Test Zone → Hide attempts…: gõ mã học sinh (ẩn mọi bài của em đó) hoặc để trống (ẩn bài đang chọn ở Report!B2). Bài ẩn không còn ở Report, Student_Report, Topic_Summary và chế độ giáo viên; dữ liệu gốc vẫn giữ (Sessions, cột hidden = Yes). Hiện lại: menu Test Zone → Show hidden attempts.'] },
   { q: true, row: ['Giao một phần đề?', 'Tab Assignments: (1) chọn student_code và form; (2) cột parts: RW, MATH, RW1, RW2, M1, M2 (nhiều phần: M1, M2; đề AP: A hoặc B); (3) active = Yes → em thấy thẻ "Assigned by your teacher" ở đầu My Tests; (4) xong thì active = No (bài đã làm vẫn giữ, em xem lại ở "Past assignments").'] },
+  { q: true, row: ['Tạo lớp / xem bài theo lớp?', 'Tạo: trong app (mã giáo viên → Classes → New class) hoặc gõ ở tab Classes (class_id, name, student_codes cách nhau bằng dấu phẩy, active = Yes). Xem: Classes → chọn lớp → chọn đề (và phần) → "What to go over" (câu nhiều em sai lên đầu) hoặc "Grid". Giao cho cả lớp: tab Assignments, cột class_id. Cất lớp: active = No.'] },
   { q: true, row: ['Sửa đáp án?', 'Tab Questions, cột key (SPR: nhiều đáp án cách nhau bằng |; phân số gõ dấu \' trước, ví dụ \'3/4). Rồi menu Test Zone → Re-grade after a key change.'] },
   [],
   ['Các tab khác'],
@@ -30,6 +31,7 @@ var README_ROWS_ = [
   ['Events', 'Nhật ký mọi thao tác (chỉ để kiểm tra kỹ).'],
   ['Students', 'Mã đăng nhập, tên, track (AP Calc AB / SAT / ALL); active = No là khóa mã.'],
   ['Assignments', 'Giao một phần đề (xem trên).'],
+  ['Classes', 'Các lớp: mã lớp, tên, mã học sinh (cách nhau bằng dấu phẩy), active (No = đã cất).'],
   ['Questions', 'Đáp án và thông tin câu hỏi (không có nội dung câu).'],
   ['Forms', 'Các đề và phần (số câu, phút, máy tính).'],
   ['Settings', 'Ngưỡng, teacher_code, Desmos key.'],
@@ -108,6 +110,7 @@ var DICTIONARY_ROWS_ = [
   ['Students', 'track', 'Which forms the student sees: AP Calc AB / SAT / ALL (several separated by commas)', 'SAT'],
   ['Students', 'active', 'Yes = can sign in, No = locked', 'Yes'],
   ['Students', 'note', 'Teacher note', ''],
+  ['Students', 'classes', 'Read-only: the student\'s active classes (copied from the Classes tab after each change)', '2CE'],
   ['Sessions', 'session_id', 'Attempt id', 'S-20261106-AN-7Q4-SAT-2026-08-1'],
   ['Sessions', 'student_code', 'Student code', 'AN-7Q4'],
   ['Sessions', 'form_id', 'Form', 'SAT-2026-08'],
@@ -202,7 +205,13 @@ var DICTIONARY_ROWS_ = [
   ['Assignments', 'form', 'Form id (dropdown)', 'SAT-2026-08'],
   ['Assignments', 'parts', 'Parts to take. SAT: RW (= RW1 + RW2), MATH (= M1 + M2), RW1, RW2, M1, M2; several with a comma. AP: A, B. A typed combination not in the list is allowed (yellow warning)', 'M1, M2'],
   ['Assignments', 'active', 'Yes = the card is on the student\'s My Tests; No = hidden (attempts are kept)', 'Yes'],
-  ['Assignments', 'note', 'Free note for the teacher (not shown to the student)', 'Try Math Module 1 before Friday']
+  ['Assignments', 'note', 'Free note for the teacher (not shown to the student)', 'Try Math Module 1 before Friday'],
+  ['Assignments', 'class_id', 'Optional: a class (Classes tab). The row is then for every member of the active class; student_code can stay empty', '2CE'],
+  ['Classes', 'class_id', 'Short unique id of the class (used in Assignments.class_id)', '2CE'],
+  ['Classes', 'name', 'Class name shown on the teacher page', '2CE'],
+  ['Classes', 'student_codes', 'Student codes, separated by commas; a student may be in several classes', 'QUYNHANH, QUYNHCHI'],
+  ['Classes', 'active', 'Yes = shown on the teacher page; No = archived (kept, "Show archived" → Restore)', 'Yes'],
+  ['Classes', 'note', 'Free note', '']
 ];
 
 /* Settings: key → meaning (the value column is never touched) */

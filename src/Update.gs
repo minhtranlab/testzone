@@ -9,6 +9,7 @@
  *   syncSheetTexts_     → README / Interpretation / Dictionary / Settings meanings from SheetText.gs
  *   ensureScoreScale_   → Score_Scale tab created once from ScoreScale.gs (then Minh's to edit)
  *   ensureTimeNorms_    → Time_Norms tab created once from TimeNorms.gs (then Minh's to edit; #24 F)
+ *   ensureClasses_      → Classes tab created once + Students.classes mirror (#44)
  *   ensureAssignments_  → Assignments tab created once (one example row) + its dropdowns refreshed (#29)
  *   resyncQuestions_    → after a data round renumbered items: rows whose qid now holds another item are rebuilt
  *                         from the data file (Minh's edits kept where the qid still holds the same item; Setup.gs)
@@ -70,6 +71,7 @@ function doUpdate_() {
     ['texts', syncSheetTexts_],
     ['score scale', ensureScoreScale_],
     ['time norms', ensureTimeNorms_],
+    ['classes', ensureClasses_],
     ['assignments', ensureAssignments_],
     ['questions', function () { return resyncQuestions_() + '\n' + importQuestions_(); }],
     ['reports', rebuildAll_],
@@ -81,7 +83,7 @@ function doUpdate_() {
     try {
       var msg = String(s[1]() || '');
       log.push('[' + s[0] + '] ' + msg);
-      if (['headers', 'forms', 'settings', 'score scale', 'time norms', 'assignments'].indexOf(s[0]) >= 0) notes.push(msg);
+      if (['headers', 'forms', 'settings', 'score scale', 'time norms', 'classes', 'assignments'].indexOf(s[0]) >= 0) notes.push(msg);
       if (s[0] === 'columns') notes.push(/Nothing to add/.test(msg) ? 'columns OK' : 'columns added: ' + (msg.match(/added column/g) || []).length);
       if (s[0] === 'questions') {
         var m = /Imported (\d+)/.exec(msg), rs = /resynced for (\d+)/.exec(msg);

@@ -147,10 +147,18 @@
       <div><button class="btn-plain" id="t-logout">Sign out</button></div>
     </div>
     <div class="home-body">
-      <h1>Students</h1>
-      <p class="sub">Open an attempt to see the result page the student saw, then every question with the student's answer.</p>
-      <input id="t-filter" class="field t-filter" placeholder="Filter by name or code" autocomplete="off">
-      <div id="t-list"><div class="spinner"></div></div>
+      <div class="t-tabs" role="tablist"><button type="button" role="tab" id="t-tab-st" class="on">Students</button><button type="button" role="tab" id="t-tab-cl">Classes</button></div>
+      <div id="t-pane-st">
+        <h1>Students</h1>
+        <p class="sub">Open an attempt to see the result page the student saw, then every question with the student's answer.</p>
+        <input id="t-filter" class="field t-filter" placeholder="Filter by name or code" autocomplete="off">
+        <div id="t-list"><div class="spinner"></div></div>
+      </div>
+      <div id="t-pane-cl" hidden>
+        <h1>Classes</h1>
+        <p class="sub">Go over one test with several students at once: open a class, pick a test (and a part).</p>
+        <div id="t-classes"><div class="spinner"></div></div>
+      </div>
     </div>
   </section>
 </div>

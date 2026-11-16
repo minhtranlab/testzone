@@ -47,6 +47,7 @@ function onEdit(e) {
   var r = e && e.range;
   if (!r || typeof r.getSheet !== 'function') return;
   var sh = r.getSheet();
+  if (sh.getName() === 'Classes') { try { syncClassMirror_(); } catch (err) {} return; } // #44: Students.classes mirror
   if (sh.getName() !== REPORT_TAB || r.getRow() !== 2 || r.getColumn() !== 2) return;
   drawPick_(sh);
 }

@@ -1,7 +1,8 @@
 /**
  * Test Zone — assign part of a form to one student (ticket #29, v1.10).
  *
- * Sheet tab Assignments (Minh fills it by hand): student_code · form · parts · active · note
+ * Sheet tab Assignments (Minh fills it by hand): student_code · form · parts · active · note · class_id
+ *   class_id (#44, optional): the row is for every member of that active class (Classes tab); student_code may be blank.
  *   parts: SAT RW (= RW1 + RW2), MATH (= M1 + M2), RW1, RW2, M1, M2 — several with a comma ("M1, M2"); AP A, B.
  *   active = Yes → the student sees an extra card at the top of My Tests; No → the card is gone (attempts are kept).
  *
@@ -12,7 +13,7 @@
  */
 
 var ASSIGN_TAB = 'Assignments';
-var ASSIGN_HEADERS = ['student_code', 'form', 'parts', 'active', 'note'];
+var ASSIGN_HEADERS = ['student_code', 'form', 'parts', 'active', 'note', 'class_id'];
 var PART_ALIASES_ = { RW: ['RW1', 'RW2'], MATH: ['M1', 'M2'] };
 var PARTS_CHOICES_ = ['RW', 'MATH', 'RW1', 'RW2', 'M1', 'M2', 'M1, M2', 'RW1, M1', 'A', 'B'];
 
@@ -100,8 +101,11 @@ function assignmentsFor_(codeN) {
   var out = [], seen = {};
   var rows = [];
   try { rows = readTable_(ASSIGN_TAB).rows; } catch (e) { return out; }
+  var inCls = {}; // #44: rows for a class → every member of the active class
+  if (rows.some(function (r) { return String(r.class_id || '').trim(); })) classesOf_(codeN).forEach(function (c) { inCls[c.class_id.toUpperCase()] = 1; });
   rows.forEach(function (r) {
-    if (normCode_(r.student_code) !== codeN || !isYes_(r.active)) return;
+    var cid = String(r.class_id || '').trim().toUpperCase();
+    if (!isYes_(r.active) || !(cid ? inCls[cid] : normCode_(r.student_code) === codeN)) return;
     var fid = String(r.form || '').trim(), prof = fid ? profileFor_(fid, true) : null;
     var parts = parseParts_(prof, r.parts);
     if (!parts) return;
@@ -141,6 +145,9 @@ function ensureAssignments_() {
     sh.getRange(2, 3, n, 1).setDataValidation(dv().requireValueInList(PARTS_CHOICES_, true).setAllowInvalid(true)
       .setHelpText('SAT: RW, MATH, RW1, RW2, M1, M2 (several: M1, M2). AP: A, B.').build());
     sh.getRange(2, 4, n, 1).setDataValidation(dv().requireValueInList(['Yes', 'No'], true).setAllowInvalid(false).build());
+    var cls = classesAll_().map(function (c) { return c.class_id; }); // #44: optional class_id
+    if (sh.getLastColumn() >= 6 && cls.length) sh.getRange(2, 6, n, 1).setDataValidation(dv().requireValueInList(cls, true).setAllowInvalid(true)
+      .setHelpText('Optional: a class (tab Classes). The row is then for every member of the class; student_code can stay empty.').build());
   } catch (e) { console.warn('ASSIGNMENTS DROPDOWNS: ' + e); }
   return 'Assignments: ' + (made ? 'created' : 'kept') + ', dropdowns set';
 }
@@ -152,10 +159,12 @@ function checkAssignments_() {
   var codes = {}; try { readTable_('Students').rows.forEach(function (r) { codes[normCode_(r.student_code)] = 1; }); } catch (e) {}
   var act = 0;
   rows.forEach(function (r) {
-    if (!String(r.student_code) && !String(r.form) && !String(r.parts)) return;
+    if (!String(r.student_code) && !String(r.form) && !String(r.parts) && !String(r.class_id || '')) return;
     var where = 'Assignments row ' + r._row + ': ';
     var prof = profileFor_(String(r.form || '').trim(), true);
-    if (!codes[normCode_(r.student_code)]) { out.push('✗ ' + where + 'student_code ' + r.student_code + ' is not in Students'); problems++; return; }
+    var cid = String(r.class_id || '').trim();
+    if (cid) { var c = classById_(cid); if (!c) { out.push('✗ ' + where + 'class_id ' + cid + ' is not in Classes'); problems++; return; } if (!c.active) out.push('⚠ ' + where + 'class ' + cid + ' is archived (active = No): nobody gets this card'); }
+    else if (!codes[normCode_(r.student_code)]) { out.push('✗ ' + where + 'student_code ' + r.student_code + ' is not in Students'); problems++; return; }
     if (!prof) { out.push('✗ ' + where + 'form ' + r.form + ' is not a form id'); problems++; return; }
     if (!parseParts_(prof, r.parts)) { out.push('✗ ' + where + 'parts "' + r.parts + '" do not fit ' + r.form + ' (' + (isSat_(prof) ? 'RW, MATH, RW1, RW2, M1, M2' : prof.parts.map(function (p) { return p.part; }).join(', ')) + ')'); problems++; return; }
     if (scopeKey_(prof, parseParts_(prof, r.parts)) === 'full') out.push('⚠ ' + where + 'parts "' + r.parts + '" = the whole form (Full test): only useful for a student whose track does not have ' + r.form + ' (others already see it)');

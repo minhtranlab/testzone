@@ -10,6 +10,8 @@ run node score_test.js                           # SAT estimated score vs SC's a
 run node qa16_test.js                           # #16 QA fixes: answers as text, re-grade, lock-out, answer check, Report tab
 run node qa21_test.js                           # #21: Report pick without Drive (B1), pick kept (N2), m6 rest, sign-in limit, copy token
 run node copies_test.js                         # #21 N1: two windows of one attempt (QA case)
+run node qa44c_test.js                          # #44 v1.15 part 1: classes (Sheet + teacher page, mirror, class assignment, go-over order, grid = Responses, archive)
+run node cls_test.js                            # #44 v1.15 part 1: classes in the browser (teacher tabs, new class, class screen, grid filters, question with every answer)
 run node qa40_test.js                           # #40 v1.14: time to final answer, module times, R/S from it (+ re-grade), SAT Math Lib recs
 run node t40_test.js                            # #40 v1.14: teacher time block + time to answer, student SAT Math Lib lines (desktop + phone)
 run node hl_test.js                             # #36 v1.13: highlight toolbar at the selection (colours, underline, note, delete, reload, review)

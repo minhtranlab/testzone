@@ -516,4 +516,27 @@ mark.app-mode { background: #e8f0fe; color: var(--blue); font-weight: 700; paddi
   .hz-form { flex-direction: column; }
   .hz-chips { margin-top: 44px; }
 }
+/* #44 part 1: teacher tabs + classes */
+.t-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line-2); margin: 0 0 18px; }
+.t-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 16px; font: inherit; font-weight: 700; color: var(--muted); cursor: pointer; }
+.t-tabs button.on { color: var(--ink); border-bottom-color: var(--blue, #324dc7); }
+.cl-acts { display: inline-flex; gap: 8px; align-items: center; } .cl-acts .btn-blue { padding: 6px 16px; }
+.cl-card.archived { opacity: .75; } .cl-mem { margin: 8px 0 2px; } .cl-last { margin: 0; font-size: 14px; }
+.cl-arch-toggle { display: block; margin: 4px 0 16px; font-size: 14px; color: var(--ink-2); }
+.cl-new summary { cursor: pointer; font-weight: 700; } .cl-lbl { display: block; margin: 12px 0 6px; font-weight: 600; font-size: 14px; }
+.cl-lbl .field { margin: 6px 0 0; } .cl-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 14px; font-size: 14px; max-height: 260px; overflow: auto; }
+.cl-err { color: var(--red, #c5221f); min-height: 1.2em; font-size: 14px; }
+.cls-page { max-width: 1100px; }
+.cls-pick { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 6px 0 16px; font-size: 14px; font-weight: 600; }
+.cls-pick select, .cls-att { font: inherit; font-weight: 400; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 8px; margin-left: 6px; max-width: 100%; }
+.cls-mem, .cls-go, .cls-grid { overflow-x: auto; } .cls-times { margin-top: 0; } .cls-times td { padding: 6px 8px; font-variant-numeric: tabular-nums; } .cls-nt td { color: var(--muted); }
+.cls-note { font-size: 13.5px; margin: 0 0 10px; }
+.cls-go table, .cls-grid table { margin-top: 0; } .cls-go td, .cls-grid td { vertical-align: middle; padding: 6px 8px; }
+.cls-go tr.ok td { color: var(--muted); } .cls-skill { font-size: 13.5px; max-width: 260px; }
+.cg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; } .cg .rcell.xs { flex: none; }
+.cg-a { min-width: 14px; } .cg-t { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; } .cg-none { color: var(--muted); font-style: italic; font-size: 13px; }
+.cls-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; font-size: 13.5px; }
+.chip-f { border: 1px solid var(--line-2); background: #fff; border-radius: 999px; padding: 5px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.chip-f.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+#view-bar .cm { white-space: nowrap; } #view-bar .cm .bdg svg { vertical-align: -3px; }
 </style>

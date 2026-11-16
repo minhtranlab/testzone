@@ -20,7 +20,7 @@ const C = G.ctx;
 
 console.log('[the Assignments tab]');
 const A = G.sheets.Assignments;
-check(A && A.rows[0].join() === 'student_code,form,parts,active,note', 'Sheet update created the tab: student_code · form · parts · active · note');
+check(A && A.rows[0].join() === 'student_code,form,parts,active,note,class_id', 'Sheet update created the tab: student_code · form · parts · active · note (+ class_id, #44)');
 check(A.rows[1] && A.rows[1][0] === 'T10' && A.rows[1][2] === 'M1' && A.rows[1][3] === 'No', 'one example row for Minh (test): parts M1, active = No');
 const dv = c => A.dv['2:' + c] || {};
 check(dv(2).kind === 'list' && dv(2).list.includes(SAT) && dv(2).list.includes(AP) && dv(2).allowInvalid === false, 'form = dropdown of the form ids');
@@ -28,7 +28,7 @@ check(dv(3).kind === 'list' && ['RW', 'MATH', 'RW1', 'RW2', 'M1', 'M2', 'M1, M2'
 check(dv(4).kind === 'list' && dv(4).list.join() === 'Yes,No' && dv(1).kind === 'range', 'active = Yes / No; student_code = dropdown from Students');
 check(/Assignments: created/.test(String(G.table('Settings').find(r => r.key === 'code_version').meaning)), 'update line says "Assignments: created"');
 const dict = G.table('Dictionary').filter(r => r.tab === 'Assignments').map(r => r.column).join();
-check(dict === 'student_code,form,parts,active,note' && G.sheets.README.rows.some(r => r[0] === 'Giao một phần đề?' && /Assignments/.test(r[1])), 'README + Dictionary explain the tab');
+check(dict === 'student_code,form,parts,active,note,class_id' && G.sheets.README.rows.some(r => r[0] === 'Giao một phần đề?' && /Assignments/.test(r[1])), 'README + Dictionary explain the tab');
 
 console.log('[part codes]');
 const pS = C.profileFor_(SAT), pA = C.profileFor_(AP);
