@@ -119,7 +119,7 @@ const ini = dom.find(([t]) => /Information and Ideas/.test(t))[1];
 check(!sh.hiddenRows[dom.find(([t]) => /Standard English Conventions/.test(t))[1] + 1] && (/\| OK$/.test(T[ini - 1]) ? sh.hiddenRows[ini + 1] : true), 'weak domain expanded, OK domains collapsed');
 check(rowOf(/^Slow \/ rushed = against the usual time for each question type/) > 0, 'time text: slow / rushed against Time_Norms');
 const iAct = rowOf(/^Next steps/); check(/^1\. Reteach (Standard English Conventions \(RW\)|Advanced Math \(Math\))\. Missed skills: /.test(T[iAct]), 'action 1: ' + T[iAct].slice(0, 90));
-const iW = rowOf(/^Wrong and blank answers/); check(/^Question \| Skill \| Type \| Time \| Note/.test(T[iW]) && /^(RW1|RW2|M1|M2) \d+ \| [A-Z]/.test(T[iW + 1]), 'wrong list: "RW1 3 | Boundaries | …"');
+const iW = rowOf(/^Wrong and blank answers/); check(/^Question \| Skill \| Type \| Time to answer \| Note/.test(T[iW]) && /^(RW1|RW2|M1|M2) \d+ \| [A-Z]/.test(T[iW + 1]), 'wrong list: "RW1 3 | Boundaries | …"');
 check(sh.charts.length === 1 && sh.charts[0].ranges[0].getValues().length === 99 && sh.charts[0].ranges[0].getValues()[1][0] === 'RW1-1', 'chart: 98 questions labelled RW1-1 …');
 const cd = sh.charts[0].ranges[0].getValues();
 { const fq = qs98 => qs98; const all = G.ctx.formDataRaw_('MOCK-SAT98').questions, tg = G.ctx.tagMap_('MOCK-SAT98');

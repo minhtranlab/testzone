@@ -102,7 +102,7 @@ check(/^Bar colours: green = right · yellow = right but slow .* · red = wrong 
 const cd = sh.charts[0].ranges[0].getValues();
 check(cd.length === 46 && cd[0].join() === 'Question,Right,Right but slow,Wrong,Blank,Standard time' && cd[6][3] > 4 && cd[1][5] > 1.9 && cd[30][5] > 2.9, 'chart data: 45 questions, A6 in "Sai" column, standard line ≈2 / ≈3 min');
 check(sh.charts[0].options.series[4].type === 'line' && sh.charts[0].options.isStacked && sh.charts[0].hidden === 'SHOW_BOTH' && sh.hiddenCols[10] && sh.colDepth[10] === 1, 'chart: stacked bars + dashed line, data block J:O grouped+collapsed, hidden data shown');
-const iW = rowOf(/^Wrong and blank answers \(17\)/); check(iW > 0 && /^Question \| Topic \| Type \| Time \| Note/.test(T[iW]) && /^A 6 \| 8\.2 Connecting Position/.test(T[iW + 1]) && /^B 17 \| 8\.7 .* \| Blank \| – \|/.test(T[iW + 17]), 'wrong/blank table: 17 rows, A 6 … B 17');
+const iW = rowOf(/^Wrong and blank answers \(17\)/); check(iW > 0 && /^Question \| Topic \| Type \| Time to answer \| Note/.test(T[iW]) && /^A 6 \| 8\.2 Connecting Position/.test(T[iW + 1]) && /^B 17 \| 8\.7 .* \| Blank \| – \(.* on it\) \|/.test(T[iW + 17]), 'wrong/blank table: 17 rows, A 6 … B 17');
 check(T.some(t => /Chose the right answer, then changed it/.test(t)) && T.some(t => /Crossed out the right answer/.test(t)), 'notes: R→W and ELIM_KEY');
 console.log(`    render: ${realMs} ms in the mock, ${realCalls} Sheet API calls`);
 fs.writeFileSync(OUT + '/report_real.html', '<meta charset="utf-8"><body style="margin:16px;background:#f2f2f2">' + dump(sh) + '</body>');

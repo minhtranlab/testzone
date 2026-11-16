@@ -983,6 +983,25 @@
   function qchip(q) { return '<button type="button" class="qchip ' + q.status + '" data-qid="' + esc(q.qid) + '">' + esc(q.code) + '</button>'; }
   var GRID_KEY = [['right', '', 'Right'], ['wrong', '', 'Wrong'], ['wrong', 'R', 'Rushed and wrong'], ['wrong', 'S', 'Didn\'t know (slow and wrong)'], ['right', 'S', 'Slow but right'], ['blank', '', 'Blank']];
   function gridKeyHtml() { return '<div class="grid-key">' + GRID_KEY.map(function (k) { return '<span>' + qcell(k[0], k[1]) + k[2] + '</span>'; }).join('') + '</div>'; }
+  /** m:ss */
+  function clk(s) { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
+  /** Teacher only (#40 B): time block under a module's score — solving + checking / review + left = clock. */
+  function modTimeHtml(m, label) {
+    var t = m.time; if (!t) return '';
+    return '<div class="mod-time"><div class="mt-h">' + esc(label) + ' · ' + clk(t.clock) + '</div><dl>' +
+      '<div><dt>Solving time</dt><dd>' + clk(t.solving) + '</dd></div><div><dt>Checking / review time</dt><dd>' + clk(t.checking) + '</dd></div>' +
+      '<div><dt>Time left at submit</dt><dd>' + clk(t.left) + '</dd></div><div class="mt-blank"><dt>Time on blank questions</dt><dd>' + clk(t.blank) + '</dd></div></dl></div>';
+  }
+  function modShort(m) { return String(m.title || m.part).replace(/^Section \w+, /, '').replace(/:.*$/, ''); }
+  /** SAT Math Lib lines under "What to practise first" (#40 D); the teacher also sees the score and the level to assign. */
+  function smlHtml(sml, teacher) {
+    if (!sml || !sml.items || !sml.items.length) return '';
+    return '<div class="sml-recs">' + sml.items.map(function (x) {
+      return '<p class="sml-line">Practise in <a class="sml-app" href="' + esc(sml.url) + '" target="_blank" rel="noopener"><mark class="app-mode">' + esc(sml.app) + '</mark></a>: ' +
+        esc(x.name) + ' (' + esc(x.code) + ') — ' + x.n + ' questions' +
+        (teacher && x.hint ? '<span class="sml-t"> · ' + x.right + '/' + x.of + ' right · assign ' + esc(x.hint) + '</span>' : '') + '</p>';
+    }).join('') + '</div>';
+  }
   function practiseHtml(x) {
     if (typeof x === 'string') return esc(x);
     return esc(x.text) + (x.mode ? '<div class="pr-app">Practise: <mark class="app-mode">' + esc(x.mode) + '</mark> in the ' + esc(x.app || 'practice app') + '</div>' : '');
@@ -1015,17 +1034,20 @@
       h += '<div class="sec-cards">' + res.sections.map(function (x) {
         var ex = e && e[x.id];
         return '<div class="sec-card"><div class="sec-t">' + esc(x.title) + '</div>' + (ex ? (e.total ? '' : '<div class="est-lbl">Estimated score</div>') + '<div class="sec-est">' + ex.low + '–' + ex.high + '</div>' : '') +
-          '<div class="sec-raw"><b>' + x.right + '/' + x.n + '</b> correct</div>' + modLine(x.modules || []) + '</div>';
+          '<div class="sec-raw"><b>' + x.right + '/' + x.n + '</b> correct</div>' + modLine(x.modules || []) +
+          (teacher ? (x.modules || []).map(function (m) { return modTimeHtml(m, modShort(m)); }).join('') : '') + '</div>';
       }).join('') + '</div>';
       if (teacher && e && e.teacher_note) h += '<p class="est-note muted">Teacher note: ' + esc(e.teacher_note) + '</p>';
       h += '</div>';
     } else {
       h += '<div class="res-score"><div class="score-total">' + res.total.right + ' / ' + res.total.n + '</div><div class="score-sub">questions correct</div>';
-      h += '<div class="res-parts">' + res.parts.map(function (p) { return '<div><b>' + p.right + ' / ' + p.n + '</b>' + esc(p.title || 'Part ' + p.part) + '</div>'; }).join('') + '</div></div>';
+      h += '<div class="res-parts">' + res.parts.map(function (p) { return '<div><b>' + p.right + ' / ' + p.n + '</b>' + esc(p.title || 'Part ' + p.part) + '</div>'; }).join('') + '</div>';
+      if (teacher && res.parts.some(function (p) { return p.time; })) h += '<div class="mod-times">' + res.parts.map(function (p) { return modTimeHtml(p, 'Part ' + p.part); }).join('') + '</div>';
+      h += '</div>';
     }
     // what to practise first: short tips + the practice-app mode (#24 C)
-    if (res.practise && res.practise.length) {
-      h += '<h2 class="res-h">What to practise first</h2><ol class="res-list">' + res.practise.map(function (x) { return '<li>' + practiseHtml(x) + '</li>'; }).join('') + '</ol>';
+    if ((res.practise && res.practise.length) || res.sml) {
+      h += '<h2 class="res-h">What to practise first</h2><ol class="res-list">' + (res.practise || []).map(function (x) { return '<li>' + practiseHtml(x) + '</li>'; }).join('') + '</ol>' + smlHtml(res.sml, teacher);
     }
     // skills + the missed questions of each skill as chips (#24 D)
     if (res.valid && res.groups && res.groups.length) {
@@ -1056,8 +1078,10 @@
                    'Open a question to see it again with your answer and whether it was right. The correct answers are not shown.') + '</p>';
       res.review.forEach(function (p) {
         var r = p.questions.filter(function (q) { return q.status === 'right'; }).length;
-        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid">' +
-          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i></button>'; }).join('') + '</div>' + gridKeyHtml() + '</div>';
+        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid' + (teacher ? ' tgrid' : '') + '">' +
+          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + (teacher ? (q.ta_s !== undefined ? ' · time to answer ' + clk(q.ta_s) : ' · blank, ' + clk(q.time_s) + ' on it') : '') + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i>' +
+            (teacher ? '<span class="rt">' + (q.ta_s !== undefined ? clk(q.ta_s) : '–') + '</span>' : '') + '</button>'; }).join('') + '</div>' + gridKeyHtml() +
+          (teacher ? '<p class="muted tgrid-note">Under each number: time to answer (until the final answer was chosen). S / R use this time.</p>' : '') + '</div>';
       });
     }
     h += '</div>';
@@ -1122,7 +1146,7 @@
     var bar = $('#view-bar'), rq = q, key = VW.keys[q.qid];
     var st = rq.status === 'right' ? '<span class="rv-st right">✓ Correct</span>' : rq.status === 'wrong' ? '<span class="rv-st wrong">✗ Incorrect</span>' : '<span class="rv-st blank">– Not answered</span>';
     bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b></span><span>' + (VW.teacher ? 'Student\'s' : 'Your') + ' answer: <b>' + (rq.answer ? esc(rq.answer) : '—') + '</b></span>' + st +
-      '<span class="muted">Time: ' + fmtTime(rq.time_s) + '</span>' + (rq.badge ? '<span>' + bdg(rq.badge) + (rq.badge === 'S' ? ' slow' : ' rushed') + '</span>' : '') +
+      (VW.teacher && rq.ta_s !== undefined ? '<span class="muted">Time to answer: ' + fmtTime(rq.ta_s) + ' · total ' + fmtTime(rq.time_s) + '</span>' : '<span class="muted">Time: ' + fmtTime(rq.time_s) + '</span>') + (rq.badge ? '<span>' + bdg(rq.badge) + (rq.badge === 'S' ? ' slow' : ' rushed') + '</span>' : '') +
       (VW.teacher ? (key ? '<span class="rv-key">Correct answer: <b>' + esc(key.join(' or ')) + '</b></span>' : '<button type="button" class="btn-outline" id="rv-show">Show answer</button>') : '');
     var box = qBox(q.qid);
     $$('.ch', box).forEach(function (c) { c.classList.remove('rv-key'); });

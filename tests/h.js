@@ -80,7 +80,7 @@ async function badgeLayout(page) {
                   keys: document.querySelectorAll('#result-body .res-part .grid-key').length, parts: document.querySelectorAll('#result-body .res-part').length,
                   oldKey: document.querySelectorAll('#result-body .bdg-key, #result-body .res-legend').length, types: [] };
     cells.forEach(c => {
-      const r = c.getBoundingClientRect(); if (Math.abs(r.width - 40) > 0.5 || Math.abs(r.height - 46) > 0.5) out.size = false;
+      const r = c.getBoundingClientRect(); if (Math.abs(r.width - 40) > 0.5 || Math.abs(r.height - (c.closest('.tgrid') ? 60 : 46)) > 0.5) out.size = false;
       const rs = c.querySelector('.rs'), b = c.dataset.badge, st = c.classList.contains('right') ? 'right' : c.classList.contains('wrong') ? 'wrong' : 'blank';
       const svg = rs && rs.querySelector('svg'), txt = rs ? rs.textContent.trim() : '';
       const want = b ? (svg && svg.getAttribute('aria-label') === (b === 'R' ? 'rushed' : 'slow')) : st === 'right' ? txt === '✓' : st === 'wrong' ? txt === '✗' : txt === '' && !svg;

@@ -133,7 +133,8 @@ function analyse_(session, rows, S, studentName) {
     if (!pr.length) return;
     parts.push({ part: p.part, title: p.title, calculator: !!p.calculator, n: pr.length, limit_min: Math.round(p.time_limit_sec / 60),
                  pace: p.time_limit_sec / pr.length, used_min: partUsedMin_(session, p.part, p.time_limit_sec),
-                 right: pr.filter(function (r) { return Number(r.correct) === 1; }).length });
+                 right: pr.filter(function (r) { return Number(r.correct) === 1; }).length,
+                 time: moduleTimes_(pr, p.time_limit_sec, partUsedSec_(session, p.part, p.time_limit_sec)) }); // #40 B
   });
   var partOrder = parts.map(function (p) { return p.part; });
   var qs = rows.map(function (r) {
@@ -142,7 +143,7 @@ function analyse_(session, rows, S, studentName) {
     var pp = parts.filter(function (p) { return p.part === String(r.part); })[0] || { pace: 1 };
     var nm = timeNormFor_(sat, String(r.part), tg.type, tg); // usual time for this question type + difficulty (#24 F)
     return { qid: String(r.qid), part: String(r.part), no: Number(r.display_no), unit: String(tg.unit || r.unit || '?'), topic: topic,
-             name: names[topic] || tg.topic_name || '', p: String(r.profile), s: Number(r.time_total_sec) || 0, pace: nm ? nm.target : pp.pace,
+             name: names[topic] || tg.topic_name || '', p: String(r.profile), s: Number(r.time_total_sec) || 0, ta: taOf_(r), pace: nm ? nm.target : pp.pace,
              flags: String(r.flags || ''), pattern: String(r.change_pattern || ''), diff: String(tg.difficulty || ''),
              answer: r.final_answer === undefined ? '' : String(r.final_answer) };
   }).sort(function (a, b) { return (partOrder.indexOf(a.part) - partOrder.indexOf(b.part)) || (a.no - b.no); });
@@ -234,12 +235,12 @@ function analyse_(session, rows, S, studentName) {
   var wrongList = qs.filter(function (q) { return !isRightP_(q.p); }).map(function (q) {
     var note = q.pattern === 'R→W' ? 'Chose the right answer, then changed it' : q.flags.indexOf('ELIM_KEY') >= 0 ? 'Crossed out the right answer' :
                q.flags.indexOf('GUESS_LIKELY') >= 0 ? 'Probably a guess' : q.pattern === 'cleared' ? 'Answered, then cleared' : '';
-    return { part: q.part, no: q.no, topic: q.topic, name: q.name, type: types[q.p] ? types[q.p].t : q.p, s: q.s, blank: q.p === 'BLANK', note: note };
+    return { part: q.part, no: q.no, topic: q.topic, name: q.name, type: types[q.p] ? types[q.p].t : q.p, s: q.s, ta: q.ta, blank: q.p === 'BLANK', note: note };
   });
   // timing sentence (also the Student_Report timing_pattern)
   var answeredQs = qs.filter(function (q) { return q.p !== 'BLANK'; });
-  var slowN = answeredQs.filter(function (q) { return q.s > S.slow_ratio * q.pace; }).length;
-  var fastN = answeredQs.filter(function (q) { return q.s < S.fast_ratio * q.pace; }).length;
+  var slowN = answeredQs.filter(function (q) { return q.p === 'SLOW_RIGHT' || q.p === 'SLOW_WRONG'; }).length; // #40 C: the types (time to answer)
+  var fastN = answeredQs.filter(function (q) { return q.ta < S.fast_ratio * q.pace; }).length;
   var timing = 'Used ' + parts.map(function (p) { return round_(p.used_min, 1) + '/' + p.limit_min + ' min ' + partLbl_(p.part, sat) + (p.used_min >= p.limit_min - 0.05 ? ' (time up)' : ''); }).join(', ') + '. ';
   if (answeredQs.length && fastN >= 0.8 * answeredQs.length) timing += 'Very fast overall: ' + fastN + '/' + answeredQs.length + ' answers in under half the ' + stdText + '.';
   else timing += 'Against the ' + stdText + ': ' + slowN + ' slow, ' + fastN + ' rushed.';
@@ -252,7 +253,8 @@ function analyse_(session, rows, S, studentName) {
     date: session.submitted_at ? fmtDate_(new Date(toMs_(session.submitted_at)), 'dd MMM yyyy, HH:mm') : '',
     n: n, right: right, pct: n ? Math.round(100 * right / n) : 0, parts: parts, used: v.used, limit: v.limit,
     valid: v.reliable, reasons: v.reasons, summary: summary, actions: actions, units: units, counts: counts, r2w: r2w, elimKey: elimKey,
-    qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer }; }),
+    sml: v.reliable ? smlRecs_(qs, sat, S) : null, // #40 D
+    qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, ta: q.ta, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer }; }),
     wrong: wrongList, std_text: stdText, timing: timing, types: types,
     sat: sat, sections: sections, paces: paces, estimate: estimate, estimate_text: estimate ? satEstimateText_(estimate) : '',
     score_line: sat ? sections.map(function (x) { return x.id + ' ' + x.right + '/' + x.n; }).join(' · ') + (sections.length > 1 ? ' · total ' + right + '/' + n : '') : '' // #32 t3
@@ -299,6 +301,67 @@ function partUsedMin_(session, part, limitSec) {
   return round_(Math.min(limitSec * 1000, Math.max(0, b - a)) / 60000, 1);
 }
 
+/** Seconds used in one part, as exact as the data allows (#40 B): saved state (module start → end) else the Sessions column. */
+function partUsedSec_(session, part, limitSec) {
+  var st = parseState_(session) || {};
+  var a = (st.part_starts || {})[part], b = (st.part_end_at || {})[part];
+  if (a && b) return Math.min(limitSec, Math.max(0, (b - a) / 1000));
+  return Math.min(limitSec, partUsedMin_(session, part, limitSec) * 60);
+}
+
+/** Time to final answer of a Responses row (#40 A): the column, else (rows from before v1.14) the total time; blank → null. */
+function taOf_(r) {
+  if (String(r.profile) === 'BLANK') return null;
+  var v = r.time_to_answer_sec;
+  return v === undefined || v === null || v === '' ? (Number(r.time_total_sec) || 0) : Number(v) || 0;
+}
+
+/** Module time block (#40 B, teacher only), whole seconds: solving + checking + left = clock.
+ *  solving = Σ time to answer of the answered questions; checking / review = used − solving; blank = time on blank questions
+ *  (inside checking / review). rows = the module's Responses rows. */
+function moduleTimes_(rows, limitSec, usedSec) {
+  var clock = Math.round(limitSec), used = Math.min(clock, Math.max(0, Math.round(usedSec)));
+  var solve = 0, blank = 0;
+  rows.forEach(function (r) { var ta = taOf_(r); if (ta === null) blank += Number(r.time_total_sec) || 0; else solve += ta; });
+  solve = Math.min(used, Math.round(solve));
+  var check = used - solve;
+  return { clock: clock, used: used, solving: solve, checking: check, left: clock - used, blank: Math.min(check, Math.round(blank)) };
+}
+
+/* ---- SAT Math Lib recommendation (#40 D; skill names + allowed levels in SmlSkills.gs, generated) ---- */
+var SML_LEVEL_ = { E: 'Easy', M: 'Medium', H: 'Hard' };
+/** Difficulty hint for assigning in SML: < 50 % → Easy/Medium, 50–80 % → Medium/Hard, > 80 % → Hard, within the levels SML has. */
+function smlHint_(acc, allowed) {
+  allowed = allowed && allowed.length ? allowed : ['E', 'M', 'H'];
+  var want = acc < 0.5 ? ['E', 'M'] : acc <= 0.8 ? ['M', 'H'] : ['H'];
+  var got = want.filter(function (l) { return allowed.indexOf(l) >= 0; });
+  if (!got.length) got = [want[0] === 'H' ? allowed[allowed.length - 1] : allowed[0]];
+  return got.map(function (l) { return SML_LEVEL_[l]; }).join('/');
+}
+/** The 3 weakest SAT Math skills of an attempt: lowest accuracy first; ties → more slow-wrong + rushed-wrong; skills with < 2
+ *  questions skipped, all-right skills skipped; rare skills (Q.F, Q.G) last. qs = analyse_ questions (only the parts taken). */
+function smlRecs_(qs, sat, S) {
+  var app = S.sml_app_name === undefined ? 'SAT Math Lib' : String(S.sml_app_name || '').trim();
+  if (!sat || !app || typeof SML_SKILLS_ === 'undefined') return null;
+  var by = {};
+  qs.forEach(function (q) { if (SML_SKILLS_[q.topic]) (by[q.topic] = by[q.topic] || []).push(q); });
+  var list = Object.keys(by).map(function (k) {
+    var g = by[k], right = g.filter(function (q) { return isRightP_(q.p); }).length;
+    return { code: k, name: SML_SKILLS_[k].name, n: g.length, right: right, acc: right / g.length, rare: !!SML_SKILLS_[k].rare,
+             slow_wrong: g.filter(function (q) { return q.p === 'SLOW_WRONG'; }).length, rushed_wrong: g.filter(function (q) { return q.p === 'FAST_WRONG'; }).length };
+  }).filter(function (x) { return x.n >= 2 && x.right < x.n; });
+  list.sort(function (a, b) {
+    return (a.rare - b.rare) || (a.acc - b.acc) || ((b.slow_wrong + b.rushed_wrong) - (a.slow_wrong + a.rushed_wrong)) || (b.n - a.n) ||
+           (SAT_SKILL_ORDER_.indexOf(a.code) - SAT_SKILL_ORDER_.indexOf(b.code));
+  });
+  if (!Object.keys(by).length) return null;
+  return { app: app, url: String(S.sml_link || '').trim() || 'https://minhtranlab.github.io/satmath/', n_questions: 10,
+           items: list.slice(0, 3).map(function (x) {
+             x.pct = Math.round(100 * x.acc); x.hint = smlHint_(x.acc, SML_SKILLS_[x.code].allowed); x.allowed = SML_SKILLS_[x.code].allowed.join(','); return x; }) };
+}
+/** "Practise in SAT Math Lib: Nonlinear functions (P.C) — 10 questions" */
+function smlLine_(sml, x) { return 'Practise in ' + sml.app + ': ' + x.name + ' (' + x.code + ') — ' + sml.n_questions + ' questions'; }
+
 function topicCmp_(a, b) {
   var ia = SAT_SKILL_ORDER_.indexOf(String(a)), ib = SAT_SKILL_ORDER_.indexOf(String(b));
   if (ia >= 0 || ib >= 0) return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
@@ -339,11 +402,11 @@ function studentView_(a, profile, asTeacher) {
   var out = {
     ok: true, session_id: a.session_id, form_id: a.form_id, title: a.form, attempt: a.attempt, date: a.date, sat: sat,
     total: { right: a.right, n: a.n, pct: a.pct },
-    parts: a.parts.map(function (p) { return { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; }),
+    parts: a.parts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; if (asTeacher) o.time = p.time; return o; }),
     sections: a.sections.map(function (s) {
       var secParts = a.parts.filter(function (p) { return (sectionsOf_(profile).filter(function (x) { return x.id === s.id; })[0] || { parts: [] }).parts.indexOf(p.part) >= 0; });
       return { id: s.id, title: s.title || SECTION_EN_[s.id] || s.id, right: s.right, n: s.n,
-               modules: secParts.map(function (p) { return { part: p.part, title: p.title, right: p.right, n: p.n }; }) };
+               modules: secParts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n }; if (asTeacher) o.time = p.time; return o; }) };
     }),
     valid: a.valid, reasons: a.reasons, n_sittings: a.n_sittings,
     sittings_note: a.n_sittings > 1 ? studentSittingsNote_(a.n_sittings) : '',
@@ -405,10 +468,17 @@ function studentView_(a, profile, asTeacher) {
     if (!practise.length) tip('Great work. Try a new practice test at the same level.');
   }
   out.practise = practise.slice(0, 4);
+  // SAT Math Lib (#40 D): the 3 weakest Math skills; the teacher also gets the score + the level to start at
+  if (a.sml && a.sml.items.length) {
+    out.sml = { app: a.sml.app, url: a.sml.url, items: a.sml.items.map(function (x) {
+      var o = { code: x.code, name: x.name, n: a.sml.n_questions, line: smlLine_(a.sml, x) };
+      if (asTeacher) { o.right = x.right; o.of = x.n; o.slow_wrong = x.slow_wrong; o.rushed_wrong = x.rushed_wrong; o.hint = x.hint; }
+      return o; }) };
+  }
   // questions for the review grids: by part, right / wrong / blank + badge (no key)
   out.review = a.parts.map(function (p) {
     return { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
-      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); return o;
+      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (asTeacher && q.ta !== null) o.ta_s = Math.round(q.ta); return o;
     }) };
   });
   return out;

@@ -8,7 +8,9 @@
  *     the final answer when possible); first_answer / n_changes / change_pattern are worked out again from those events.
  *  2. Re-grade (M2): Responses.correct follows the CURRENT key (Questions tab over the data file). When it changes, the row's
  *     profile (Right / Wrong …), change_pattern letters and CHANGED_* / ELIM_KEY flags follow, then the attempt's totals in
- *     Sessions. Every change is logged: attempt · qid · old → new. Time columns are never touched.
+ *     Sessions. Every change is logged: attempt · qid · old → new. time_total_sec / time_first_visit_sec are never touched.
+ *  3. Time to final answer (#40): Responses.time_to_answer_sec is worked out again from the attempt's Events (past attempts
+ *     too), and the rushed / slow type + pace_ratio follow it (Time_Norms), so old reports match new ones.
  * Topic_Summary, Student_Report, estimates and the Report tab are rebuilt from these rows by rebuildAll_() right after.
  */
 
@@ -45,10 +47,12 @@ function regradeAll_() {
   var ids = {}; sessions.forEach(function (s) { ids[String(s.session_id)] = s; });
   var resp = readTable_('Responses').rows.filter(function (r) { return ids[String(r.session_id)]; });
   var ev = readTable_('Events');
-  var evBy = {}; // session → qid → [events]
+  var evBy = {}, evAll = {}; // session → qid → [answer events]; session → part → [all events] (#40 time to answer)
   ev.rows.forEach(function (e) {
     var sid = String(e.session_id), t = String(e.type);
-    if (!ids[sid] || (t !== 'select' && t !== 'change')) return;
+    if (!ids[sid]) return;
+    ((evAll[sid] = evAll[sid] || {})[String(e.part)] = evAll[sid][String(e.part)] || []).push(e);
+    if (t !== 'select' && t !== 'change') return;
     ((evBy[sid] = evBy[sid] || {})[String(e.qid)] = evBy[sid][String(e.qid)] || []).push(e);
   });
   var log = [], evFixed = 0, cellsFixed = 0, regraded = 0, retimed = 0, touched = {};
@@ -62,6 +66,13 @@ function regradeAll_() {
     var st = parseState_(s) || {}, ans = {};
     Object.keys(st.parts || {}).forEach(function (p) { var a = (st.parts[p] || {}).ans || {}; Object.keys(a).forEach(function (q) { ans[q] = String(a[q]); }); });
     var hasState = !!st.parts;
+    var ttfa = {}; // qid → ms | null, from the Events of each part (same rule as at submit)
+    Object.keys(evAll[sid] || {}).forEach(function (p) {
+      var pe = evAll[sid][p].map(function (e) { return { part: p, t_ms: Number(e.t_ms) || 0, qid: String(e.qid || ''), type: String(e.type), value: e.value === '' ? null : e.value }; })
+        .sort(function (a, b) { return a.t_ms - b.t_ms; });
+      var d = deriveMetrics_(pe, fd.questions.filter(function (q) { return q.part === p; }).map(function (q) { return q.qid; }));
+      Object.keys(d.metrics).forEach(function (q) { ttfa[q] = d.metrics[q].ttfa_ms; });
+    });
     resp.filter(function (r) { return String(r.session_id) === sid; }).forEach(function (r) {
       var q = qmap[String(r.qid)];
       if (!q) return;
@@ -87,7 +98,10 @@ function regradeAll_() {
       if (String(r.change_pattern) !== pattern) f.change_pattern = pattern;
       // the question's type (rushed / slow / …) from its time and the current Time_Norms (#24 F): recomputed every run
       var tSec = Number(r.time_total_sec) || 0, partDef = (profile.parts.filter(function (p) { return p.part === String(r.part); })[0]) || {};
-      var tp = timeProfile_(!!fin, !!corr, tSec, timeNormFor_(sat, String(r.part), q.type, tags[q.qid]),
+      var ta = fin ? (ttfa[q.qid] === null || ttfa[q.qid] === undefined ? tSec : Math.min(tSec, ttfa[q.qid] / 1000)) : null;
+      var taCell = ta === null ? '' : round_(ta, 1);
+      if (String(r.time_to_answer_sec === undefined ? '' : r.time_to_answer_sec) === '' ? taCell !== '' : (taCell === '' || Math.abs(Number(r.time_to_answer_sec) - taCell) > 0.05)) f.time_to_answer_sec = taCell;
+      var tp = timeProfile_(!!fin, !!corr, ta === null ? tSec : ta, timeNormFor_(sat, String(r.part), q.type, tags[q.qid]),
                             (partDef.time_limit_sec || 0) / Math.max(1, nInPart[String(r.part)] || 1), S);
       if (String(r.profile) !== tp.profile) f.profile = tp.profile;
       if (Math.abs((Number(r.pace_ratio) || 0) - round_(tp.ratio, 2)) > 0.005) f.pace_ratio = round_(tp.ratio, 2);
@@ -111,7 +125,7 @@ function regradeAll_() {
         Object.keys(f).forEach(function (k) { r[k] = f[k] === undefined ? r[k] : String(f[k]).replace(/^'/, ''); });
         r.correct = f.correct !== undefined ? f.correct : r.correct;
         if (f.profile) r.profile = f.profile;
-        var onlyTime = Object.keys(f).every(function (k) { return k === 'profile' || k === 'pace_ratio'; });
+        var onlyTime = Object.keys(f).every(function (k) { return k === 'profile' || k === 'pace_ratio' || k === 'time_to_answer_sec'; });
         if (onlyTime) retimed++; else if (f.correct === undefined) cellsFixed++;
         touched[sid] = true;
       }
@@ -134,7 +148,7 @@ function regradeAll_() {
     if (Object.keys(f).length) { updateRow_('Sessions', s._row, f); totals++; log.push(sid + ' · totals: ' + JSON.stringify(f)); }
   });
   _formCache = {};
-  var msg = 'Re-graded ' + regraded + ' answers (key changes) in ' + totals + ' attempts; repaired ' + cellsFixed + ' answer rows, ' + evFixed + ' event cells; re-timed ' + retimed + ' rows (Time_Norms)';
+  var msg = 'Re-graded ' + regraded + ' answers (key changes) in ' + totals + ' attempts; repaired ' + cellsFixed + ' answer rows, ' + evFixed + ' event cells; re-timed ' + retimed + ' rows (time to answer + Time_Norms)';
   console.log('REGRADE: ' + msg + (log.length ? '\n' + log.join('\n') : ''));
   return msg;
 }

@@ -370,6 +370,23 @@ button.rcell:hover { box-shadow: 0 0 0 2px var(--blue-soft); }
 .sec-t { font-weight: 700; } .sec-est { font-size: 26px; font-weight: 800; margin: 2px 0; }
 .sec-raw { color: var(--ink-2); } .sec-mods { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .pr-app { margin-top: 2px; font-size: 14px; color: var(--ink-2); }
+/* #40 D: SAT Math Lib lines (under "What to practise first") */
+.sml-recs { margin: -4px 0 22px; padding: 10px 14px; border: 1px solid var(--line-2); border-radius: 10px; background: #fafbfc; }
+.sml-line { margin: 4px 0; font-size: 15px; line-height: 1.45; }
+.sml-app { text-decoration: none; } .sml-app mark { padding: 1px 5px; } .sml-app:hover mark { text-decoration: underline; }
+.sml-t { color: var(--muted); font-size: 13.5px; }
+/* #40 B: teacher time block under each module score */
+.mod-time { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #d6d9de; text-align: left; font-size: 13px; }
+.mod-time .mt-h { font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.mod-time dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 1px; }
+.mod-time dl > div { display: flex; justify-content: space-between; gap: 10px; }
+.mod-time dt { color: var(--ink-2); } .mod-time dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; }
+.mod-time .mt-blank dt, .mod-time .mt-blank dd { color: var(--muted); font-weight: 400; }
+.mod-times { display: flex; flex-wrap: wrap; gap: 8px 28px; justify-content: center; margin: -14px 0 22px; }
+.mod-times .mod-time { min-width: 210px; }
+.rgrid.tgrid .rcell { height: 60px; grid-template-rows: 20px 18px 14px; }
+.rgrid.tgrid .rcell .rt { font-size: 10px; line-height: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tgrid-note { font-size: 12.5px; margin: 6px 0 0; }
 mark.app-mode { background: #e8f0fe; color: var(--blue); font-weight: 700; padding: 1px 7px; border-radius: 6px; }
 .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
 .res-types .chips { display: flex; } /* #28 n1: the codes always start on a new line under the text */

@@ -57,7 +57,9 @@ var EXPECTED_HEADERS = {
   Report: null,
   Responses: ['session_id', 'student_code', 'form_id', 'attempt_no', 'qid', 'part', 'display_no', 'unit', 'topic', 'final_answer',
               'correct', 'first_answer', 'n_changes', 'change_pattern', 'eliminated', 'ever_marked', 'final_marked', 'visits',
-              'time_total_sec', 'time_first_visit_sec', 'pace_ratio', 'order_first_seen', 'calc_used', 'profile', 'flags', 'tutor_note'],
+              'time_total_sec', 'time_first_visit_sec', 'pace_ratio', 'order_first_seen', 'calc_used', 'profile', 'flags', 'tutor_note',
+              // #40: time until the final answer was chosen (blank = no answer); rushed / slow / pace use it
+              'time_to_answer_sec'],
   Events: ['session_id', 'part', 't_ms', 'qid', 'type', 'value', 'logged_at'],
   Questions: ['qid', 'form_id', 'part', 'display_no', 'orig_no', 'key', 'unit', 'topic', 'topic_name', 'topic2', 'practice',
               'representation', 'difficulty', 'tag_status',

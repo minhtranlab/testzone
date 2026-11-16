@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.13 (2026-11-12, highlight toolbar)';
+var APP_VERSION = 'v1.14 (2026-11-16, time to answer + SAT Math Lib)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -1100,7 +1100,7 @@ function deriveMetrics_(partEvents, qids) {
   var m = {};
   qids.forEach(function (id) {
     m[id] = { visits: 0, time_ms: 0, first_visit_ms: null, order: null, answers: [], calc: false, ever_marked: false,
-              last_answer_t: null, eliminated_ever: {} };
+              last_answer_t: null, eliminated_ever: {}, segs: [], aev: [] };
   });
   var openQ = null, openT = 0, visitIdx = {}, order = 0, calcOpen = false, lastT = 0, partEndT = null;
   var resumeQ = null; // question that was on screen when the page went away (reload / crash / pagehide)
@@ -1108,6 +1108,7 @@ function deriveMetrics_(partEvents, qids) {
     if (openQ && m[openQ]) {
       var d = Math.max(0, t - openT);
       m[openQ].time_ms += d;
+      m[openQ].segs.push({ v: visitIdx[openQ] || 0, t0: openT, t1: Math.max(openT, t) }); // #40: time to final answer
       if (visitIdx[openQ] === 1) m[openQ].first_visit_ms = (m[openQ].first_visit_ms || 0) + d; // first visit may span a reload
     }
     openQ = null;
@@ -1141,10 +1142,10 @@ function deriveMetrics_(partEvents, qids) {
         if (e.type === 'part_end') partEndT = t;
         break;
       case 'select': case 'change':
-        if (m[q]) { m[q].answers.push(String(e.value)); m[q].last_answer_t = t; }
+        if (m[q]) { m[q].answers.push(String(e.value)); m[q].last_answer_t = t; m[q].aev.push({ t: t, v: visitIdx[q] || 0, val: ansVal_(e.value) }); }
         break;
       case 'clear':
-        if (m[q]) m[q].last_answer_t = t;
+        if (m[q]) { m[q].last_answer_t = t; m[q].aev.push({ t: t, v: visitIdx[q] || 0, val: '' }); }
         break;
       case 'mark':
         if (m[q]) m[q].ever_marked = true;
@@ -1163,7 +1164,37 @@ function deriveMetrics_(partEvents, qids) {
     if (e.type !== 'resume') lastT = Math.max(lastT, t);
   });
   close(lastT);
+  qids.forEach(function (id) { m[id].ttfa_ms = timeToAnswerMs_(m[id].segs, m[id].aev); });
   return { metrics: m, part_end_t: partEndT === null ? lastT : partEndT };
+}
+
+function ansVal_(v) {
+  if (v === null || v === undefined || v === 'null') return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') return 'd' + v.getTime(); // legacy cell: only compared for "changed"
+  return String(v);
+}
+
+/**
+ * Time to final answer (#40 A), ms; null = no answer event (caller falls back to the total time) or the last change cleared it.
+ * Counted: every visit before the first answer; the visit of the first answer; a later visit only if it changed the answer;
+ * in the visit of the final change, only up to that change. Not counted: time after the final answer, later visits that did
+ * not change the answer, the Review page (it closes the visit). segs = [{v: visit no, t0, t1}], aev = [{t, v, val}] in order.
+ */
+function timeToAnswerMs_(segs, aev) {
+  var prev = '', ch = [];
+  (aev || []).forEach(function (a) { if (a.val !== prev) { ch.push(a); prev = a.val; } });
+  if (!ch.length) return null;
+  var last = ch[ch.length - 1];
+  if (last.val === '') return null;
+  var vFirst = ch[0].v, vLast = last.v, changed = {};
+  ch.forEach(function (a) { changed[a.v] = true; });
+  var total = 0;
+  (segs || []).forEach(function (sg) {
+    if (sg.v > vLast || (sg.v > vFirst && !changed[sg.v])) return;
+    var t1 = sg.v === vLast ? Math.min(sg.t1, last.t) : sg.t1;
+    total += Math.max(0, t1 - sg.t0);
+  });
+  return total;
 }
 
 function gradeSession_(session, state, events) {
@@ -1201,8 +1232,10 @@ function gradeSession_(session, state, events) {
       if (first && !fin) pattern = 'cleared';
       else if (first && fin && first !== fin) pattern = (firstCorr ? 'R' : 'W') + '→' + (corr ? 'R' : 'W');
       var timeSec = mm.time_ms / 1000;
+      // time to final answer (#40 A): what rushed / slow / pace use (#40 C); blank → '' (its time stays in time_total_sec)
+      var taSec = fin ? (mm.ttfa_ms === null ? timeSec : Math.min(timeSec, mm.ttfa_ms / 1000)) : null;
       // rushed / slow from the time norm of this question type + difficulty (Time_Norms tab, #24 F)
-      var tp = timeProfile_(!!fin, !!corr, timeSec, timeNormFor_(isSat_(profile), partId, q.type, tags[q.qid]), pace, S);
+      var tp = timeProfile_(!!fin, !!corr, taSec === null ? timeSec : taSec, timeNormFor_(isSat_(profile), partId, q.type, tags[q.qid]), pace, S);
       var ratio = tp.ratio, profileName = tp.profile;
       var elim = ((ps.elim && ps.elim[q.qid]) || []).slice().sort();
       var flags = [];
@@ -1222,7 +1255,7 @@ function gradeSession_(session, state, events) {
         final_marked: !!(ps.mark && ps.mark[q.qid]), visits: mm.visits, time_total_sec: round_(timeSec, 1),
         time_first_visit_sec: mm.first_visit_ms === null ? 0 : round_(mm.first_visit_ms / 1000, 1),
         pace_ratio: round_(ratio, 2), order_first_seen: mm.order === null ? '' : mm.order, calc_used: !!mm.calc,
-        profile: profileName, flags: flags.join(','), tutor_note: '',
+        profile: profileName, flags: flags.join(','), tutor_note: '', time_to_answer_sec: taSec === null ? '' : round_(taSec, 1),
         _topic_name: tg.topic_name, _limit_ms: limitMs, _last_t: mm.last_answer_t
       });
     });
@@ -1401,7 +1434,9 @@ function teacherResult(code, sessionId) {
 }
 function teacherReview(code, sessionId) {
   var s = teacherSession_(code, sessionId);
-  var r = reviewData_(s, responsesOf_(sessionId));
+  var rows = responsesOf_(sessionId), r = reviewData_(s, rows), ta = {};
+  rows.forEach(function (x) { var t = taOf_(x); if (t !== null) ta[String(x.qid)] = Math.round(t); });
+  r.questions.forEach(function (q) { if (q.qid in ta) q.ta_s = ta[q.qid]; }); // #40: time to answer, teacher only
   var st = findStudent_(s.student_code); r.student = st ? String(st.name || '') : String(s.student_code);
   return r;
 }

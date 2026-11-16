@@ -214,6 +214,14 @@ function renderReport_(sh, sessionId) {
     para('Modules: ' + a.parts.map(function (p) { return p.part + ' ' + p.right + '/' + p.n; }).join(' · ') + ' · Time ' +
          a.sections.map(function (x) { return x.id + ' ' + x.used + '/' + x.limit + ' min'; }).join(', '), { color: '#424242' });
   } else para('Score ' + a.right + '/' + a.n + ' (' + a.pct + '%) · ' + partsTxt + ' · Time ' + a.used + '/' + a.limit + ' min', { bold: true, size: 11 });
+  // 1b. time per module (#40 B): solving + checking / review + left = the module clock
+  if (a.parts.some(function (p) { return p.time; })) {
+    heading('Time per module');
+    para('Solving time = time until each final answer was chosen, added up · Checking / review = time used − solving time · Time on blank questions is part of checking / review.', { color: '#616161', size: 9 });
+    add([a.sat ? 'Module (clock)' : 'Part (clock)', 'Solving time', 'Checking / review', 'Time left at submit', 'On blank questions'], { bold: true, bottom: true });
+    a.parts.forEach(function (p) { var t = p.time; if (!t) return;
+      add([partLbl_(p.part, a.sat) + ' (' + clk_(t.clock) + ')', clk_(t.solving), clk_(t.checking), clk_(t.left), clk_(t.blank)], { line: true, boldCols: [0] }); });
+  }
   // 2. validity
   gap();
   if (a.valid) para('Reliable attempt: nearly the full time used, few rushed answers. The result can be used.', { color: RPT_COLOR.good, bold: true });
@@ -224,6 +232,16 @@ function renderReport_(sh, sessionId) {
   // 4. actions
   heading('Next steps');
   a.actions.forEach(function (x, i) { para((i + 1) + '. ' + stripTags_(x)); });
+  // 4b. SAT Math Lib (#40 D): the 3 weakest Math skills + the level to assign
+  if (a.sml && a.sml.items.length) {
+    heading('Practise in ' + a.sml.app);
+    para('The 3 weakest Math skills of this attempt (lowest share right; skills with fewer than 2 questions left out). Assign them in ' + a.sml.app + ' (' + a.sml.url + '), ' + a.sml.n_questions + ' questions each, at the level shown.', { color: '#616161', size: 9 });
+    a.sml.items.forEach(function (x, i) {
+      var why = [x.right + '/' + x.n + ' right (' + x.pct + '%)'];
+      if (x.slow_wrong) why.push(x.slow_wrong + ' slow and wrong'); if (x.rushed_wrong) why.push(x.rushed_wrong + ' rushed and wrong');
+      para((i + 1) + '. ' + smlLine_(a.sml, x) + ' · ' + why.join(', ') + ' · assign ' + x.hint, { wrap: true });
+    });
+  }
 
   var groups = [];
   if (a.valid) {
@@ -266,7 +284,7 @@ function renderReport_(sh, sessionId) {
   // 7. time per question (chart)
   heading('Time per question');
   para(CHART_LEGEND_, { size: 9, bold: true, wrap: true });
-  para('One bar per question (minutes). Standard time: ' + paceTxt + '. A bar far above the line = slow; a very short red bar = rushed.', { color: '#616161', size: 9 });
+  para('One bar per question: time to answer in minutes (blank: the time on it). Standard time: ' + paceTxt + '. A bar far above the line = slow; a very short red bar = rushed.', { color: '#616161', size: 9 });
   var chartRow = add([], {});
   for (var i = 0; i < 15; i++) add([], {});
 
@@ -275,9 +293,9 @@ function renderReport_(sh, sessionId) {
     heading('Wrong and blank answers (' + a.wrong.length + ')');
     if (!a.wrong.length) para('No wrong or blank answers.');
     else {
-      add(['Question', a.sat ? 'Skill' : 'Topic', 'Type', 'Time', 'Note'], { bold: true, bottom: true });
+      add(['Question', a.sat ? 'Skill' : 'Topic', 'Type', 'Time to answer', 'Note'], { bold: true, bottom: true });
       a.wrong.forEach(function (q) {
-        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? '–' : fmtSec_(q.s), q.note], { wrap: true, line: true });
+        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? '– (' + fmtSec_(q.s) + ' on it)' : fmtSec_(q.ta === null ? q.s : q.ta), q.note], { wrap: true, line: true });
       });
     }
   }
@@ -335,7 +353,7 @@ function renderReport_(sh, sessionId) {
   // ---- chart: data block J..O (grouped + collapsed), stacked columns by result + line = standard time
   var data = [['Question', 'Right', 'Right but slow', 'Wrong', 'Blank', 'Standard time']];
   a.qs.forEach(function (q) {
-    var m = Math.round(q.s / 60 * 100) / 100;
+    var m = Math.round((q.ta === null || q.ta === undefined ? q.s : q.ta) / 60 * 100) / 100; // #40: time to answer
     var kind = q.p === 'RIGHT' ? 1 : q.p === 'SLOW_RIGHT' ? 2 : q.p === 'BLANK' ? 4 : 3;
     var row = [a.sat ? q.part + '-' + q.no : q.part + q.no, null, null, null, null, Math.round(q.pace / 60 * 100) / 100];
     row[kind] = m;
@@ -379,4 +397,5 @@ function asText_(v) {
   return /^[0-9][0-9.,\/:\- ]*$/.test(v) ? "'" + v : v;
 }
 
+function clk_(s) { s = Math.max(0, Math.round(s || 0)); return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2); }
 function fmtSec_(s) { s = Math.round(s); var m = Math.floor(s / 60), r = s % 60; return m ? m + ':' + ('0' + r).slice(-2) : r + ' s'; }
