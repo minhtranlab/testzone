@@ -539,4 +539,23 @@ mark.app-mode { background: #e8f0fe; color: var(--blue); font-weight: 700; paddi
 .chip-f { border: 1px solid var(--line-2); background: #fff; border-radius: 999px; padding: 5px 14px; font: inherit; font-weight: 600; cursor: pointer; }
 .chip-f.on { background: var(--ink); color: #fff; border-color: var(--ink); }
 #view-bar .cm { white-space: nowrap; } #view-bar .cm .bdg svg { vertical-align: -3px; }
+/* #44 part 2: integrity */
+.ig-note { margin: 4px 0 18px; padding: 8px 12px; border-radius: 8px; background: var(--bg-2); color: var(--ink-2); font-size: 14.5px; text-align: center; }
+body.ig-guard #qwrap, body.ig-guard .passage { -webkit-user-drag: none; -webkit-touch-callout: none; }
+#tool-fs.active { color: var(--blue); }
+.mt-ig { margin-top: 8px; padding-top: 6px; border-top: 1px dashed #d6d9de; font-size: 12.5px; }
+.ig-left { font-weight: 600; color: var(--ink-2); } .ig-left.some { color: #9a3412; } .ig-other { margin-top: 1px; }
+.ig-flag { margin-top: 3px; color: #b45309; font-weight: 600; }
+.rgrid.tgrid .rcell { position: relative; }
+.rgrid.tgrid .rcell .rl { position: absolute; top: -6px; right: -6px; font-size: 11px; line-height: 15px; min-width: 15px; height: 15px; border-radius: 8px; background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
+.rgrid.tgrid .rcell .rl.fl { background: #fef3c7; color: #b45309; border-color: #f59e0b; }
+.tgrid-left { font-size: 13px; margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--ink-2); }
+.tgrid-left .lq.fl { color: #b45309; font-weight: 600; }
+.rv-left { color: #9a3412; font-size: 13px; white-space: nowrap; } .rv-left.fl { color: #b45309; font-weight: 700; }
+.cg .rv-left { font-size: 12px; }
+.cls-ig { font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+/* #44 part 3: one practice line under each skill tip / weak skill; the [skill] chip is the link */
+a.pr-link { text-decoration: none; } a.pr-link:hover mark { text-decoration: underline; } a.pr-link mark.app-mode { cursor: pointer; }
+.skill li { flex-wrap: wrap; } .skill li .it-pr { flex-basis: 100%; } .it-pr .pr-app { margin: 2px 0 4px; font-size: 13.5px; }
+.rv-skill { font-weight: 400; color: var(--ink-2); }
 </style>

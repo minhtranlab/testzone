@@ -127,14 +127,15 @@ function analyse_(session, rows, S, studentName) {
   var tags = tagMap_(formId);
   var names = topicNames_(formId);
   // parts actually taken, in profile order
-  var parts = [];
+  var parts = [], igc = integrityCell_(session); // #44 part 2 (null = no data)
   profile.parts.forEach(function (p) {
     var pr = rows.filter(function (r) { return String(r.part) === p.part; });
     if (!pr.length) return;
     parts.push({ part: p.part, title: p.title, calculator: !!p.calculator, n: pr.length, limit_min: Math.round(p.time_limit_sec / 60),
                  pace: p.time_limit_sec / pr.length, used_min: partUsedMin_(session, p.part, p.time_limit_sec),
                  right: pr.filter(function (r) { return Number(r.correct) === 1; }).length,
-                 time: moduleTimes_(pr, p.time_limit_sec, partUsedSec_(session, p.part, p.time_limit_sec)) }); // #40 B
+                 time: moduleTimes_(pr, p.time_limit_sec, partUsedSec_(session, p.part, p.time_limit_sec)), // #40 B
+                 ig: igc && igc[p.part] ? igc[p.part] : null });
   });
   var partOrder = parts.map(function (p) { return p.part; });
   var qs = rows.map(function (r) {
@@ -145,7 +146,8 @@ function analyse_(session, rows, S, studentName) {
     return { qid: String(r.qid), part: String(r.part), no: Number(r.display_no), unit: String(tg.unit || r.unit || '?'), topic: topic,
              name: names[topic] || tg.topic_name || '', p: String(r.profile), s: Number(r.time_total_sec) || 0, ta: taOf_(r), pace: nm ? nm.target : pp.pace,
              flags: String(r.flags || ''), pattern: String(r.change_pattern || ''), diff: String(tg.difficulty || ''),
-             answer: r.final_answer === undefined ? '' : String(r.final_answer) };
+             answer: r.final_answer === undefined ? '' : String(r.final_answer),
+             left: r.left_sec === undefined || r.left_sec === null || r.left_sec === '' ? null : Number(r.left_sec) || 0, left_flag: /LEFT_THEN_RIGHT/.test(String(r.flags || '')) };
   }).sort(function (a, b) { return (partOrder.indexOf(a.part) - partOrder.indexOf(b.part)) || (a.no - b.no); });
   var n = qs.length;
   var right = qs.filter(function (q) { return isRightP_(q.p); }).length;
@@ -254,7 +256,7 @@ function analyse_(session, rows, S, studentName) {
     n: n, right: right, pct: n ? Math.round(100 * right / n) : 0, parts: parts, used: v.used, limit: v.limit,
     valid: v.reliable, reasons: v.reasons, summary: summary, actions: actions, units: units, counts: counts, r2w: r2w, elimKey: elimKey,
     sml: v.reliable ? smlRecs_(qs, sat, S) : null, // #40 D
-    qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, ta: q.ta, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer }; }),
+    qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, ta: q.ta, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer, left: q.left, left_flag: q.left_flag }; }),
     wrong: wrongList, std_text: stdText, timing: timing, types: types,
     sat: sat, sections: sections, paces: paces, estimate: estimate, estimate_text: estimate ? satEstimateText_(estimate) : '',
     score_line: sat ? sections.map(function (x) { return x.id + ' ' + x.right + '/' + x.n; }).join(' · ') + (sections.length > 1 ? ' · total ' + right + '/' + n : '') : '' // #32 t3
@@ -359,6 +361,14 @@ function smlRecs_(qs, sat, S) {
            items: list.slice(0, 3).map(function (x) {
              x.pct = Math.round(100 * x.acc); x.hint = smlHint_(x.acc, SML_SKILLS_[x.code].allowed); x.allowed = SML_SKILLS_[x.code].allowed.join(','); return x; }) };
 }
+/** Teacher block of one part (#44 part 2): "Left the test: …" + copy / right-click + the questions left on (⚠ = then right). */
+function igView_(a, p) {
+  var codeOf = function (qid) { var q = a.qs.filter(function (x) { return x.qid === qid; })[0]; return q ? qCode_(q.part, q.no, a.sat) : ''; };
+  var t = integrityText_(p.ig, codeOf);
+  t.data = !!p.ig;
+  t.qs = a.qs.filter(function (q) { return q.part === p.part && q.left; }).map(function (q) { return { code: qCode_(q.part, q.no, a.sat), qid: q.qid, left: Math.round(q.left), flag: !!q.left_flag }; });
+  return t;
+}
 /** "Practise in SAT Math Lib: Nonlinear functions (P.C) — 10 questions" */
 function smlLine_(sml, x) { return 'Practise in ' + sml.app + ': ' + x.name + ' (' + x.code + ') — ' + sml.n_questions + ' questions'; }
 
@@ -395,18 +405,59 @@ function practiceMode_(S, sat, skillCode) {
   return String(S['practice_mode ' + skillCode] || '').trim();
 }
 
+/**
+ * The practice line of one SAT skill (#44 part 3): RW → [mode] in SAT Vocab Practice; Math → [skill name] in SAT Math Lib
+ * — 10 questions. The [chip] is the link (new tab): practice_skill_link / sml_skill_link with {mode} / {code} when filled,
+ * else the app home. stat = {k, t} of the skill in this attempt; teacher → "k/t right" (+ Math: the level to assign).
+ * null = no line (AP, a RW skill without a mode, Math with SAT Math Lib off).
+ */
+function practiceFor_(S, sat, code, stat, asTeacher) {
+  if (!sat || !code) return null;
+  var fill = function (pat, v) { return String(pat || '').trim().replace(/\{(mode|code|skill)\}/g, function (m, k) { return encodeURIComponent(v[k] || ''); }); };
+  var mode = practiceMode_(S, sat, code), o = null;
+  if (mode) {
+    o = { chip: mode, app: String(S.practice_app_name || '').trim() || 'SAT Vocab Practice', section: 'RW',
+          url: fill(S.practice_skill_link, { mode: mode, code: code }) || String(S.practice_link || '').trim() };
+  } else if (typeof SML_SKILLS_ !== 'undefined' && SML_SKILLS_[code]) {
+    var app = S.sml_app_name === undefined ? 'SAT Math Lib' : String(S.sml_app_name || '').trim();
+    if (!app) return null;
+    o = { chip: SML_SKILLS_[code].name, app: app, section: 'Math', n: 10,
+          url: fill(S.sml_skill_link, { code: code, skill: SML_SKILLS_[code].name }) || String(S.sml_link || '').trim() || 'https://minhtranlab.github.io/satmath/' };
+  }
+  if (!o) return null;
+  if (asTeacher && stat && stat.t) {
+    o.right = stat.k; o.of = stat.t;
+    if (o.section === 'Math') o.hint = smlHint_(stat.k / stat.t, SML_SKILLS_[code].allowed);
+  }
+  o.text = practiceText_(o, asTeacher);
+  return o;
+}
+/** "Practise: Vocabulary in SAT Vocab Practice" · "Practise: Circles in SAT Math Lib — 10 questions" · teacher: "… — 1/3 right · assign Medium" */
+function practiceText_(o, asTeacher) {
+  var t = 'Practise: ' + o.chip + ' in ' + o.app;
+  if (asTeacher && o.of) return t + ' — ' + o.right + '/' + o.of + ' right' + (o.hint ? ' · assign ' + o.hint : '');
+  return t + (o.n ? ' — ' + o.n + ' questions' : '');
+}
+/** skill code → {k, t} of this attempt */
+function skillStats_(a) {
+  var m = {};
+  a.units.forEach(function (U) { U.topics.forEach(function (T) { m[T.code] = { k: T.k, t: T.t }; }); });
+  return m;
+}
+
 /** The result page of one attempt (student app; teacher mode adds teacherNotes). Never a key; no method text for students. */
 function studentView_(a, profile, asTeacher) {
   var sat = a.sat, S = getSettings_();
-  var appName = String(S.practice_app_name || '').trim() || 'SAT practice app';
+  var appName = String(S.practice_app_name || '').trim() || 'SAT Vocab Practice';
+  var stats = skillStats_(a);
   var out = {
     ok: true, session_id: a.session_id, form_id: a.form_id, title: a.form, attempt: a.attempt, date: a.date, sat: sat,
     total: { right: a.right, n: a.n, pct: a.pct },
-    parts: a.parts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; if (asTeacher) o.time = p.time; return o; }),
+    parts: a.parts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n, used_min: round_(p.used_min, 1), limit_min: p.limit_min }; if (asTeacher) { o.time = p.time; o.ig = igView_(a, p); } return o; }),
     sections: a.sections.map(function (s) {
       var secParts = a.parts.filter(function (p) { return (sectionsOf_(profile).filter(function (x) { return x.id === s.id; })[0] || { parts: [] }).parts.indexOf(p.part) >= 0; });
       return { id: s.id, title: s.title || SECTION_EN_[s.id] || s.id, right: s.right, n: s.n,
-               modules: secParts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n }; if (asTeacher) o.time = p.time; return o; }) };
+               modules: secParts.map(function (p) { var o = { part: p.part, title: p.title, right: p.right, n: p.n }; if (asTeacher) { o.time = p.time; o.ig = igView_(a, p); } return o; }) };
     }),
     valid: a.valid, reasons: a.reasons, n_sittings: a.n_sittings,
     sittings_note: a.n_sittings > 1 ? studentSittingsNote_(a.n_sittings) : '',
@@ -428,9 +479,12 @@ function studentView_(a, profile, asTeacher) {
       return { name: sat ? U.name : 'Unit ' + U.u + ' · ' + U.name, right: U.k, n: U.t,
                items: U.topics.map(function (T) {
                  var tq = byTopic[U.u + '|' + T.code] || [];
-                 return { name: sat ? T.name : T.code + ' ' + T.name, right: T.k, n: T.t,
+                 var it = { name: sat ? T.name : T.code + ' ' + T.name, right: T.k, n: T.t,
                           missed: tq.filter(function (q) { return !isRightP_(q.p); }).map(function (q) { return qRef_(q, sat); }),
                           slow: tq.filter(function (q) { return q.p === 'SLOW_RIGHT'; }).map(function (q) { return qRef_(q, sat); }) };
+                 // #44 part 3, teacher: the practice line under each weak skill (not all right), with the level for SAT Math Lib
+                 if (asTeacher && a.valid && T.k < T.t) { var pr = practiceFor_(S, sat, T.code, { k: T.k, t: T.t }, true); if (pr) it.practice = pr; }
+                 return it;
                }) };
     }) };
   });
@@ -442,7 +496,8 @@ function studentView_(a, profile, asTeacher) {
   });
   // what to practise first (≤ 4 short tips; SAT verbal skills point to the practice app mode, #24 C)
   var practise = [];
-  var tip = function (text, skill) { var m = practiceMode_(S, sat, skill); var o = { text: text }; if (m) { o.mode = m; o.app = appName; } practise.push(o); };
+  // #44 part 3: a tip that names a skill gets that skill's practice line right under it (RW → the vocab app, Math → SAT Math Lib)
+  var tip = function (text, skill) { var o = { text: text }, pr = skill ? practiceFor_(S, sat, skill, stats[skill], asTeacher) : null; if (pr) o.practice = pr; practise.push(o); };
   if (!a.valid) {
     tip('Take the test again in real test conditions: the full time, in one go, answering every question.');
   } else {
@@ -468,17 +523,13 @@ function studentView_(a, profile, asTeacher) {
     if (!practise.length) tip('Great work. Try a new practice test at the same level.');
   }
   out.practise = practise.slice(0, 4);
-  // SAT Math Lib (#40 D): the 3 weakest Math skills; the teacher also gets the score + the level to start at
-  if (a.sml && a.sml.items.length) {
-    out.sml = { app: a.sml.app, url: a.sml.url, items: a.sml.items.map(function (x) {
-      var o = { code: x.code, name: x.name, n: a.sml.n_questions, line: smlLine_(a.sml, x) };
-      if (asTeacher) { o.right = x.right; o.of = x.n; o.slow_wrong = x.slow_wrong; o.rushed_wrong = x.rushed_wrong; o.hint = x.hint; }
-      return o; }) };
-  }
+  // (#40's separate SAT Math Lib box is gone since #44: one practice line under each skill tip / weak skill instead)
   // questions for the review grids: by part, right / wrong / blank + badge (no key)
   out.review = a.parts.map(function (p) {
     return { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
-      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (asTeacher && q.ta !== null) o.ta_s = Math.round(q.ta); return o;
+      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (asTeacher && q.ta !== null) o.ta_s = Math.round(q.ta);
+      if (asTeacher && q.left) o.left_s = Math.round(q.left); if (asTeacher && q.left_flag) o.left_flag = true; // #44
+      return o;
     }) };
   });
   return out;

@@ -12,6 +12,9 @@ run node qa21_test.js                           # #21: Report pick without Drive
 run node copies_test.js                         # #21 N1: two windows of one attempt (QA case)
 run node qa44c_test.js                          # #44 v1.15 part 1: classes (Sheet + teacher page, mirror, class assignment, go-over order, grid = Responses, archive)
 run node cls_test.js                            # #44 v1.15 part 1: classes in the browser (teacher tabs, new class, class screen, grid filters, question with every answer)
+run node qa44i_test.js                          # #44 v1.15 part 2: integrity on the server (leave merge, < 2 s, open leave, ⚠ rule, teacher strings, — for old attempts)
+run node ig_test.js                             # #44 v1.15 part 2: integrity in the browser (blocked menu / copy, highlight + Desmos + grid-in still work, leaves, break, submit)
+run node pr_test.js                             # #44 v1.15 part 3: one practice line under each skill tip (chip = link), teacher weak skills, skill on the question bar
 run node qa40_test.js                           # #40 v1.14: time to final answer, module times, R/S from it (+ re-grade), SAT Math Lib recs
 run node t40_test.js                            # #40 v1.14: teacher time block + time to answer, student SAT Math Lib lines (desktop + phone)
 run node hl_test.js                             # #36 v1.13: highlight toolbar at the selection (colours, underline, note, delete, reload, review)

@@ -89,15 +89,15 @@ console.log('[C what to practise first: short tips + practice-app mode (Settings
 const tips = res.practise;
 check(tips.length >= 1 && tips.every(x => typeof x.text === 'string' && !/\bQ\d|V\d-\d\d|M\d-\d\d/.test(x.text)), 'tips: short text, no question list (' + tips.map(x => x.text).join(' | ') + ')');
 const wtip = tips.find(x => /Boundaries/.test(x.text));
-check(wtip && /^Quick win: Boundaries — you missed 3 easier questions\.$/.test(wtip.text) && wtip.mode === 'Grammar' && wtip.app === 'SAT practice app', 'Quick win: Boundaries — you missed 3 easier questions. → Practise: Grammar in the SAT practice app');
+check(wtip && /^Quick win: Boundaries — you missed 3 easier questions\.$/.test(wtip.text) && wtip.practice && wtip.practice.chip === 'Grammar' && wtip.practice.app === 'SAT Vocab Practice' && wtip.practice.url === 'https://minhtranlab.github.io/sat-vocab/', 'Quick win: Boundaries — you missed 3 easier questions. → Practise: [Grammar] in SAT Vocab Practice (#44: chip = link)');
 const ntip = tips.find(x => /^Needs work: Rhetorical Synthesis/.test(x.text));
-check(ntip && ntip.mode === 'Rhetorical Synthesis', 'Needs work: Rhetorical Synthesis — 0 of 6 right. → Practise: Rhetorical Synthesis');
+check(ntip && ntip.practice && ntip.practice.chip === 'Rhetorical Synthesis', 'Needs work: Rhetorical Synthesis — 0 of 6 right. → Practise: Rhetorical Synthesis');
 const set = G.table('Settings');
-check(set.find(s => s.key === 'practice_mode EOI.TRA').value === 'Transition' && set.find(s => s.key === 'practice_mode SEC.BOU').value === 'Grammar' && set.find(s => s.key === 'practice_app_name').value === 'SAT practice app', 'Settings rows: mapping (11 verbal skills) + app name');
+check(set.find(s => s.key === 'practice_mode EOI.TRA').value === 'Transition' && set.find(s => s.key === 'practice_mode SEC.BOU').value === 'Grammar' && set.find(s => s.key === 'practice_app_name').value === 'SAT Vocab Practice', 'Settings rows: mapping (11 verbal skills) + app name (SAT Vocab Practice since #44)');
 const hS = G.sheets.Settings.rows[0], rowS = k => G.sheets.Settings.rows.find(r => r[hS.indexOf('key')] === k);
 rowS('practice_app_name')[hS.indexOf('value')] = 'Minh SAT Drills'; rowS('practice_mode SEC.BOU')[hS.indexOf('value')] = 'Punctuation';
 const res2 = G.call('getResult', ['T03', sid]), w2 = res2.practise.find(x => /Boundaries/.test(x.text));
-check(w2.mode === 'Punctuation' && w2.app === 'Minh SAT Drills', 'Minh edits Settings → the tip follows (Punctuation in the Minh SAT Drills)');
+check(w2.practice.chip === 'Punctuation' && w2.practice.app === 'Minh SAT Drills', 'Minh edits Settings → the tip follows (Punctuation in the Minh SAT Drills)');
 check(G.ctx.practiceMode_(G.ctx.getSettings_(), true, 'P.A') === '' && G.ctx.practiceMode_(G.ctx.getSettings_(), false, 'SEC.BOU') === '', 'Math skills and AP: no app line');
 
 console.log('[F Minh edits Time_Norms → re-grade re-times]');

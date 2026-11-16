@@ -117,7 +117,8 @@ function regradeAll_() {
       if (pattern === 'W→R') flags.push('CHANGED_W_TO_R');
       var elim = String(r.eliminated || '').split(',').filter(String);
       if ((q.type || 'mcq') === 'mcq' && elim.some(function (l) { return keys.indexOf(l) >= 0; })) flags.push('ELIM_KEY');
-      var order = ['CHANGED_R_TO_W', 'CHANGED_W_TO_R', 'GUESS_LIKELY', 'ELIM_KEY'];
+      if (newCorr !== 1) flags = flags.filter(function (x) { return x !== 'LEFT_THEN_RIGHT'; }); // #44: only for a right answer
+      var order = ['CHANGED_R_TO_W', 'CHANGED_W_TO_R', 'GUESS_LIKELY', 'ELIM_KEY', 'LEFT_THEN_RIGHT'];
       flags.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
       if (flags.join(',') !== String(r.flags || '')) f.flags = flags.join(',');
       if (Object.keys(f).length) {

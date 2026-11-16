@@ -223,6 +223,16 @@ function renderReport_(sh, sessionId) {
     a.parts.forEach(function (p) { var t = p.time; if (!t) return;
       add([partLbl_(p.part, a.sat) + ' (' + clk_(t.clock) + ')', clk_(t.solving), clk_(t.checking), clk_(t.left), clk_(t.blank)], { line: true, boldCols: [0] }); });
   }
+  // 1c. test window (#44 part 2): leaving the test window, copy / right-click; "—" = no data (before v1.15)
+  heading('Test window');
+  para('Leaving the test window (tab hidden or another window for ≥ 2 s during a module), copy and right-click attempts. Signs, not proof. — = no data (attempt from before v1.15).', { color: '#616161', size: 9 });
+  add([a.sat ? 'Module' : 'Part', 'Left the test', 'Questions', 'Copy / right-click', '⚠ left ≥ 20 s, then right'], { bold: true, bottom: true });
+  a.parts.forEach(function (p) {
+    var g = igView_(a, p), x = p.ig;
+    var fl = g.qs.filter(function (q) { return q.flag; }).map(function (q) { return q.code; });
+    add([partLbl_(p.part, a.sat), x ? (x.n ? x.n + '× · ' + durText_(x.sec) : 'never') : '—', g.qs.length ? g.qs.map(function (q) { return q.code + ' (' + clk_(q.left) + ')'; }).join(', ') : (x ? '' : '—'),
+         x ? x.copy + ' / ' + x.ctx + (x.fs ? ' · left full screen ' + x.fs + '×' : '') : '—', fl.join(', ')], { line: true, boldCols: [0], wrap: true });
+  });
   // 2. validity
   gap();
   if (a.valid) para('Reliable attempt: nearly the full time used, few rushed answers. The result can be used.', { color: RPT_COLOR.good, bold: true });
@@ -233,16 +243,7 @@ function renderReport_(sh, sessionId) {
   // 4. actions
   heading('Next steps');
   a.actions.forEach(function (x, i) { para((i + 1) + '. ' + stripTags_(x)); });
-  // 4b. SAT Math Lib (#40 D): the 3 weakest Math skills + the level to assign
-  if (a.sml && a.sml.items.length) {
-    heading('Practise in ' + a.sml.app);
-    para('The 3 weakest Math skills of this attempt (lowest share right; skills with fewer than 2 questions left out). Assign them in ' + a.sml.app + ' (' + a.sml.url + '), ' + a.sml.n_questions + ' questions each, at the level shown.', { color: '#616161', size: 9 });
-    a.sml.items.forEach(function (x, i) {
-      var why = [x.right + '/' + x.n + ' right (' + x.pct + '%)'];
-      if (x.slow_wrong) why.push(x.slow_wrong + ' slow and wrong'); if (x.rushed_wrong) why.push(x.rushed_wrong + ' rushed and wrong');
-      para((i + 1) + '. ' + smlLine_(a.sml, x) + ' · ' + why.join(', ') + ' · assign ' + x.hint, { wrap: true });
-    });
-  }
+  // (#40's separate SAT Math Lib list is gone since #44: the practice line sits next to each weak skill below)
 
   var groups = [];
   if (a.valid) {
@@ -256,6 +257,7 @@ function renderReport_(sh, sessionId) {
       para('One row per AP Calc unit; press + / − on the left to open / close its topics. "Too few to judge" = the form has only one question in that unit.', { color: '#616161', size: 9 });
       add(['Unit', 'Name', 'Right', 'Share', 'Verdict'], { bold: true, bottom: true });
     }
+    var PS = getSettings_();
     a.units.forEach(function (U) {
       var color = { 'c-bad': RPT_COLOR.bad, 'c-warn': RPT_COLOR.warn, 'c-good': RPT_COLOR.good, 'c-none': RPT_COLOR.none }[U.cls];
       add([a.sat ? (SAT_DOMAIN_SECTION_[U.u] || '') : 'Unit ' + U.u, U.name, U.k + '/' + U.t,
@@ -263,7 +265,9 @@ function renderReport_(sh, sessionId) {
           { boldCols: [0, 1], colorCol: { 4: color }, boldColsColor: true, line: true });
       var first = null, last = null;
       U.topics.forEach(function (T) {
-        var r = add([a.sat ? '' : T.code, T.name, T.dots.map(function (d) { return RPT_SYMBOL[d.p] || '?'; }).join(' ')], { size: 9, color: '#424242', wrap: true, line: true });
+        // #44 part 3: the practice line next to each weak skill (teacher text: score + level for SAT Math Lib)
+        var pr = a.valid && T.k < T.t ? practiceFor_(PS, a.sat, T.code, { k: T.k, t: T.t }, true) : null;
+        var r = add([a.sat ? '' : T.code, T.name, T.dots.map(function (d) { return RPT_SYMBOL[d.p] || '?'; }).join(' '), pr ? pr.text : '', ''], { size: 9, color: '#424242', wrap: true, line: true, mergeEF: !!pr });
         if (first === null) first = r; last = r;
       });
       if (first !== null) groups.push({ from: first, to: last, open: U.status === UNIT_STATUS_.BAD });

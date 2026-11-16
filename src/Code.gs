@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.15-1 (2026-11-16, classes)';
+var APP_VERSION = 'v1.15 (2026-11-16, classes + integrity + practice lines)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -191,6 +191,8 @@ function round_(x, d) { var p = Math.pow(10, d || 0); return Math.round(x * p) /
 function normCode_(c) { return String(c || '').trim().toUpperCase(); }
 /** Force text in Sheets (so topic "6.10" is not turned into the number 6.1). */
 function txt_(v) { return (v === null || v === undefined || v === '') ? '' : "'" + String(v); }
+/** Settings Yes / No that default to Yes: only an explicit "No" turns it off. */
+function isOff_(v) { var s = String(v === undefined || v === null ? '' : v).trim().toLowerCase(); return s === 'no' || s === 'n' || s === 'false' || s === '0'; }
 function isYes_(v) { var s = String(v).trim().toLowerCase(); return s === 'yes' || s === 'y' || s === 'true' || s === '1' || v === true; }
 
 /* ============================== forms (registry + Forms tab) ============================== */
@@ -645,7 +647,8 @@ function getTest(code, formId, opts) {
     profile: profile,
     questions: questions.map(clientQuestion_),
     settings: { app_name: s.app_name, autosave_sec: s.autosave_sec, five_min_warning_sec: s.five_min_warning_sec,
-                desmos_api_key: desmosKey, show_results: s.show_results }
+                desmos_api_key: desmosKey, show_results: s.show_results,
+                integrity_on: isOff_(s.integrity_on) ? 'No' : 'Yes', integrity_toast: isOff_(s.integrity_toast) ? 'No' : 'Yes' } // #44
   };
 }
 
@@ -1204,7 +1207,7 @@ function gradeSession_(session, state, events) {
   var S = getSettings_();
   var tags = tagMap_(formId);
   var seq = (state && state.seq_parts) || profile.parts.map(function (p) { return p.part; });
-  var responses = [], partScores = {}, partTimes = {}, partEndReason = {};
+  var responses = [], partScores = {}, partTimes = {}, partEndReason = {}, integrity = {};
   seq.forEach(function (partId) {
     var part = profile.parts.filter(function (p) { return p.part === partId; })[0];
     if (!part) return;
@@ -1213,6 +1216,8 @@ function gradeSession_(session, state, events) {
     var pEvents = events.filter(function (e) { return String(e.part) === partId; })
                         .sort(function (a, b) { return (Number(a.t_ms) || 0) - (Number(b.t_ms) || 0); });
     var d = deriveMetrics_(pEvents, qs.map(function (q) { return q.qid; }));
+    var ig = integrityOfPart_(pEvents), leftQ = leftByQ_(ig); // #44 part 2: leaving the test window, copy / right-click
+    if (ig.on) integrity[partId] = { n: ig.n, sec: ig.sec, at: ig.leaves.map(function (l) { return l.qid; }), copy: ig.copy, ctx: ig.ctx, fs: ig.fs };
     var limitMs = part.time_limit_sec * 1000;
     var pace = part.time_limit_sec / Math.max(1, qs.length);
     var endEv = pEvents.filter(function (e) { return e.type === 'part_end'; }).pop();
@@ -1246,6 +1251,7 @@ function gradeSession_(session, state, events) {
       if (fin && timeSec < S.guess_min_time_sec) flags.push('GUESS_LIKELY');
       var keys = Array.isArray(q.key) ? q.key : [q.key];
       if ((q.type || 'mcq') === 'mcq' && elim.some(function (l) { return keys.indexOf(l) >= 0; })) flags.push('ELIM_KEY');
+      if (ig.on && leftThenRight_(ig, q.qid, !!corr, lastChangeT_(mm.aev))) flags.push('LEFT_THEN_RIGHT'); // #44: ⚠ for the teacher
       var tg = tags[q.qid] || {};
       responses.push({
         session_id: session.session_id, student_code: session.student_code, form_id: formId, attempt_no: session.attempt_no,
@@ -1256,12 +1262,19 @@ function gradeSession_(session, state, events) {
         time_first_visit_sec: mm.first_visit_ms === null ? 0 : round_(mm.first_visit_ms / 1000, 1),
         pace_ratio: round_(ratio, 2), order_first_seen: mm.order === null ? '' : mm.order, calc_used: !!mm.calc,
         profile: profileName, flags: flags.join(','), tutor_note: '', time_to_answer_sec: taSec === null ? '' : round_(taSec, 1),
+        left_sec: ig.on ? (leftQ[q.qid] || 0) : '',
         _topic_name: tg.topic_name, _limit_ms: limitMs, _last_t: mm.last_answer_t
       });
     });
     partScores[partId] = { score: score, n: qs.length, title: part.title };
   });
-  return { responses: responses, partScores: partScores, partTimes: partTimes, partEndReason: partEndReason, seq: seq };
+  return { responses: responses, partScores: partScores, partTimes: partTimes, partEndReason: partEndReason, seq: seq, integrity: integrity };
+}
+/** t of the last answer change of a question (the final answer), null if none. */
+function lastChangeT_(aev) {
+  var prev = '', t = null;
+  (aev || []).forEach(function (a) { if (a.val !== prev) { prev = a.val; t = a.val === '' ? null : a.t; } });
+  return t;
 }
 
 /**
@@ -1314,6 +1327,7 @@ function submit(code, sessionId, payload) {
     var secUsed = {}; Object.keys(fields).forEach(function (k) { var m = /^time_used_(.+)_min$/.exec(k); if (m) secUsed[m[1]] = fields[k]; });
     var v = validity_(g.responses, g.partTimes, profileOf_(session), getSettings_(), secUsed);
     fields.reliable = v.reliable ? 'Yes' : 'No';
+    fields.integrity = Object.keys(g.integrity).length ? JSON.stringify(g.integrity) : ''; // #44 part 2
     updateRow_('Sessions', session._row, fields);
     appendPartLog_(logRows);
     // summaries: a failure here must not lose the submit (Sessions/Responses are already written), but it is logged loudly
@@ -1437,8 +1451,23 @@ function teacherReview(code, sessionId) {
   var rows = responsesOf_(sessionId), r = reviewData_(s, rows), ta = {};
   rows.forEach(function (x) { var t = taOf_(x); if (t !== null) ta[String(x.qid)] = Math.round(t); });
   r.questions.forEach(function (q) { if (q.qid in ta) q.ta_s = ta[q.qid]; }); // #40: time to answer, teacher only
+  var lf = {}; rows.forEach(function (x) { var l = Number(x.left_sec) || 0; if (l > 0) lf[String(x.qid)] = { s: Math.round(l), f: /LEFT_THEN_RIGHT/.test(String(x.flags || '')) }; });
+  r.questions.forEach(function (q) { if (lf[q.qid]) { q.left_s = lf[q.qid].s; if (lf[q.qid].f) q.left_flag = true; } }); // #44: left the test window on it
+  addSkills_(String(s.form_id), r.questions); // #44 part 3: the skill on the teacher question bar
   var st = findStudent_(s.student_code); r.student = st ? String(st.name || '') : String(s.student_code);
   return r;
+}
+/** Teacher only (#44 part 3): q.skill = "Nonlinear functions (P.C)" — CB skill name (sat_skills.csv) or the form's topic name. */
+function addSkills_(formId, questions) {
+  var fd = formData_(formId), tn = {};
+  if (!fd) return;
+  var names = topicNamesNoDrive_(formId, fd);
+  fd.questions.forEach(function (q) { var t = String((q.tags || {}).topic || ''); if (t) tn[q.qid] = t; });
+  questions.forEach(function (q) {
+    var t = tn[q.qid]; if (!t) return;
+    var nm = (typeof SAT_SKILL_NAMES_ !== 'undefined' && SAT_SKILL_NAMES_[t]) || names[t] || '';
+    q.skill = nm ? nm + ' (' + t + ')' : t;
+  });
 }
 /** The key of ONE question of this attempt — only when the teacher presses "Show answer". */
 function teacherAnswer(code, sessionId, qid) {

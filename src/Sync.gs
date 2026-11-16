@@ -76,7 +76,12 @@ function ensureSettingsRows_() {
   var add = SETTINGS_NEW_ROWS_.filter(function (r) { return keys.indexOf(r[0]) < 0; })
     .map(function (r) { return { key: r[0], value: r[1], meaning: SETTINGS_MEANING_[r[0]] || '' }; });
   appendObjects_('Settings', add);
-  return add.length ? 'Settings rows added: ' + add.map(function (r) { return r.key; }).join(', ') : 'Settings rows OK';
+  // #44 part 3: the verbal practice app got its name — the old default only (a name Minh typed is kept)
+  var renamed = '';
+  readTable_('Settings').rows.forEach(function (r) {
+    if (String(r.key).trim() === 'practice_app_name' && String(r.value).trim() === 'SAT practice app') { updateRow_('Settings', r._row, { value: 'SAT Vocab Practice' }); renamed = ' · practice_app_name → SAT Vocab Practice'; }
+  });
+  return (add.length ? 'Settings rows added: ' + add.map(function (r) { return r.key; }).join(', ') : 'Settings rows OK') + renamed;
 }
 
 /** Replace the whole content of a text tab (README, Interpretation, Dictionary). */

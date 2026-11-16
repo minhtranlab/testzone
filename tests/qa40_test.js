@@ -131,12 +131,14 @@ check(H(0.3, 'S.D') === 'Medium' && H(0.3, 'S.C') === 'Medium' && H(0.9, 'S.C') 
 check(H(0.6, 'Q.D') === 'Medium' && H(0.9, 'Q.E') === 'Medium' && H(0.2, 'Q.E') === 'Easy/Medium', 'Q.D / Q.E have no Hard: 50–80 % → Medium, > 80 % → Medium');
 check(C.SML_SKILLS_['Q.F'].rare && C.SML_SKILLS_['Q.G'].rare && Object.keys(C.SML_SKILLS_).length === 19, 'SmlSkills.gs: 19 Math skills, Q.F + Q.G rare');
 
-console.log('[D: on the result pages]');
-const stu = sv.sml, tea = tv.sml;
-check(stu && stu.app === 'SAT Math Lib' && stu.url === 'https://minhtranlab.github.io/satmath/' && stu.items.length === 3 && stu.items.every(z => /^Practise in SAT Math Lib: .+ \([HPQS]\.[A-G]\) — 10 questions$/.test(z.line) && z.hint === undefined),
-  'student: 3 lines "' + (stu && stu.items[0].line) + '", no hint');
-check(tea && tea.items.length === 3 && tea.items.every(z => /^(Easy|Medium|Hard)(\/(Medium|Hard))?$/.test(z.hint) && z.of >= 2), 'teacher: same 3 skills + level to assign (' + tea.items.map(z => z.code + ' ' + z.right + '/' + z.of + ' ' + z.hint).join(' · ') + ')');
-check(tea.items.map(z => z.code).join() === stu.items.map(z => z.code).join(), 'teacher and student: the same skills');
+console.log('[D: on the result pages (#44: one practice line under each skill tip, no separate box)]');
+const mathLines = r => (r.practise || []).map(t => t.practice).filter(p => p && p.section === 'Math');
+const teaItems = r => [].concat(...r.groups.map(g => [].concat(...g.rows.map(x => x.items)))).filter(it => it.practice);
+check(!sv.sml && !tv.sml, 'no separate SAT Math Lib box any more (student + teacher)');
+check(mathLines(sv).length >= 1 && mathLines(sv).every(p => p.app === 'SAT Math Lib' && p.n === 10 && p.url === 'https://minhtranlab.github.io/satmath/' && p.hint === undefined && p.of === undefined && /^Practise: .+ in SAT Math Lib — 10 questions$/.test(p.text)),
+  'student: Math tips carry "' + (mathLines(sv)[0] || {}).text + '", no level hint');
+check(teaItems(tv).length >= 1 && teaItems(tv).every(it => it.practice.of === it.n && it.right < it.n && (it.practice.section !== 'Math' || /^(Easy|Medium|Hard)(\/(Medium|Hard))?$/.test(it.practice.hint))),
+  'teacher: a practice line under each weak skill, Math with the level (' + teaItems(tv).map(it => it.practice.text).slice(0, 2).join(' | ') + ')');
 // a partial attempt: only M2 → only M2 skills
 G.sheets.Assignments.rows.push(['T03', SAT, 'M2', 'Yes', '']);
 const y = G.call('getTest', ['T03', SAT, { scope: 'M2', fresh: true }]);
@@ -144,14 +146,15 @@ const sy = { seq_parts: ['M2'], current_part: 'M2', phase: 'submitting', part_st
 y.questions.forEach((q, i) => { sy.parts.M2.ans[q.qid] = i % 2 ? key(q.qid) : wrong(q.qid); });
 const yr = G.call('submit', ['T03', y.session.session_id, { state: sy, events: [], ev_from: 0, copy: y.copy }]);
 const m2Topics = new Set(y.questions.map(q => (fd.questions.find(z => z.qid === q.qid).tags || {}).topic));
-check(yr.sml && yr.sml.items.length >= 1 && yr.sml.items.every(z => m2Topics.has(z.code)), 'partial attempt (M2 only): skills from M2 only (' + yr.sml.items.map(z => z.code).join(', ') + ')');
+const yT = G.call('teacherResult', ['teach-40-ui', y.session.session_id]);
+check(teaItems(yT).length >= 1 && teaItems(yT).every(it => [...m2Topics].some(c => C.SML_SKILLS_[c] && C.SML_SKILLS_[c].name === it.practice.chip)), 'partial attempt (M2 only): practice lines for M2 skills only (' + teaItems(yT).map(it => it.practice.chip).join(', ') + ')');
 G.sheets.Assignments.rows.push(['T03', SAT, 'RW1', 'Yes', '']);
 const w = G.call('getTest', ['T03', SAT, { scope: 'RW1', fresh: true }]);
 const wr = G.call('submit', ['T03', w.session.session_id, { state: { seq_parts: ['RW1'], current_part: 'RW1', phase: 'submitting', part_starts: { RW1: now - 30 * 60000 }, ended: { RW1: 'submit' }, parts: { RW1: { ans: {} } } }, events: [], ev_from: 0, copy: w.copy }]);
-check(!wr.sml, 'Reading and Writing only: no SAT Math Lib lines');
+check(!wr.sml && !mathLines(wr).length, 'Reading and Writing only: no SAT Math Lib lines');
 const ap = G.call('getTest', ['T01', AP, {}]);
 const apr = G.call('submit', ['T01', ap.session.session_id, { state: { seq_parts: ['A', 'B'], current_part: 'B', phase: 'submitting', part_starts: { A: now - 60000, B: now - 30000 }, ended: { A: 'submit', B: 'submit' }, parts: { A: { ans: {} }, B: { ans: {} } } }, events: [], ev_from: 0, copy: ap.copy }]);
-check(!apr.sml, 'AP: no SAT Math Lib lines');
+check(!apr.sml && !(apr.practise || []).some(t => t.practice), 'AP: no practice lines');
 const apT = G.call('teacherResult', ['teach-40-ui', ap.session.session_id]);
 check(apT.parts.every(p => p.time && p.time.solving + p.time.checking + p.time.left === p.time.clock), 'AP teacher page: time per part adds up too');
 
@@ -165,9 +168,8 @@ const RT = G.sheets.Report.rows.map(rw => rw.slice(1, 6).map(v => String(v).repl
 const iT = RT.findIndex(l => l === 'Time per module');
 check(iT > 0 && /^Module \(clock\) \| Solving time \| Checking \/ review \| Time left at submit \| On blank questions$/.test(RT[iT + 2]) && /^M1 \(35:00\) \| 16:30 \| \d+:\d\d \| \d+:\d\d \| 1:00$/.test(RT[iT + 3]),
   'Report: "Time per module" table (' + RT[iT + 3] + ')');
-const iS = RT.findIndex(l => l === 'Practise in SAT Math Lib');
-check(iS > 0 && /^1\. Practise in SAT Math Lib: .+ — 10 questions · \d+\/\d+ right \(\d+%\).* · assign (Easy|Medium|Hard)/.test(RT[iS + 2]) && RT.slice(iS + 2, iS + 5).every(l => /^\d\. Practise in SAT Math Lib/.test(l)),
-  'Report: 3 SAT Math Lib lines with the level ("' + RT[iS + 2] + '")');
+const lines = RT.filter(l => /\| Practise: .+ in SAT Math Lib — \d+\/\d+ right · assign (Easy|Medium|Hard)/.test(l));
+check(RT.findIndex(l => l === 'Practise in SAT Math Lib') < 0 && lines.length >= 1, 'Report: no separate block; the practice text sits next to the weak skills ("' + (lines[0] || '').replace(/^.*?\| /, '') + '")');
 const iW = RT.findIndex(l => /^Question \| Skill \| Type \| Time to answer/.test(l));
 check(iW > 0, 'Report: wrong list column "Time to answer"');
 

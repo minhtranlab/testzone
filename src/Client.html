@@ -63,7 +63,7 @@
   function word() { return (A.profile && A.profile.part_word) || 'part'; } // "part" (AP) / "module" (SAT)
 
   /* ---------------- screens ---------------- */
-  function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); }); }
+  function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); }); igGuard(); }
   function view(id) {
     $$('#tmain .view').forEach(function (v) { v.classList.toggle('on', v.id === id); });
     var inQ = id === 'v-question', inR = id === 'v-review', inTest = inQ || inR;
@@ -76,6 +76,8 @@
     $('#practice-banner').classList.toggle('on', !!(inTest && A.profile && A.profile.practice_banner));
     $('#tool-calc').classList.toggle('hidden', !(inTest && d && d.calculator));
     $('#tool-ref').classList.toggle('hidden', !(inTest && d && d.reference));
+    $('#tool-fs').classList.toggle('hidden', !(inTest && fsEnabled() && !A.view && igOn())); // #44: Full screen (not forced)
+    igGuard();
     $('#btn-dir').classList.toggle('hidden', !inTest);
     $('#timer').style.visibility = id === 'v-break' ? 'hidden' : ''; // no test clock on the break screen
     if (!inTest) { closePops(); hideCalc(true); $('#ref-panel').classList.remove('on'); }
@@ -418,6 +420,77 @@
     var t = start ? Math.max(0, Math.min(limit, serverNow() - start)) : 0;
     A.events.push({ part: p, t_ms: Math.round(t), qid: qid || null, type: type, value: value === undefined ? null : value });
   }
+  /* ================= #44 part 2: test integrity (student test screen only) =================
+     Blocks what a page can block (right-click menu, copy / cut / drag of question text, select-all, page translation) and
+     logs what it can see: leaving the test window (tab hidden / window blur, not focus moving into a frame of this page),
+     copy / right-click attempts, leaving full screen. Highlight, notes, eliminate, mark, Desmos, Reference and typing
+     grid-in answers keep working (text selection stays allowed). Not on the Directions / break screens, not after submit. */
+  var IG = { leave: null, fs: false, last: {} };
+  function igOn() { return !!(A.test && A.test.settings && A.test.settings.integrity_on !== 'No'); }
+  function igActive() { var sc = $('#scr-test'); return !!(A.st && A.test && !A.view && !A.dead && igOn() && sc && sc.classList.contains('on') && !sc.classList.contains('viewing') && A.st.phase !== 'submitting'); }
+  function leaveCounts() { return igActive() && (A.st.phase === 'test' || A.st.phase === 'review'); }
+  function igQ() { if (!A.st || A.st.phase !== 'test') return null; var q = curQ(); return q ? q.qid : null; }
+  function fsEnabled() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+  function igLog(type) { // at most one per second per type
+    var now = Date.now(); if (now - (IG.last[type] || 0) < 1000) return; IG.last[type] = now;
+    log(type, igQ(), null); persist();
+  }
+  function leaveStart(src) {
+    if (IG.leave || !leaveCounts()) return;
+    IG.leave = { t0: Date.now(), src: src };
+    log('leave_start', igQ(), src); persist();
+  }
+  function leaveEnd(why) {
+    var L = IG.leave; if (!L) return; IG.leave = null;
+    var d = Date.now() - L.t0;
+    if (!A.st || A.view) return;
+    log('leave_end', igQ(), d); persist();
+    if (why === 'back' && d >= 2000 && A.test.settings.integrity_toast !== 'No') toast('You left the test window. Your teacher can see this.', 4000);
+  }
+  function backNow() { if (document.visibilityState !== 'hidden' && document.hasFocus()) leaveEnd('back'); }
+  /** translate="no" + notranslate + the Google meta only while the student test screen is on */
+  function igGuard() {
+    var on = igActive(), html = document.documentElement;
+    html.classList.toggle('notranslate', on); document.body.classList.toggle('ig-guard', on);
+    if (on) html.setAttribute('translate', 'no'); else html.removeAttribute('translate');
+    var m = document.getElementById('ig-meta');
+    if (on && !m) { m = document.createElement('meta'); m.id = 'ig-meta'; m.name = 'google'; m.content = 'notranslate'; document.head.appendChild(m); }
+    if (!on && m) m.parentNode.removeChild(m);
+    if (!on && IG.leave && !(A.st && A.st.phase === 'break')) IG.leave = null;
+  }
+  function initIntegrity() {
+    var editable = function (t) { return t && t.closest && t.closest('input, textarea, [contenteditable="true"]'); };
+    document.addEventListener('contextmenu', function (e) { if (!igActive()) return; e.preventDefault(); igLog('context_attempt'); }, true);
+    ['copy', 'cut'].forEach(function (k) { document.addEventListener(k, function (e) { if (!igActive()) return; e.preventDefault(); igLog('copy_attempt'); }, true); });
+    document.addEventListener('dragstart', function (e) { if (!igActive() || editable(e.target)) return; e.preventDefault(); }, true);
+    document.addEventListener('keydown', function (e) {
+      if (!igActive() || editable(e.target)) return;
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'a' || e.key === 'A')) e.preventDefault();
+    }, true);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') leaveStart('hidden'); else backNow(); });
+    window.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (document.hasFocus()) return;                         // focus stayed in this page
+        var ae = document.activeElement;
+        if (ae && ae.tagName === 'IFRAME') return;               // a frame of this page took focus: not a leave
+        leaveStart('blur');
+      }, 60);
+    });
+    window.addEventListener('focus', backNow);
+    $('#tool-fs').onclick = function () {
+      var d = document, el = d.documentElement;
+      if (d.fullscreenElement || d.webkitFullscreenElement) { IG.fs = false; (d.exitFullscreen || d.webkitExitFullscreen).call(d); return; }
+      var r = (el.requestFullscreen || el.webkitRequestFullscreen); if (!r) return;
+      IG.fs = true; try { var pr = r.call(el); if (pr && pr.catch) pr.catch(function () { IG.fs = false; toast('Full screen is not available here.'); }); } catch (x) { IG.fs = false; }
+    };
+    var fsChange = function () {
+      var inFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      $('#tool-fs').classList.toggle('active', inFs);
+      if (!inFs && IG.fs) { IG.fs = false; if (igActive()) igLog('fullscreen_exit'); }
+    };
+    document.addEventListener('fullscreenchange', fsChange); document.addEventListener('webkitfullscreenchange', fsChange);
+  }
+
   function payload() {
     var from = Math.max(A.acked, A.evBase);
     if (A.evBase === 0) return { state: A.st, events: A.events.slice(from), ev_from: from, copy: A.copy };
@@ -525,6 +598,7 @@
       '<div class="part-facts"><div><b>' + n + '</b>questions</div><div><b>' + fmt(d.time_limit_sec * 1000) + '</b>time</div><div><b>' + (d.calculator ? 'Yes' : 'No') + '</b>calculator</div></div>' +
       '<div class="dir-text">' + (d.directions_html || '') + '</div>' +
       '<p class="lead">The timer starts when you click <b>Begin</b>. Once you leave this ' + word() + ' you cannot come back to it.</p>' +
+      (igOn() ? '<p class="ig-note">This test records when you leave the test window.' + (fsEnabled() ? ' Tip: use full screen (button at the top right).' : '') + '</p>' : '') +
       '<div class="center"><button class="btn-blue" id="btn-begin" type="button" style="min-width:180px">Begin</button></div></div>';
     $('#btn-begin').onclick = beginPart;
     typeset($('#v-directions'));
@@ -536,6 +610,7 @@
     if (!A.st.part_starts[p]) A.st.part_starts[p] = serverNow();
     A.st.phase = 'test';
     log('part_start', null, p);
+    if (igOn()) log('integrity_on', null, 'v1.15'); // #44: this part has integrity data
     persist();
     buildPart(p).then(function () { goTo(0, true); autosave(); }).catch(loadTrouble);
   }
@@ -891,6 +966,7 @@
     var p = curPart();
     if (A.st.ended[p]) { advanceAfter(p); return; }
     A.ending = true;
+    leaveEnd('part_end'); // #44: a leave still open ends with the part
     if (A.st.phase === 'test') { var q = curQ(); if (q) log('q_leave', q.qid, null); }
     log('part_end', null, reason);
     A.st.ended[p] = reason;
@@ -911,6 +987,7 @@
         if (!A.st.part_starts[next]) A.st.part_starts[next] = serverNow();
         A.st.phase = 'test';
         log('part_start', null, next);
+        if (igOn()) log('integrity_on', null, 'v1.15');
         persist(); autosave();
         toast((nd.title || next) + ' has started.', 3500);
         route();
@@ -933,6 +1010,7 @@
     } else go();
   }
   function doSubmit() {
+    leaveEnd('submit'); // #44
     stopLoops();
     A.ending = true;
     A.st.phase = 'submitting';
@@ -990,21 +1068,27 @@
     var t = m.time; if (!t) return '';
     return '<div class="mod-time"><div class="mt-h">' + esc(label) + ' · ' + clk(t.clock) + '</div><dl>' +
       '<div><dt>Solving time</dt><dd>' + clk(t.solving) + '</dd></div><div><dt>Checking / review time</dt><dd>' + clk(t.checking) + '</dd></div>' +
-      '<div><dt>Time left at submit</dt><dd>' + clk(t.left) + '</dd></div><div class="mt-blank"><dt>Time on blank questions</dt><dd>' + clk(t.blank) + '</dd></div></dl></div>';
+      '<div><dt>Time left at submit</dt><dd>' + clk(t.left) + '</dd></div><div class="mt-blank"><dt>Time on blank questions</dt><dd>' + clk(t.blank) + '</dd></div></dl>' + igHtml(m.ig) + '</div>';
+  }
+  /** Teacher only (#44 part 2): "Left the test: 3× · 2 min 10 s · at M2-15, M2-18", copy / right-click, ⚠ questions. */
+  function igHtml(g) {
+    if (!g) return '';
+    var fl = (g.qs || []).filter(function (q) { return q.flag; });
+    return '<div class="mt-ig"><div class="ig-left' + (g.data && /\d×/.test(g.left) ? ' some' : '') + '">' + esc(g.left) + '</div>' + (g.other ? '<div class="muted ig-other">' + esc(g.other) + '</div>' : '') +
+      (fl.length ? '<div class="ig-flag">⚠ Left ≥ 20 s, then answered right: ' + fl.map(function (q) { return esc(q.code); }).join(', ') + '</div>' : '') + '</div>';
   }
   function modShort(m) { return String(m.title || m.part).replace(/^Section \w+, /, '').replace(/:.*$/, ''); }
-  /** SAT Math Lib lines under "What to practise first" (#40 D); the teacher also sees the score and the level to assign. */
-  function smlHtml(sml, teacher) {
-    if (!sml || !sml.items || !sml.items.length) return '';
-    return '<div class="sml-recs">' + sml.items.map(function (x) {
-      return '<p class="sml-line">Practise in <a class="sml-app" href="' + esc(sml.url) + '" target="_blank" rel="noopener"><mark class="app-mode">' + esc(sml.app) + '</mark></a>: ' +
-        esc(x.name) + ' (' + esc(x.code) + ') — ' + x.n + ' questions' +
-        (teacher && x.hint ? '<span class="sml-t"> · ' + x.right + '/' + x.of + ' right · assign ' + esc(x.hint) + '</span>' : '') + '</p>';
-    }).join('') + '</div>';
-  }
   function practiseHtml(x) {
     if (typeof x === 'string') return esc(x);
-    return esc(x.text) + (x.mode ? '<div class="pr-app">Practise: <mark class="app-mode">' + esc(x.mode) + '</mark> in the ' + esc(x.app || 'practice app') + '</div>' : '');
+    return esc(x.text) + practiceLine(x.practice);
+  }
+  /** #44 part 3: "Practise: [skill] in App — 10 questions"; the [skill] chip is the link (new tab); teacher: "— 1/3 right · assign Easy/Medium". */
+  function practiceLine(p) {
+    if (!p) return '';
+    var chip = '<mark class="app-mode">' + esc(p.chip) + '</mark>';
+    if (p.url) chip = '<a class="pr-link" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + chip + '</a>';
+    var tail = p.of ? ' — ' + p.right + '/' + p.of + ' right' + (p.hint ? ' · assign ' + esc(p.hint) : '') : (p.n ? ' — ' + p.n + ' questions' : '');
+    return '<div class="pr-app" data-sec="' + esc(p.section || '') + '">Practise: ' + chip + ' in ' + esc(p.app) + tail + '</div>';
   }
   /** res = studentView_ (server, Report.gs): estimate, sections, skills, error types, practise, review grids. Never a key. */
   function renderResult(res) {
@@ -1046,8 +1130,8 @@
       h += '</div>';
     }
     // what to practise first: short tips + the practice-app mode (#24 C)
-    if ((res.practise && res.practise.length) || res.sml) {
-      h += '<h2 class="res-h">What to practise first</h2><ol class="res-list">' + (res.practise || []).map(function (x) { return '<li>' + practiseHtml(x) + '</li>'; }).join('') + '</ol>' + smlHtml(res.sml, teacher);
+    if (res.practise && res.practise.length) {
+      h += '<h2 class="res-h">What to practise first</h2><ol class="res-list">' + (res.practise || []).map(function (x) { return '<li>' + practiseHtml(x) + '</li>'; }).join('') + '</ol>';
     }
     // skills + the missed questions of each skill as chips (#24 D)
     if (res.valid && res.groups && res.groups.length) {
@@ -1060,7 +1144,8 @@
             '<span class="bar"><i style="width:' + pct(r.right, r.n) + '%"></i></span></summary>' +
             '<ul>' + r.items.map(function (it) {
               var chips = (it.missed || []).concat(it.slow || []);
-              return '<li><span class="it-name">' + esc(it.name) + '</span><span class="chips">' + chips.map(qchip).join('') + '</span>' + xy(it.right, it.n) + '</li>';
+              return '<li><span class="it-name">' + esc(it.name) + '</span><span class="chips">' + chips.map(qchip).join('') + '</span>' + xy(it.right, it.n) +
+                (it.practice ? '<div class="it-pr">' + practiceLine(it.practice) + '</div>' : '') + '</li>';
             }).join('') + '</ul></details>';
         }).join('') + '</div>';
       });
@@ -1080,8 +1165,10 @@
         var r = p.questions.filter(function (q) { return q.status === 'right'; }).length;
         h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid' + (teacher ? ' tgrid' : '') + '">' +
           p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + (teacher ? (q.ta_s !== undefined ? ' · time to answer ' + clk(q.ta_s) : ' · blank, ' + clk(q.time_s) + ' on it') : '') + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i>' +
-            (teacher ? '<span class="rt">' + (q.ta_s !== undefined ? clk(q.ta_s) : '–') + '</span>' : '') + '</button>'; }).join('') + '</div>' + gridKeyHtml() +
-          (teacher ? '<p class="muted tgrid-note">Under each number: time to answer (until the final answer was chosen). S / R use this time.</p>' : '') + '</div>';
+            (teacher ? '<span class="rt">' + (q.ta_s !== undefined ? clk(q.ta_s) : '–') + '</span>' + (q.left_s ? '<span class="rl' + (q.left_flag ? ' fl' : '') + '" title="left the test window ' + clk(q.left_s) + ' on this question' + (q.left_flag ? ', then answered right' : '') + '">' + (q.left_flag ? '⚠' : '↗') + '</span>' : '') : '') + '</button>'; }).join('') + '</div>' + gridKeyHtml() +
+          (teacher ? '<p class="muted tgrid-note">Under each number: time to answer (until the final answer was chosen). S / R use this time.</p>' : '') +
+          (teacher && p.questions.some(function (q) { return q.left_s; }) ? '<p class="tgrid-left">Left the test window on: ' + p.questions.filter(function (q) { return q.left_s; }).map(function (q) {
+            return '<span class="lq' + (q.left_flag ? ' fl' : '') + '"><b>' + esc(q.code) + '</b> left ' + clk(q.left_s) + (q.left_flag ? ' ⚠' : '') + '</span>'; }).join('') + '</p>' : '') + '</div>';
       });
     }
     h += '</div>';
@@ -1146,10 +1233,10 @@
   function viewBar(q) {
     var bar = $('#view-bar'), rq = q, key = VW.keys[q.qid];
     if (rq.members) { // #44 class screen: every member's answer + time to answer
-      bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b>' + (rq.skill ? ' · ' + esc(rq.skill) : '') + '</span>' + rq.members.map(function (m) {
+      bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b>' + (rq.skill ? ' · <span class="rv-skill">' + esc(rq.skill) + '</span>' : '') + '</span>' + rq.members.map(function (m) {
         return '<span class="cm">' + esc(m.name) + ': ' + (m.st === 'none' ? '<i class="muted">not taken</i>' : '<b>' + (m.a ? esc(m.a) : '—') + '</b> ' +
           (m.st === 'right' ? '<span class="rv-st right">✓</span>' : m.st === 'wrong' ? '<span class="rv-st wrong">✗</span>' : '<span class="rv-st blank">–</span>') +
-          (m.ta !== null && m.ta !== undefined ? ' <span class="muted">' + clk(m.ta) + '</span>' : '') + (m.b ? ' ' + bdg(m.b) : '')) + '</span>'; }).join('') +
+          (m.ta !== null && m.ta !== undefined ? ' <span class="muted">' + clk(m.ta) + '</span>' : '') + (m.b ? ' ' + bdg(m.b) : '') + (m.left ? ' <span class="rv-left' + (m.lf ? ' fl' : '') + '">' + (m.lf ? '⚠ ' : '') + 'left ' + clk(m.left) + '</span>' : '')) + '</span>'; }).join('') +
         (key ? '<span class="rv-key">Correct answer: <b>' + esc(key.join(' or ')) + '</b></span>' : '<button type="button" class="btn-outline" id="rv-show">Show answer</button>');
       var bx = qBox(q.qid);
       $$('.ch', bx).forEach(function (c) { c.classList.remove('rv-key'); });
@@ -1160,8 +1247,9 @@
       return;
     }
     var st = rq.status === 'right' ? '<span class="rv-st right">✓ Correct</span>' : rq.status === 'wrong' ? '<span class="rv-st wrong">✗ Incorrect</span>' : '<span class="rv-st blank">– Not answered</span>';
-    bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b></span><span>' + (VW.teacher ? 'Student\'s' : 'Your') + ' answer: <b>' + (rq.answer ? esc(rq.answer) : '—') + '</b></span>' + st +
+    bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b>' + (VW.teacher && rq.skill ? ' · <span class="rv-skill">' + esc(rq.skill) + '</span>' : '') + '</span><span>' + (VW.teacher ? 'Student\'s' : 'Your') + ' answer: <b>' + (rq.answer ? esc(rq.answer) : '—') + '</b></span>' + st +
       (VW.teacher && rq.ta_s !== undefined ? '<span class="muted">Time to answer: ' + fmtTime(rq.ta_s) + ' · total ' + fmtTime(rq.time_s) + '</span>' : '<span class="muted">Time: ' + fmtTime(rq.time_s) + '</span>') + (rq.badge ? '<span>' + bdg(rq.badge) + (rq.badge === 'S' ? ' slow' : ' rushed') + '</span>' : '') +
+      (VW.teacher && rq.left_s ? '<span class="rv-left' + (rq.left_flag ? ' fl' : '') + '">' + (rq.left_flag ? '⚠ ' : '') + 'Left the test: ' + fmtTime(rq.left_s) + (rq.left_flag ? ', then answered right' : '') + '</span>' : '') +
       (VW.teacher ? (key ? '<span class="rv-key">Correct answer: <b>' + esc(key.join(' or ')) + '</b></span>' : '<button type="button" class="btn-outline" id="rv-show">Show answer</button>') : '');
     var box = qBox(q.qid);
     $$('.ch', box).forEach(function (c) { c.classList.remove('rv-key'); });
@@ -1291,7 +1379,8 @@
   function cellHtml(c, big) {
     if (!c || c.st === 'none') return '<span class="cg-none">not taken</span>';
     return '<span class="cg"><span class="rcell xs ' + c.st + '" data-badge="' + (c.b || '') + '"><i class="rs">' + cellSym(c.st, c.b) + '</i></span>' +
-      '<b class="cg-a">' + (c.a ? esc(c.a) : '—') + '</b><span class="cg-t">' + (c.ta !== null && c.ta !== undefined ? clk(c.ta) : (c.st === 'blank' ? clk(c.tot) + ' on it' : '')) + '</span></span>';
+      '<b class="cg-a">' + (c.a ? esc(c.a) : '—') + '</b><span class="cg-t">' + (c.ta !== null && c.ta !== undefined ? clk(c.ta) : (c.st === 'blank' ? clk(c.tot) + ' on it' : '')) + '</span>' +
+      (c.left ? '<span class="rv-left' + (c.lf ? ' fl' : '') + '" title="left the test window on this question">' + (c.lf ? '⚠ ' : '') + 'left ' + clk(c.left) + '</span>' : '') + '</span>';
   }
   function renderClass() {
     var C = A.cls, d = C.d, taken = d.members.filter(function (m) { return m.taken; });
@@ -1302,14 +1391,14 @@
     h += '<div class="cls-pick"><label>Test <select id="cls-form">' + d.forms.map(function (f) { return '<option value="' + esc(f.form_id) + '"' + (f.form_id === d.form_id ? ' selected' : '') + '>' + esc(f.title) + ' (' + f.n + '/' + d.members.length + ')</option>'; }).join('') + '</select></label>' +
       (d.parts.length > 1 ? '<label>Part <select id="cls-part"><option value="">All parts</option>' + d.parts.map(function (p) { return '<option value="' + esc(p.part) + '"' + (p.part === d.part ? ' selected' : '') + '>' + esc(p.title) + '</option>'; }).join('') + '</select></label>' : '') + '</div>';
     // each member: which attempt + module times
-    h += '<div class="card cls-mem"><table class="attempts cls-times"><tr><th>Student</th><th>Attempt</th><th>Module</th><th>Right</th><th>Solving</th><th>Checking / review</th><th>Left</th></tr>';
+    h += '<div class="card cls-mem"><table class="attempts cls-times"><tr><th>Student</th><th>Attempt</th><th>Module</th><th>Right</th><th>Solving</th><th>Checking / review</th><th>Left</th><th>Left the test</th></tr>';
     d.members.forEach(function (m) {
-      if (!m.taken) { h += '<tr class="cls-nt"><td>' + esc(m.name) + '</td><td colspan="6" class="muted">not taken</td></tr>'; return; }
+      if (!m.taken) { h += '<tr class="cls-nt"><td>' + esc(m.name) + '</td><td colspan="7" class="muted">not taken</td></tr>'; return; }
       var pick = m.attempts.length > 1 ? '<select class="cls-att" data-code="' + esc(m.code) + '">' + m.attempts.map(function (a) { return '<option value="' + esc(a.session_id) + '"' + (a.session_id === m.session_id ? ' selected' : '') + '>' + esc(a.label) + '</option>'; }).join('') + '</select>' :
         esc((m.attempts[0] || {}).label || '');
       var mods = m.modules || [];
       mods.forEach(function (t, i) {
-        h += '<tr>' + (i ? '<td></td><td></td>' : '<td><b>' + esc(m.name) + '</b></td><td>' + pick + '</td>') + '<td>' + esc(t.title) + ' · ' + clk(t.clock) + '</td><td>' + t.right + '/' + t.n + '</td><td>' + clk(t.solving) + '</td><td>' + clk(t.checking) + '</td><td>' + clk(t.left) + '</td></tr>';
+        h += '<tr>' + (i ? '<td></td><td></td>' : '<td><b>' + esc(m.name) + '</b></td><td>' + pick + '</td>') + '<td>' + esc(t.title) + ' · ' + clk(t.clock) + '</td><td>' + t.right + '/' + t.n + '</td><td>' + clk(t.solving) + '</td><td>' + clk(t.checking) + '</td><td>' + clk(t.left) + '</td><td class="cls-ig">' + esc(t.left_ig || '—') + '</td></tr>';
       });
     });
     h += '</table></div>';
@@ -1395,7 +1484,7 @@
       if (!e.target.closest('#nav-pop, #btn-nav, #dir-pop, #btn-dir, #more-menu, #tool-more')) closePops();
       if (!e.target.closest('#hl-toolbar, .hl, #tool-annot')) hideHlToolbar();
     });
-    initCalc(); initRef(); initAnnotate(); initReader();
+    initCalc(); initRef(); initAnnotate(); initReader(); initIntegrity();
     window.addEventListener('pagehide', function () {
       if (A.st && A.st.phase === 'test') { var q = curQ(); if (q) log('q_leave', q.qid, 'pagehide'); persist(); }
     });

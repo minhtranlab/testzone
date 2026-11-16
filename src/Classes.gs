@@ -71,8 +71,6 @@ function ensureClasses_() {
   ensureGrid_(sh, n + 1, CLASS_HEADERS.length);
   try {
     sh.getRange(2, 4, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['Yes', 'No'], true).setAllowInvalid(false).build());
-    sh.getRange(2, 3, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireFormula('=TRUE').setAllowInvalid(true)
-      .setHelpText('Student codes separated by commas, e.g. QUYNHANH, QUYNHCHI (tab Students, column student_code).').build());
   } catch (e) { console.warn('CLASSES DROPDOWNS: ' + e); }
   var m = syncClassMirror_();
   return 'Classes: ' + (made ? 'created' : 'kept') + ', ' + classesAll_().length + ' classes, mirror ' + m + ' cells';
@@ -196,6 +194,8 @@ function classData_(cls, opts) {
       var t = moduleTimes_(rows, p.time_limit_sec, partUsedSec_(s, p.part, p.time_limit_sec));
       t.part = p.part; t.title = partTitleShort_(prof, p.part, sat);
       t.right = rows.filter(function (r) { return Number(r.correct) === 1; }).length; t.n = rows.length;
+      var igc = integrityCell_(s), x = igc && igc[p.part]; // #44 part 2: "Left the test" column
+      t.left_ig = x ? (x.n ? x.n + '× · ' + durText_(x.sec) : 'never') + (x.copy || x.ctx ? ' · copy ' + x.copy + ' · right-click ' + x.ctx : '') : '—';
       return t;
     });
   });
@@ -211,6 +211,7 @@ function classData_(cls, opts) {
       if (!s || scopePartsOf_(s, allParts).indexOf(q.part) < 0 || !r) { o.cells[m.code] = { st: 'none' }; return; }
       var p = String(r.profile), st = qStatus_(p), ta = taOf_(r);
       o.cells[m.code] = { st: st, a: answerText_(r.final_answer), b: qBadge_(p), p: p, ta: ta === null ? null : Math.round(ta), tot: Math.round(Number(r.time_total_sec) || 0) };
+      var lf = Number(r.left_sec) || 0; if (lf > 0) { o.cells[m.code].left = Math.round(lf); if (/LEFT_THEN_RIGHT/.test(String(r.flags || ''))) o.cells[m.code].lf = true; } // #44
       o.taken++;
       if (st !== 'right') o.wrong++;
       if (p === 'SLOW_WRONG') o.slow_wrong++;
@@ -268,10 +269,11 @@ function teacherClassReview(code, classId, opts) {
   });
   var qs = fd.questions.filter(function (q) { return want[q.qid]; }).map(function (q) {
     var w = want[q.qid], o = clientQuestion_(q);
-    o.answer = ''; o.status = 'class'; o.code = w.code; o.skill = w.skill;
-    o.members = d.members.map(function (m) { var c = w.cells[m.code] || { st: 'none' }; return { name: m.name, st: c.st, a: c.a || '', b: c.b || '', ta: c.ta, tot: c.tot }; });
+    o.answer = ''; o.status = 'class'; o.code = w.code;
+    o.members = d.members.map(function (m) { var c = w.cells[m.code] || { st: 'none' }; return { name: m.name, st: c.st, a: c.a || '', b: c.b || '', ta: c.ta, tot: c.tot, left: c.left, lf: !!c.lf }; });
     return o;
   });
+  addSkills_(d.form_id, qs); // "Nonlinear functions (P.C)" on the question bar
   return { ok: true, class_id: d.class_id, class_name: d.name, form_id: d.form_id, title: formTitle_(prof, d.form_id), parts: parts, questions: qs,
            question_font: prof.question_font || '', reference_sheet: prof.reference_sheet || '', reference_html: prof.reference_html || '',
            annotate_label: prof.annotate_label || '', settings: { desmos_api_key: desmosKey_() } };
