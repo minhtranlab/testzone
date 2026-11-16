@@ -74,9 +74,10 @@ const FORM = 'MOCK-SAT98', TCODE = 'TEACH-40-UI';
     check(v.lines.length === 3 && v.lines.every(t => /^Practise in SAT Math Lib: .+ \([HPQS]\.[A-G]\) — 10 questions$/.test(t)) && v.inside, `${dev}: 3 lines inside "What to practise first" ("${v.lines[0]}")`);
     check(v.a.every(a => a.href === 'https://minhtranlab.github.io/satmath/' && a.target === '_blank' && /noopener/.test(a.rel) && a.mark && a.bg === 'rgb(232, 240, 254)'), `${dev}: "SAT Math Lib" highlighted like the practice-app line, link opens in a new tab`);
     check(!v.times && !/Solving time|Checking|assign (Easy|Medium|Hard)|time to answer/i.test(v.body) && v.sw, `${dev}: no module times, no time to answer, no level hint; no sideways scroll`);
-    if (dev === 'desktop1280') await page.locator('.res-list').evaluate(el => el.previousElementSibling.scrollIntoView());
-    const box = await page.evaluate(() => { const a = document.querySelector('.res-list').previousElementSibling.getBoundingClientRect(), b = document.querySelector('.sml-recs').getBoundingClientRect(); return { x: 0, y: a.top + scrollY - 8, w: innerWidth, h: b.bottom - a.top + 16 }; });
-    await page.screenshot({ path: path.join(out, 'r40_student_sml_' + dev + '.png'), clip: { x: box.x, y: Math.max(0, box.y), width: box.w, height: box.h }, fullPage: true });
+    if (dev === 'phone') await page.setViewportSize({ width: 390, height: 1700 });
+    await page.locator('.res-list').evaluate(el => el.previousElementSibling.scrollIntoView());
+    const box = await page.evaluate(() => { const a = document.querySelector('.res-list').previousElementSibling.getBoundingClientRect(), b = document.querySelector('.sml-recs').getBoundingClientRect(); return { x: 0, y: a.top - 8, w: innerWidth, h: Math.min(innerHeight - a.top + 8, b.bottom - a.top + 16) }; });
+    await page.screenshot({ path: path.join(out, 'r40_student_sml_' + dev + '.png'), clip: { x: box.x, y: Math.max(0, box.y), width: box.w, height: box.h } });
     await page.context().close();
   }
   await E.close();
