@@ -558,4 +558,17 @@ body.ig-guard #qwrap, body.ig-guard .passage { -webkit-user-drag: none; -webkit-
 a.pr-link { text-decoration: none; } a.pr-link:hover mark { text-decoration: underline; } a.pr-link mark.app-mode { cursor: pointer; }
 .skill li { flex-wrap: wrap; } .skill li .it-pr { flex-basis: 100%; } .it-pr .pr-app { margin: 2px 0 4px; font-size: 13.5px; }
 .rv-skill { font-weight: 400; color: var(--ink-2); }
+.res-noest { margin: 0 0 14px; color: #9a3412; font-size: 14.5px; } /* #46 */
+.tgrid-short { font-size: 12.5px; margin: 4px 0 0; color: var(--muted); } /* #46: leaves < 20 s, quiet */
+/* #46: class screen section switch + ⚠ mark (same look as the teacher result grid) */
+.cls-sec { display: inline-flex; gap: 0; margin: 0 0 14px; border: 1px solid var(--line-2); border-radius: 999px; overflow: hidden; }
+.cls-sec button { border: 0; background: #fff; padding: 6px 16px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--ink-2); }
+.cls-sec button + button { border-left: 1px solid var(--line-2); }
+.cls-sec button.on { background: var(--ink); color: #fff; } .cls-sec button:disabled { cursor: default; }
+.cls-sec button:disabled:not(.on) { color: var(--muted); }
+.lf-mark { display: inline-block; width: 16px; height: 15px; line-height: 15px; font-size: 10.5px; font-weight: 800; text-align: center; color: #78350f;
+  background: #fbbf24; clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 2px; box-sizing: border-box; cursor: help; }
+.rgrid.tgrid .rcell .rl.fl { border: 0; border-radius: 0; width: 16px; min-width: 16px; height: 15px; background: #fbbf24; color: #78350f; font-weight: 800; font-size: 10.5px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 2px; box-sizing: border-box; line-height: 13px; } /* #46: same ⚠ as the class screen */
+.cg-blank { font-weight: 600; color: var(--muted); }
 </style>

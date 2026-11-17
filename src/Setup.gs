@@ -85,7 +85,7 @@ var EXPECTED_HEADERS = {
 
 var REQUIRED_SETTINGS = ['app_name', 'fast_ratio', 'slow_ratio', 'guess_window_sec', 'guess_min_time_sec', 'weak_accuracy',
                          'min_questions_for_verdict', 'autosave_sec', 'five_min_warning_sec', 'desmos_api_key', 'show_results',
-                         'valid_min_time_ratio', 'valid_quick_ratio', 'valid_blank_ratio', 'unit_slow_ratio', 'teacher_code'];
+                         'valid_min_time_ratio', 'valid_quick_ratio', 'unit_slow_ratio', 'teacher_code']; // valid_blank_ratio unused since #46
 
 function checkSheet_() {
   var out = [], problems = 0;

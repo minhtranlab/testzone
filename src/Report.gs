@@ -78,7 +78,8 @@ function standardTimeText_(parts) {
 /**
  * rows: per-question objects with profile, time_total_sec, part; partTimesMin: {part: minutes used}; profile: exam profile.
  * Not reliable when: time used < valid_min_time_ratio × limit (SAT: per section), or ≥ valid_quick_ratio of answered
- * questions took < guess_min_time_sec, or ≥ valid_blank_ratio blank.
+ * questions took < guess_min_time_sec. Blanks no longer count here (#46: a blank = "I can't do it", it is information;
+ * blanks are wrong in every analysis). Not reliable only hides the score estimate; all the advice stays (#46).
  */
 /** secUsedMin (optional): {RW: 10.3, Math: …} = Sessions.time_used_<section>_min, so the reason text shows the same number (#28 t3). */
 function validity_(rows, partTimesMin, profile, S, secUsedMin) {
@@ -106,7 +107,6 @@ function validity_(rows, partTimesMin, profile, S, secUsedMin) {
     });
   } else if (limit && used < S.valid_min_time_ratio * limit) reasons.push('only ' + used + ' of ' + limit + ' minutes used');
   if (answered && quick / answered >= S.valid_quick_ratio) reasons.push(quick + ' of ' + answered + ' answers chosen in under ' + S.guess_min_time_sec + ' seconds');
-  if (n && blank / n >= S.valid_blank_ratio) reasons.push(plural_(blank, 'question') + ' left blank');
   return { reliable: reasons.length === 0, reasons: reasons, used: used, limit: limit, quick: quick, answered: answered, blank: blank, n: n };
 }
 
@@ -196,11 +196,7 @@ function analyse_(session, rows, S, studentName) {
   var summary;
   var wrongs = counts.FAST_WRONG + counts.SLOW_WRONG + counts.WRONG;
   var fastHigh = !v.reliable && n && right / n >= 0.8; // e.g. a retake done from memory
-  if (!v.reliable) {
-    summary = 'This attempt <b>cannot be used to judge the level</b>: ' + escHtml_(v.reasons.join(', ')) + '. ' +
-      (fastHigh ? 'Many right answers but far too fast: the answers may be remembered from an earlier attempt. Give another form, or retake this one later, in real test conditions.'
-                : 'Most likely random answers or an unfinished test. Ask for a retake in real test conditions.');
-  } else {
+  { // #46: the analysis is always made; "not reliable" only hides the score estimate (the caveat goes first)
     var weakU = units.filter(function (U) { return U.status === UNIT_STATUS_.BAD; });
     var goodU = units.filter(function (U) { return U.status === UNIT_STATUS_.OK; });
     var main;
@@ -211,17 +207,12 @@ function analyse_(session, rows, S, studentName) {
     summary = escHtml_(first) + ' is solid in ' + (goodU.map(function (U) { return unitShort_(U.u); }).join(', ') || 'some areas') + '. ' +
       (weakU.length ? 'Most points lost in ' + weakU.map(function (U) { return unitFull_(U.u); }).join(' and ') + '. '
                     : (wrongs ? 'Wrong answers are spread out; no ' + (sat ? 'domain' : 'unit') + ' is below the reteach level. ' : '')) + main;
+    if (!v.reliable) summary = 'Score not estimated — ' + escHtml_(v.reasons.join(', ')) + '. ' + summary;
   }
   // actions (teacher, ≤ 4)
   var actions = [];
   var totalLimit = parts.reduce(function (a, p) { return a + p.limit_min; }, 0);
-  if (!v.reliable && fastHigh) {
-    actions.push('Next time give a new form (not taken yet), or wait a while before retaking this one.');
-    actions.push('Time the full ' + totalLimit + ' minutes, like the real test, so the report shows real timing.');
-  } else if (!v.reliable) {
-    actions.push('Retake this form with the full ' + totalLimit + ' minutes, without stopping halfway.');
-    actions.push('Remind the student: wrong answers cost nothing on the ' + (sat ? 'SAT' : 'AP exam') + ', but random answers hide what they really need to work on.');
-  } else {
+  { // #46: same actions for every attempt
     units.filter(function (U) { return U.status === UNIT_STATUS_.BAD; }).sort(function (a, b) { return a.k / a.t - b.k / b.t; }).slice(0, 2).forEach(function (U) {
       var bad = U.topics.filter(function (T) { return T.dots.some(function (d) { return !isRightP_(d.p); }); }).map(function (T) { return sat ? T.name : T.code + ' ' + T.name; });
       actions.push(sat ? '<b>Reteach ' + escHtml_(unitFull_(U.u)) + '.</b> Missed skills: ' + bad.map(escHtml_).join('; ') + '.'
@@ -232,6 +223,8 @@ function analyse_(session, rows, S, studentName) {
     if (counts.BLANK) actions.push('<b>Never leave a blank.</b> ' + plural_(counts.BLANK, 'question') + ' left blank: with 2 minutes left, answer every remaining question.');
     if (r2w) actions.push('<b>Change answers only for a reason.</b> ' + plural_(r2w, 'answer') + ' changed from right to wrong.');
     if (!actions.length) actions.push('<b>Keep it up.</b> Give a new form at the same level or harder.');
+    if (!v.reliable) actions.unshift(fastHigh ? '<b>For a score:</b> give a new form (not taken yet) in real test conditions.'
+                                              : '<b>For a score:</b> retake with the full ' + totalLimit + ' minutes, in one go.');
   }
   actions = actions.slice(0, 4);
   var wrongList = qs.filter(function (q) { return !isRightP_(q.p); }).map(function (q) {
@@ -255,10 +248,10 @@ function analyse_(session, rows, S, studentName) {
     date: session.submitted_at ? fmtDate_(new Date(toMs_(session.submitted_at)), 'dd MMM yyyy, HH:mm') : '',
     n: n, right: right, pct: n ? Math.round(100 * right / n) : 0, parts: parts, used: v.used, limit: v.limit,
     valid: v.reliable, reasons: v.reasons, summary: summary, actions: actions, units: units, counts: counts, r2w: r2w, elimKey: elimKey,
-    sml: v.reliable ? smlRecs_(qs, sat, S) : null, // #40 D
+    sml: smlRecs_(qs, sat, S), // #40 D (#46: also when not reliable)
     qs: qs.map(function (q) { return { qid: q.qid, part: q.part, no: q.no, p: q.p, s: q.s, ta: q.ta, pace: q.pace, diff: q.diff, unit: q.unit, topic: q.topic, name: q.name, answer: q.answer, left: q.left, left_flag: q.left_flag }; }),
     wrong: wrongList, std_text: stdText, timing: timing, types: types,
-    sat: sat, sections: sections, paces: paces, estimate: estimate, estimate_text: estimate ? satEstimateText_(estimate) : '',
+    sat: sat, sections: sections, paces: paces, estimate: estimate, flag_sec: flagSec_(S), estimate_text: estimate ? satEstimateText_(estimate) : '',
     score_line: sat ? sections.map(function (x) { return x.id + ' ' + x.right + '/' + x.n; }).join(' · ') + (sections.length > 1 ? ' · total ' + right + '/' + n : '') : '' // #32 t3
   };
 }
@@ -364,9 +357,11 @@ function smlRecs_(qs, sat, S) {
 /** Teacher block of one part (#44 part 2): "Left the test: …" + copy / right-click + the questions left on (⚠ = then right). */
 function igView_(a, p) {
   var codeOf = function (qid) { var q = a.qs.filter(function (x) { return x.qid === qid; })[0]; return q ? qCode_(q.part, q.no, a.sat) : ''; };
-  var t = integrityText_(p.ig, codeOf);
+  var t = integrityText_(p.ig, codeOf, a.flag_sec);
   t.data = !!p.ig;
-  t.qs = a.qs.filter(function (q) { return q.part === p.part && q.left; }).map(function (q) { return { code: qCode_(q.part, q.no, a.sat), qid: q.qid, left: Math.round(q.left), flag: !!q.left_flag }; });
+  var longQ = {}; t.long.forEach(function (l) { if (l.qid) longQ[l.qid] = 1; });
+  // questions with a leave ≥ leave_flag_sec (#46: the shorter ones only in the grey list t.short)
+  t.qs = a.qs.filter(function (q) { return q.part === p.part && q.left && longQ[q.qid]; }).map(function (q) { return { code: qCode_(q.part, q.no, a.sat), qid: q.qid, left: Math.round(q.left), flag: !!q.left_flag }; });
   return t;
 }
 /** "Practise in SAT Math Lib: Nonlinear functions (P.C) — 10 questions" */
@@ -467,7 +462,7 @@ function studentView_(a, profile, asTeacher) {
     var e = a.estimate, pick = function (x) { return x ? { score: x.score, low: x.low, high: x.high } : null; };
     out.estimate = { total: e.total, RW: pick(e.RW), Math: pick(e.Math) }; // students: the numbers only (#24 B2)
     if (asTeacher) out.estimate.teacher_note = [e.RW && e.RW.note ? 'RW: ' + e.RW.note : '', e.Math && e.Math.note ? 'Math: ' + e.Math.note : '']
-      .filter(String).concat(['From public score charts (hard Module 2 route); a practice form, so the real score can differ.']).join(' ');
+      .filter(String).join(' '); // #46: no generic explanation
   }
   // section → domain → skill (SAT) / units → topics (AP): "x/y correct" + the missed questions of each skill (#24 D)
   var byTopic = {};
@@ -483,7 +478,7 @@ function studentView_(a, profile, asTeacher) {
                           missed: tq.filter(function (q) { return !isRightP_(q.p); }).map(function (q) { return qRef_(q, sat); }),
                           slow: tq.filter(function (q) { return q.p === 'SLOW_RIGHT'; }).map(function (q) { return qRef_(q, sat); }) };
                  // #44 part 3, teacher: the practice line under each weak skill (not all right), with the level for SAT Math Lib
-                 if (asTeacher && a.valid && T.k < T.t) { var pr = practiceFor_(S, sat, T.code, { k: T.k, t: T.t }, true); if (pr) it.practice = pr; }
+                 if (asTeacher && T.k < T.t) { var pr = practiceFor_(S, sat, T.code, { k: T.k, t: T.t }, true); if (pr) it.practice = pr; }
                  return it;
                }) };
     }) };
@@ -498,9 +493,7 @@ function studentView_(a, profile, asTeacher) {
   var practise = [];
   // #44 part 3: a tip that names a skill gets that skill's practice line right under it (RW → the vocab app, Math → SAT Math Lib)
   var tip = function (text, skill) { var o = { text: text }, pr = skill ? practiceFor_(S, sat, skill, stats[skill], asTeacher) : null; if (pr) o.practice = pr; practise.push(o); };
-  if (!a.valid) {
-    tip('Take the test again in real test conditions: the full time, in one go, answering every question.');
-  } else {
+  { // #46: the same tips for every attempt ("not reliable" only hides the score estimate)
     var missedEM = a.qs.filter(function (q) { return !isRightP_(q.p) && (q.diff === 'E' || q.diff === 'M'); });
     var bySkill = {};
     missedEM.forEach(function (q) { (bySkill[q.topic] = bySkill[q.topic] || []).push(q); });
@@ -526,11 +519,15 @@ function studentView_(a, profile, asTeacher) {
   // (#40's separate SAT Math Lib box is gone since #44: one practice line under each skill tip / weak skill instead)
   // questions for the review grids: by part, right / wrong / blank + badge (no key)
   out.review = a.parts.map(function (p) {
-    return { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
+    var g = asTeacher ? igView_(a, p) : null, longQ = {};
+    if (g) g.qs.forEach(function (x) { longQ[x.qid] = 1; });
+    var o2 = { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
       var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (asTeacher && q.ta !== null) o.ta_s = Math.round(q.ta);
-      if (asTeacher && q.left) o.left_s = Math.round(q.left); if (asTeacher && q.left_flag) o.left_flag = true; // #44
+      if (asTeacher && q.left && longQ[q.qid]) o.left_s = Math.round(q.left); if (asTeacher && q.left_flag) o.left_flag = true; // #44 / #46: only leaves ≥ 20 s
       return o;
     }) };
+    if (g && g.short.length) o2.short = g.short.map(function (x) { return { code: x.code, sec: x.sec }; }); // #46: grey list
+    return o2;
   });
   return out;
 }
@@ -640,8 +637,7 @@ function topicAgg_(code, formLabel, unit, topic, name, rows, S, updated) {
 
 function studentReportRow_(s, a, S) {
   var weak = '', main = '—';
-  if (!a.valid) { weak = '— (not reliable)'; main = 'Not judged (not reliable)'; }
-  else {
+  { // #46: judged for every attempt; Student_Report.reliable still says whether the score can be estimated
     var cand = a.units.filter(function (U) { return U.status !== UNIT_STATUS_.FEW && U.k < U.t; })
       .sort(function (x, y) { return (x.k / x.t - y.k / y.t) || ((y.t - y.k) - (x.t - x.k)); });
     var bad = cand.filter(function (U) { return U.status === UNIT_STATUS_.BAD; });
@@ -657,7 +653,7 @@ function studentReportRow_(s, a, S) {
     submitted_at: a.date ? fmtDate_(new Date(toMs_(s.submitted_at)), 'yyyy-MM-dd HH:mm') : '',
     total_correct: a.right, percent: a.n ? round_(a.right / a.n, 4) : 0, weakest_topics: weak, main_error_profile: main,
     timing_pattern: a.timing, summary: (a.score_line ? a.score_line + '. ' : '') + stripTags_(a.summary), reliable: a.valid ? 'Yes' : 'No',
-    sittings: a.sittings, estimated_score: a.estimate_text || '',
+    sittings: a.sittings, estimated_score: a.valid ? (a.estimate_text || '') : '',
     scope: a.scope === 'full' ? 'Full test' : partTag_(a.scope_label)
   };
 }

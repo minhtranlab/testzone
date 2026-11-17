@@ -68,7 +68,7 @@ var INTERPRETATION_ROWS_ = [
   ['Too few to judge', 'Fewer than min_questions_for_verdict questions (the form has only one question there)', 'No conclusion yet.', 'Give more questions on that unit / skill.'],
   [],
   ['Attempt: reliable or not (column reliable)'],
-  ['Not reliable (reliable = No)', 'Any of: time used < valid_min_time_ratio (30%) of the test time (SAT: per section); ≥ valid_quick_ratio (30%) of the answers chosen in < 15 s; ≥ valid_blank_ratio (30%) blank', 'Random answers or an unfinished test. The Report tab hides units / error types / wrong list, the student result says it cannot be used; the attempt is left out of Topic_Summary.', 'Retake in real test conditions.'],
+  ['Not reliable (reliable = No)', 'Any of: time used < valid_min_time_ratio (30%) of the test time (SAT: per section); ≥ valid_quick_ratio (30%) of the answers chosen in < 15 s. Blank questions do not count here (#46): they count as wrong', 'Only the score estimate is held back ("Score not estimated — …"); skills, tips, practice lines and times are still shown. The attempt is left out of Topic_Summary.', 'For a score: retake in real test conditions.'],
   ['Reliable (reliable = Yes)', 'Otherwise', 'Can be used to judge the level.'],
   [],
   ['SAT estimated score', 'x = 0.9 × M1 + 1.1 × max(M2, 0.45 × M1) → hard-route table (Score_Scale); M1 below m1_good (19 RW / 15 Math) → capped at 600 with a note; M2 below m2_floor (9 / 6) → "Module 2 not counted". Section ± 20, total ± 30.', 'An estimate from public score charts (no official conversion exists for these forms).', 'Use the range, not the exact number.']
@@ -234,7 +234,8 @@ var SETTINGS_MEANING_ = {
   show_results: 'score_and_right_wrong = students see the result page and which questions were right / wrong (never the key); score_only; none',
   valid_min_time_ratio: 'Not reliable if the time used < this × the test time (SAT: per section)',
   valid_quick_ratio: 'Not reliable if ≥ this share of the answers took < guess_min_time_sec',
-  valid_blank_ratio: 'Not reliable if ≥ this share of the questions is blank',
+  valid_blank_ratio: 'Not used since v1.15.1 (#46): blank questions no longer make an attempt "not reliable"; they count as wrong',
+  leave_flag_sec: 'Teacher pages: only leaves of the test window this long (seconds) count in "Left the test" and for ⚠; shorter ones are listed in grey',
   unit_slow_ratio: 'A unit / domain with ≥ this share of slow questions = Slow',
   teacher_code: 'Teacher sign-in code for the app (teacher view + Show answer). Empty = teacher view off. Use a long, hard-to-guess code',
   code_version: 'Code version + commit whose Sheet update has run (set automatically after each deploy)',
@@ -273,6 +274,7 @@ var SETTINGS_NEW_ROWS_ = [['teacher_code', ''],
   // #44 part 2: test integrity
   ['integrity_on', 'Yes'],
   ['integrity_toast', 'Yes'],
+  ['leave_flag_sec', '20'], // #46
   ['practice_mode CAS.WIC', 'Vocabulary'],
   ['practice_mode CAS.TSP', 'Text Structure & Purpose'],
   ['practice_mode CAS.CTC', 'Cross-Text Connections'],

@@ -81,7 +81,7 @@ check(/^\d{3,4} \(\d{3,4}–\d{3,4}\) · RW \d{3} \(\d{3}–\d{3}\)/.test(R1.est
 check(/Standard English Conventions \(\d+\/\d+\)/.test(R1.weakest_topics) && !/Unit/.test(R1.weakest_topics), 'weakest_topics by domain (English names): ' + R1.weakest_topics);
 check(/^2 sittings: RW1 \d\d\/\d\d \d\d:\d\d–\d\d:\d\d · RW2 .* · M1 \d\d\/\d\d .* · M2 /.test(R1.sittings), 'sittings per module: ' + R1.sittings);
 check(/min RW1/.test(R1.timing_pattern) && /usual time for each question type \(Time_Norms tab\): \d+ slow, \d+ rushed/.test(R1.timing_pattern), 'timing: per module + slow / rushed against Time_Norms (#24 F): ' + R1.timing_pattern);
-check(/Math: only 6 of 70 minutes used/.test(R2.summary) && R2.weakest_topics === '— (not reliable)', 'unreliable reason names the section: ' + R2.summary.slice(0, 120));
+check(/Score not estimated — Math: only 6 of 70 minutes used/.test(R2.summary) && R2.weakest_topics !== '— (not reliable)' && R2.estimated_score === '', '#46 unreliable: "Score not estimated — Math: …", still judged, no estimate: ' + R2.summary.slice(0, 120));
 
 console.log('[Topic_Summary]');
 const TS = G.table('Topic_Summary').filter(r => r.student_code === 'LAN-8K2');
@@ -108,7 +108,7 @@ check(/^RW \d+\/54 · Math \d+\/44 · total \d+\/98 \(\d+%\)/.test(T[rowOf(/^RW 
 check(/^Modules: RW1 \d+\/27 · RW2 \d+\/27 · M1 \d+\/22 · M2 \d+\/22 · Time RW 64\/64 min, Math 69\/70 min/.test(T[rowOf(/^Modules: /) - 1]), 'modules + time per section: ' + T[rowOf(/^Modules: /) - 1].split(' | ')[0]);
 check(/^Estimated score: \d{3,4} \(\d{3,4}–\d{3,4}\) · RW \d{3}/.test(T[rowOf(/^Estimated score: /) - 1]), 'Report header: ' + T[rowOf(/^Estimated score: /) - 1].split(' | ')[0]);
 check(/^2 sittings: .* — not like the real test/.test(T[rowOf(/^2 sittings: /) - 1]), 'Report header flags the 2 sittings');
-check(rowOf(/^Reliable attempt/) > 0, 'validity: reliable');
+check(rowOf(/^Reliable attempt/) === 0 && rowOf(/^Score not estimated/) === 0, '#46 validity: nothing to say on a reliable attempt');
 const iD = rowOf(/^Section \| Domain \| Right \| Share \| Verdict/);
 const dom = T.map((t, i) => [t, i + 1]).filter(([t]) => /^(RW|Math) \| /.test(t));
 check(iD > 0 && rowOf(/^By domain/) > 0 && dom.length === 8, '"By domain": 8 domain rows');
@@ -117,7 +117,7 @@ check(/^Math \| Advanced Math \|/.test(dom.find(([t]) => /Advanced Math/.test(t)
 const bou = rowOf(/^ \| Boundaries \| /); check(bou > 0 && sh.rowDepth[bou] === 1, 'skill row "Boundaries" grouped under its domain');
 const ini = dom.find(([t]) => /Information and Ideas/.test(t))[1];
 check(!sh.hiddenRows[dom.find(([t]) => /Standard English Conventions/.test(t))[1] + 1] && (/\| OK$/.test(T[ini - 1]) ? sh.hiddenRows[ini + 1] : true), 'weak domain expanded, OK domains collapsed');
-check(rowOf(/^Slow \/ rushed = against the usual time for each question type/) > 0, 'time text: slow / rushed against Time_Norms');
+check(rowOf(/^Slow \/ rushed = against the usual time/) === 0 && rowOf(/^Error types/) > 0, '#46: no explanation line under Error types');
 const iAct = rowOf(/^Next steps/); check(/^1\. Reteach (Standard English Conventions \(RW\)|Advanced Math \(Math\))\. Missed skills: /.test(T[iAct]), 'action 1: ' + T[iAct].slice(0, 90));
 const iW = rowOf(/^Wrong and blank answers/); check(/^Question \| Skill \| Type \| Time to answer \| Note/.test(T[iW]) && /^(RW1|RW2|M1|M2) \d+ \| [A-Z]/.test(T[iW + 1]), 'wrong list: "RW1 3 | Boundaries | …"');
 check(sh.charts.length === 1 && sh.charts[0].ranges[0].getValues().length === 99 && sh.charts[0].ranges[0].getValues()[1][0] === 'RW1-1', 'chart: 98 questions labelled RW1-1 …');
@@ -131,9 +131,9 @@ fs.writeFileSync(OUT + '/sat_report_real.html', '<meta charset="utf-8"><body sty
 
 console.log('[Report tab — unreliable]');
 pick(list[0]); T = text();
-check(/^Not reliable: Math: only 6 of 70 minutes used · \d+ of \d+ answers chosen in under 15 seconds/.test(T[rowOf(/^Not reliable/) - 1]), 'unreliable line: ' + T[rowOf(/^Not reliable/) - 1].split(' | ')[0]);
-check(rowOf(/The analysis is hidden/) > 0 && rowOf(/^By domain/) === 0 && sh.charts.length === 1, 'analysis hidden (no domain table), chart kept');
-check(Object.values(sh.rowDepth).every(d => !d), 'groups of the previous render removed');
+check(/^Score not estimated — Math: only 6 of 70 minutes used · \d+ of \d+ answers chosen in under 15 seconds/.test(T[rowOf(/^Score not estimated/) - 1]), '#46 unreliable line: ' + T[rowOf(/^Score not estimated/) - 1].split(' | ')[0]);
+check(rowOf(/The analysis is hidden/) === 0 && rowOf(/^By domain/) > 0 && sh.charts.length === 1, '#46: domain table shown for a not-reliable attempt too, one chart');
+check(Object.keys(sh.rowDepth).filter(r => sh.rowDepth[r]).every(r => Number(r) > rowOf(/^By domain/)), 'only the row groups of this render');
 fs.writeFileSync(OUT + '/sat_report_guess.html', '<meta charset="utf-8"><body style="margin:16px;background:#f2f2f2">' + dump(sh) + '</body>');
 
 console.log('[one student, AP + SAT]');

@@ -166,8 +166,8 @@ const sh = C.ss_().getSheetByName('Report') || C.ensureReportTab_();
 C.renderReport_(C.ss_().getSheetByName('Report'), x.session.session_id);
 const RT = G.sheets.Report.rows.map(rw => rw.slice(1, 6).map(v => String(v).replace(/^'/, '')).filter(String).join(' | '));
 const iT = RT.findIndex(l => l === 'Time per module');
-check(iT > 0 && /^Module \(clock\) \| Solving time \| Checking \/ review \| Time left at submit \| On blank questions$/.test(RT[iT + 2]) && /^M1 \(35:00\) \| 16:30 \| \d+:\d\d \| \d+:\d\d \| 1:00$/.test(RT[iT + 3]),
-  'Report: "Time per module" table (' + RT[iT + 3] + ')');
+check(iT > 0 && /^Module \(clock\) \| Solving time \| Checking \/ review \| Time left at submit \| On blank questions$/.test(RT[iT + 1]) && /^M1 \(35:00\) \| 16:30 \| \d+:\d\d \| \d+:\d\d \| 1:00$/.test(RT[iT + 2]),
+  'Report: "Time per module" table, no explanation line (#46) (' + RT[iT + 2] + ')');
 const lines = RT.filter(l => /\| Practise: .+ in SAT Math Lib — \d+\/\d+ right · assign (Easy|Medium|Hard)/.test(l));
 check(RT.findIndex(l => l === 'Practise in SAT Math Lib') < 0 && lines.length >= 1, 'Report: no separate block; the practice text sits next to the weak skills ("' + (lines[0] || '').replace(/^.*?\| /, '') + '")');
 const iW = RT.findIndex(l => /^Question \| Skill \| Type \| Time to answer/.test(l));

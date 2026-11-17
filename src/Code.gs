@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.15 (2026-11-16, classes + integrity + practice lines)';
+var APP_VERSION = 'v1.15.1 (2026-11-17, teacher feedback round)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -1217,7 +1217,7 @@ function gradeSession_(session, state, events) {
                         .sort(function (a, b) { return (Number(a.t_ms) || 0) - (Number(b.t_ms) || 0); });
     var d = deriveMetrics_(pEvents, qs.map(function (q) { return q.qid; }));
     var ig = integrityOfPart_(pEvents), leftQ = leftByQ_(ig); // #44 part 2: leaving the test window, copy / right-click
-    if (ig.on) integrity[partId] = { n: ig.n, sec: ig.sec, at: ig.leaves.map(function (l) { return l.qid; }), copy: ig.copy, ctx: ig.ctx, fs: ig.fs };
+    if (ig.on) integrity[partId] = igCellOf_(ig);
     var limitMs = part.time_limit_sec * 1000;
     var pace = part.time_limit_sec / Math.max(1, qs.length);
     var endEv = pEvents.filter(function (e) { return e.type === 'part_end'; }).pop();
@@ -1251,7 +1251,7 @@ function gradeSession_(session, state, events) {
       if (fin && timeSec < S.guess_min_time_sec) flags.push('GUESS_LIKELY');
       var keys = Array.isArray(q.key) ? q.key : [q.key];
       if ((q.type || 'mcq') === 'mcq' && elim.some(function (l) { return keys.indexOf(l) >= 0; })) flags.push('ELIM_KEY');
-      if (ig.on && leftThenRight_(ig, q.qid, !!corr, lastChangeT_(mm.aev))) flags.push('LEFT_THEN_RIGHT'); // #44: ⚠ for the teacher
+      if (ig.on && leftThenRight_(ig, q.qid, !!corr, lastChangeT_(mm.aev), flagSec_(S))) flags.push('LEFT_THEN_RIGHT'); // #44: ⚠ for the teacher
       var tg = tags[q.qid] || {};
       responses.push({
         session_id: session.session_id, student_code: session.student_code, form_id: formId, attempt_no: session.attempt_no,
@@ -1454,6 +1454,9 @@ function teacherReview(code, sessionId) {
   var lf = {}; rows.forEach(function (x) { var l = Number(x.left_sec) || 0; if (l > 0) lf[String(x.qid)] = { s: Math.round(l), f: /LEFT_THEN_RIGHT/.test(String(x.flags || '')) }; });
   r.questions.forEach(function (q) { if (lf[q.qid]) { q.left_s = lf[q.qid].s; if (lf[q.qid].f) q.left_flag = true; } }); // #44: left the test window on it
   addSkills_(String(s.form_id), r.questions); // #44 part 3: the skill on the teacher question bar
+  // #46: the keys come with the questions (teacher call, teacher code checked) → "Show answer" shows them at once
+  var fdk = formData_(String(s.form_id)), inR = {}; r.questions.forEach(function (q) { inR[q.qid] = 1; });
+  r.answer_keys = {}; if (fdk) fdk.questions.forEach(function (q) { if (inR[q.qid]) r.answer_keys[q.qid] = (Array.isArray(q.key) ? q.key : [q.key]).map(String); });
   var st = findStudent_(s.student_code); r.student = st ? String(st.name || '') : String(s.student_code);
   return r;
 }

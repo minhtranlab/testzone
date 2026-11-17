@@ -84,7 +84,7 @@ G.resetCalls(); let t1 = Date.now(); pick(list[1]); const realMs = Date.now() - 
 let T = text();
 check(T.every(t => !t.includes('DATE!')), 'no text turned into a date (3/8, 20/28 …)');
 check(T[4].startsWith('An |') && /Attempt 1/.test(T[5]) && /^2 sittings: Part A/.test(T[6]) && /^Score 28\/45 \(62%\) · Part A 20\/28 · Part B 8\/17 · Time 10\d(\.\d)?\/105 min/.test(T[7]), 'header: name, form/attempt/date, sittings, score/parts/time');
-check(rowOf(/^Reliable attempt/) > 0 && sh.fmt[rowOf(/^Reliable attempt/) + ':2'].color === '#2e7d32', 'validity line (green text)');
+check(rowOf(/^Reliable attempt/) === 0 && rowOf(/^Score not estimated/) === 0, '#46: no validity sentence on a reliable attempt');
 const iSum = rowOf(/^Summary/); check(iSum > 0 && /^An is solid in Unit 1, Unit 2, Unit 4, Unit 7\. Most points lost in/.test(T[iSum]), 'Summary (plain text, mockup wording in English)');
 const iAct = rowOf(/^Next steps/); check(/^1\. Reteach Unit 8 – Applications of Integration\./.test(T[iAct]) && /^4\. Build speed\./.test(T[iAct + 3]), '4 numbered actions');
 const iU = rowOf(/^Unit \| Name \| Right \| Share \| Verdict/); check(iU > 0, 'unit table header');
@@ -98,11 +98,11 @@ const u1 = unitRows.find(([t]) => t.startsWith('Unit 1 |'))[1];
 check(sh.hiddenRows[u1 + 1] && !sh.hiddenRows[u6[1] + 1] && sh.groupCtl === 'BEFORE', 'groups: Unit 1 topics collapsed, Unit 6 (Needs reteaching) expanded, toggle on the unit row');
 const iTy = rowOf(/^Type \|  \| Questions \| Meaning/); check(iTy > 0 && /^Didn't know \(slow and wrong\) \|  \| 7 \| Long time and still wrong/.test(T[iTy]) && /^Changed right → wrong \|  \| 1 \|/.test(T[iTy + 5]), 'Error types table (7 / … / changed right → wrong 1)');
 const iT = rowOf(/^Time per question/); check(iT > 0 && sh.charts.length === 1 && sh.charts[0].pos.r === iT + 3 && sh.charts[0].type === 'combo', 'one combo chart under "Time per question"');
-check(/^Bar colours: green = right · yellow = right but slow .* · red = wrong · grey = blank\. Dashed line = usual time per question/.test(T[iT]), 'one-line colour legend right above the chart (Minh 2026-11-09)');
+check(/^green = right · yellow = right but slow · red = wrong · grey = blank · dashed line = usual time/.test(T[iT]), 'one-line colour legend right above the chart (#46: legend only)');
 const cd = sh.charts[0].ranges[0].getValues();
 check(cd.length === 46 && cd[0].join() === 'Question,Right,Right but slow,Wrong,Blank,Standard time' && cd[6][3] > 4 && cd[1][5] > 1.9 && cd[30][5] > 2.9, 'chart data: 45 questions, A6 in "Sai" column, standard line ≈2 / ≈3 min');
 check(sh.charts[0].options.series[4].type === 'line' && sh.charts[0].options.isStacked && sh.charts[0].hidden === 'SHOW_BOTH' && sh.hiddenCols[10] && sh.colDepth[10] === 1, 'chart: stacked bars + dashed line, data block J:O grouped+collapsed, hidden data shown');
-const iW = rowOf(/^Wrong and blank answers \(17\)/); check(iW > 0 && /^Question \| Topic \| Type \| Time to answer \| Note/.test(T[iW]) && /^A 6 \| 8\.2 Connecting Position/.test(T[iW + 1]) && /^B 17 \| 8\.7 .* \| Blank \| – \(.* on it\) \|/.test(T[iW + 17]), 'wrong/blank table: 17 rows, A 6 … B 17');
+const iW = rowOf(/^Wrong and blank answers \(17\)/); check(iW > 0 && /^Question \| Topic \| Type \| Time to answer \| Note/.test(T[iW]) && /^A 6 \| 8\.2 Connecting Position/.test(T[iW + 1]) && /^B 17 \| 8\.7 .* \| Blank \| blank \(.* on it\) \|/.test(T[iW + 17]), 'wrong/blank table: 17 rows, A 6 … B 17');
 check(T.some(t => /Chose the right answer, then changed it/.test(t)) && T.some(t => /Crossed out the right answer/.test(t)), 'notes: R→W and ELIM_KEY');
 console.log(`    render: ${realMs} ms in the mock, ${realCalls} Sheet API calls`);
 fs.writeFileSync(OUT + '/report_real.html', '<meta charset="utf-8"><body style="margin:16px;background:#f2f2f2">' + dump(sh) + '</body>');
@@ -113,10 +113,10 @@ check(sh.rowH[rSum] >= 2 * 17 && sh.rowH[rowOf(/^1\. Reteach Unit 8/)] >= 2 * 17
 check(/"groups":\[\[/.test(String(sh.rows[0][19])) && sh.hiddenCols[20], 'T1 remembers the row groups of this render (hidden)');
 // ---- guess (switching selection must clear everything)
 pick(list[0]); T = text();
-console.log('    LINE:', T[rowOf(/^Not reliable/) - 1]); check(/^Not reliable: only 2\.7 of 105 minutes used · 20 of 20 answers chosen in under 15 seconds · 25 questions left blank\./.test(T[rowOf(/^Not reliable/) - 1]) && sh.fmt[rowOf(/^Not reliable/) + ':2'].color === '#c62828', 'unreliable: red line + 3 reasons');
-check(/^1\. Retake this form with the full 105 minutes/.test(T[rowOf(/^Next steps/)]), 'actions = retake');
-check(rowOf(/The analysis is hidden because the attempt is not reliable/) > 0 && rowOf(/^By unit/) === 0 && rowOf(/^Error types/) === 0 && rowOf(/^Wrong and blank/) === 0, 'sections 5, 6, 8 hidden with the note');
-check(sh.charts.length === 1 && Object.keys(sh.rowDepth).every(r => !sh.rowDepth[r]) && Object.keys(sh.hiddenRows).length === 0, 'previous chart removed, all row groups and hidden rows cleared');
+check(/^Score not estimated — only 2\.7 of 105 minutes used · 20 of 20 answers chosen in under 15 seconds\./.test(T[rowOf(/^Score not estimated/) - 1]) && sh.fmt[rowOf(/^Score not estimated/) + ':2'].color === '#c62828', '#46 unreliable: one red line "Score not estimated — …" (2 reasons; blanks no longer one)');
+check(/^1\. For a score: retake with the full 105 minutes/.test(T[rowOf(/^Next steps/)]) && /^2\. /.test(T[rowOf(/^Next steps/) + 1]), '#46 actions: "For a score: retake…" first, then the normal steps');
+check(rowOf(/The analysis is hidden/) === 0 && rowOf(/^By unit/) > 0 && rowOf(/^Error types/) > 0 && rowOf(/^Wrong and blank/) > 0, '#46: by unit, error types, wrong list shown for a not-reliable attempt too');
+check(sh.charts.length === 1 && Object.keys(sh.rowDepth).filter(r => sh.rowDepth[r]).every(r => Number(r) > rowOf(/^By unit/)), 'previous chart removed, row groups only of this render');
 check(/^1 sitting: Part A/.test(T[6]), 'one sitting text');
 const lastGuess = sh.getLastRow ? sh.rows.reduce((m, r, i) => (r || []).slice(0, 6).some(v => v !== '' && v !== undefined) ? i + 1 : m, 0) : 0;
 fs.writeFileSync(OUT + '/report_guess.html', '<meta charset="utf-8"><body style="margin:16px;background:#f2f2f2">' + dump(sh) + '</body>');
@@ -137,7 +137,7 @@ check(S2.find(x => x.session_id === realSid).reliable === 'Yes' && S2.find(x => 
 const fast = { usedA: 14, usedB: 8.5, qs: qs.map(q => ({ part: q.part, n: q.display_no, p: 'RIGHT', s: 30 })) };
 const fastSid = run('AN-7Q4', fast, Date.now() - 3600e3, Date.now() - 3000e3);
 const srFast = G.table('Student_Report').find(r => r.session_id === fastSid);
-check(srFast.reliable === 'No' && /may be remembered from an earlier attempt/.test(srFast.summary) && !/random answers/.test(srFast.summary), 'n2: fast 45/45 → unreliable with "may be remembered from an earlier attempt"');
+check(srFast.reliable === 'No' && /Score not estimated — /.test(srFast.summary) && !/random answers/.test(srFast.summary), 'n2: fast 45/45 → unreliable, "Score not estimated — …" (#46)');
 check(!G.table('Topic_Summary').some(r => r.student_code === 'AN-7Q4' && r.form_id === 'ALL' && r.n_attempted > 0 && String(r.topic).startsWith('Unit') && r.n_attempted > 45), 'n2: the fast retake stays out of Topic_Summary ALL');
 // web-app path: a new submit refreshes the dropdown list
 check(G.ctx.onEdit({ range: G.sheets.Students._proxy.getRange(2, 2) }) === undefined, 'onEdit on another tab is ignored');

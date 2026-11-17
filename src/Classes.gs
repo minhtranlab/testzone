@@ -168,7 +168,11 @@ function classData_(cls, opts) {
   var allParts = prof.parts.map(function (p) { return p.part; });
   var sel = opts.part && allParts.indexOf(opts.part) >= 0 ? [opts.part] : allParts;
   out.form_id = formId; out.form_title = formTitle_(prof, formId); out.sat = sat; out.part = sel.length === 1 && allParts.length > 1 ? sel[0] : '';
-  out.parts = prof.parts.map(function (p) { return { part: p.part, title: partTitleShort_(prof, p.part, sat) }; });
+  var secOf = function (pt) { var x = (prof.sections || []).filter(function (z) { return z.parts.indexOf(pt) >= 0; })[0]; return x ? x.id : pt; };
+  out.parts = prof.parts.map(function (p) { return { part: p.part, title: partTitleShort_(prof, p.part, sat), sec: sat ? secOf(p.part) : p.part }; });
+  // #46: section switch "All · Reading and Writing · Math" (AP: the form's parts; none with one part)
+  out.sections = sat ? (prof.sections || []).map(function (x) { return { id: x.id, title: x.id === 'RW' ? 'Reading and Writing' : (x.title || x.id) }; })
+                     : prof.parts.map(function (p) { return { id: p.part, title: 'Part ' + p.part }; });
   var picks = opts.picks || {};
   var chosen = {}; // code → session
   out.members = cls.codes.map(function (c) {
@@ -195,9 +199,15 @@ function classData_(cls, opts) {
       t.part = p.part; t.title = partTitleShort_(prof, p.part, sat);
       t.right = rows.filter(function (r) { return Number(r.correct) === 1; }).length; t.n = rows.length;
       var igc = integrityCell_(s), x = igc && igc[p.part]; // #44 part 2: "Left the test" column
-      t.left_ig = x ? (x.n ? x.n + '× · ' + durText_(x.sec) : 'never') + (x.copy || x.ctx ? ' · copy ' + x.copy + ' · right-click ' + x.ctx : '') : '—';
+      var it = integrityText_(x, function () { return ''; }, flagSec_(getSettings_())); // #46: only leaves ≥ leave_flag_sec
+      t.left_ig = x ? (it.long.length ? it.long.length + '× · ' + durText_(it.long.reduce(function (a2, l) { return a2 + l.sec; }, 0)) : '') + (x.copy || x.ctx ? (it.long.length ? ' · ' : '') + 'copy ' + x.copy + ' · right-click ' + x.ctx : '') : '—';
       return t;
     });
+  });
+  var longQ = {}, fsec = flagSec_(getSettings_()); // member → qid → left ≥ leave_flag_sec on it (#46)
+  Object.keys(chosen).forEach(function (c) {
+    var igc = integrityCell_(chosen[c]); longQ[c] = {};
+    if (igc) Object.keys(igc).forEach(function (pp) { integrityText_(igc[pp], function () { return ''; }, fsec).long.forEach(function (l) { if (l.qid) longQ[c][l.qid] = 1; }); });
   });
   var tn = topicNamesNoDrive_(formId, fd);
   var qs = (fd ? fd.questions : []).filter(function (q) { return sel.indexOf(q.part) >= 0; })
@@ -211,7 +221,8 @@ function classData_(cls, opts) {
       if (!s || scopePartsOf_(s, allParts).indexOf(q.part) < 0 || !r) { o.cells[m.code] = { st: 'none' }; return; }
       var p = String(r.profile), st = qStatus_(p), ta = taOf_(r);
       o.cells[m.code] = { st: st, a: answerText_(r.final_answer), b: qBadge_(p), p: p, ta: ta === null ? null : Math.round(ta), tot: Math.round(Number(r.time_total_sec) || 0) };
-      var lf = Number(r.left_sec) || 0; if (lf > 0) { o.cells[m.code].left = Math.round(lf); if (/LEFT_THEN_RIGHT/.test(String(r.flags || ''))) o.cells[m.code].lf = true; } // #44
+      var lf = Number(r.left_sec) || 0; // #44; #46: only a leave ≥ leave_flag_sec
+      if (lf > 0 && longQ[m.code] && longQ[m.code][q.qid]) { o.cells[m.code].left = Math.round(lf); if (/LEFT_THEN_RIGHT/.test(String(r.flags || ''))) o.cells[m.code].lf = true; }
       o.taken++;
       if (st !== 'right') o.wrong++;
       if (p === 'SLOW_WRONG') o.slow_wrong++;
@@ -274,7 +285,8 @@ function teacherClassReview(code, classId, opts) {
     return o;
   });
   addSkills_(d.form_id, qs); // "Nonlinear functions (P.C)" on the question bar
-  return { ok: true, class_id: d.class_id, class_name: d.name, form_id: d.form_id, title: formTitle_(prof, d.form_id), parts: parts, questions: qs,
+  var keys = {}; fd.questions.forEach(function (q) { if (want[q.qid]) keys[q.qid] = (Array.isArray(q.key) ? q.key : [q.key]).map(String); }); // #46: Show answer with no wait
+  return { ok: true, answer_keys: keys, class_id: d.class_id, class_name: d.name, form_id: d.form_id, title: formTitle_(prof, d.form_id), parts: parts, questions: qs,
            question_font: prof.question_font || '', reference_sheet: prof.reference_sheet || '', reference_html: prof.reference_html || '',
            annotate_label: prof.annotate_label || '', settings: { desmos_api_key: desmosKey_() } };
 }

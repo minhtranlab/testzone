@@ -12,13 +12,16 @@
  * Break screens, the Directions screen and the time after submit are never counted (the client logs no leave there).
  *
  * At submit: Responses.left_sec (seconds away while on that question; '' = no data) + flag LEFT_THEN_RIGHT (left ≥ 20 s
- * on the question and then chose the right answer); Sessions.integrity = JSON per part {n, sec, at, copy, ctx, fs}.
+ * on the question and then chose the right answer); Sessions.integrity = JSON per part {n, sec, at, copy, ctx, fs,
+ * lv: [[qid, sec], …] one per leave}. #46: on the teacher pages only leaves ≥ leave_flag_sec (Settings, 20) count in the
+ * "Left the test" headline and for ⚠; shorter ones (2–19 s) are listed in grey. The re-grade recomputes all of it.
  * Teacher result page (under each module), Report tab and the class screen show it; students never see these numbers.
  * Not possible from a web page: macOS Force Click / three-finger Look Up / Ctrl+Cmd+D, the iPad callout menu on a text
  * selection, screenshots, a second device.
  */
 
 var LEAVE_MIN_MS = 2000, LEFT_FLAG_SEC = 20;
+function flagSec_(S) { var v = Number((S || {}).leave_flag_sec); return v > 0 ? v : LEFT_FLAG_SEC; }
 
 /** One part's events (sorted by t) → { on, n, sec, leaves: [{qid, t0, t1, sec}], copy, ctx, fs }. */
 function integrityOfPart_(pEvents) {
@@ -50,9 +53,20 @@ function leftByQ_(ig) {
 }
 
 /** Left ≥ 20 s on this question and then chose the (right) final answer after coming back. lastChangeT = t of the final answer. */
-function leftThenRight_(ig, qid, correct, lastChangeT) {
+function leftThenRight_(ig, qid, correct, lastChangeT, flagSec) {
   if (!correct || lastChangeT === null || lastChangeT === undefined) return false;
-  return ig.leaves.some(function (l) { return l.qid === qid && l.sec >= LEFT_FLAG_SEC && l.t1 <= lastChangeT + 1000; });
+  return ig.leaves.some(function (l) { return l.qid === qid && l.sec >= (flagSec || LEFT_FLAG_SEC) && l.t1 <= lastChangeT + 1000; });
+}
+/** The Sessions.integrity entry of one part. */
+function igCellOf_(ig) {
+  return { n: ig.n, sec: ig.sec, at: ig.leaves.map(function (l) { return l.qid; }), copy: ig.copy, ctx: ig.ctx, fs: ig.fs,
+           lv: ig.leaves.map(function (l) { return [l.qid, l.sec]; }) };
+}
+/** Leaves of a part cell: [{qid, sec}] (cells from v1.15 without lv: one leave per question in "at", seconds unknown → null). */
+function leavesOf_(x) {
+  if (!x) return [];
+  if (x.lv) return x.lv.map(function (l) { return { qid: String(l[0] || ''), sec: Number(l[1]) || 0 }; });
+  return (x.at || []).map(function (q) { return { qid: String(q || ''), sec: null }; });
 }
 
 /** Sessions.integrity cell → {part: {n, sec, at: [qid…], copy, ctx, fs}} (null = no data at all). */
@@ -62,16 +76,25 @@ function integrityCell_(session) {
   try { return JSON.parse(v); } catch (e) { return null; }
 }
 
-/** Teacher text: "Left the test: 3× · 2 min 10 s · at M2-15, M2-18" (+ copy / right-click / full screen). x = one part's cell. */
-function integrityText_(x, codeOf) {
-  if (!x) return { left: 'Left the test: —', other: '' };
-  var at = (x.at || []).map(function (q) { return q ? (codeOf(q) || q) : 'Review page'; });
-  var uniq = at.filter(function (c, i) { return at.indexOf(c) === i; });
-  var left = x.n ? 'Left the test: ' + x.n + '× · ' + durText_(x.sec) + (uniq.length ? ' · at ' + uniq.join(', ') : '') : 'Left the test: never';
+/**
+ * Teacher text of one part's cell x (#46): left = "Left the test: 2× · 1 min 5 s · at M2-15, M2-18" counting only leaves
+ * ≥ flagSec ('' when there is none; "Left the test: —" = no data), other = copy / right-click / full screen (only when
+ * there are some), short = the shorter leaves [{code, sec}] for the grey list.
+ */
+function integrityText_(x, codeOf, flagSec) {
+  if (!x) return { left: 'Left the test: —', other: '', short: [], long: [] };
+  flagSec = flagSec || LEFT_FLAG_SEC;
+  var where = function (q) { return q ? (codeOf(q) || q) : 'Review page'; };
+  var lv = leavesOf_(x), known = !x.lv ? null : true;
+  var long = known ? lv.filter(function (l) { return l.sec >= flagSec; }) : lv, short = known ? lv.filter(function (l) { return l.sec < flagSec; }) : [];
+  var at = long.map(function (l) { return where(l.qid); }).filter(function (c, i, a) { return a.indexOf(c) === i; });
+  var sec = known ? long.reduce(function (a, l) { return a + l.sec; }, 0) : x.sec;
+  var left = long.length ? 'Left the test: ' + long.length + '× · ' + durText_(sec) + (at.length ? ' · at ' + at.join(', ') : '') : '';
   var bits = [];
-  bits.push(x.copy ? 'Copy attempts: ' + x.copy : 'No copy attempts');
-  bits.push(x.ctx ? 'Right-click attempts: ' + x.ctx : 'no right-click attempts');
+  if (x.copy) bits.push('Copy attempts: ' + x.copy);
+  if (x.ctx) bits.push('Right-click attempts: ' + x.ctx);
   if (x.fs) bits.push('Left full screen: ' + x.fs + '×');
-  return { left: left, other: bits.join(' · ') };
+  return { left: left, other: bits.join(' · '), short: short.map(function (l) { return { code: where(l.qid), qid: l.qid, sec: l.sec }; }),
+           long: long.map(function (l) { return { code: where(l.qid), qid: l.qid, sec: l.sec }; }) };
 }
 function durText_(s) { s = Math.round(Number(s) || 0); var m = Math.floor(s / 60), r = s % 60; return m ? m + ' min ' + r + ' s' : r + ' s'; }

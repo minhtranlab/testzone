@@ -104,10 +104,10 @@ const prevented = (page, sel, type, init) => page.evaluate(([sel, type, init]) =
   await H.login(tp, E.url, TC.toLowerCase()); await tp.waitForSelector('#scr-teacher.on .t-card');
   await tp.click('.t-open'); await tp.waitForSelector('#scr-result.on .mt-ig');
   const tv = await tp.evaluate(() => ({ ig: [...document.querySelectorAll('.mt-ig .ig-left')].map(x => x.textContent), other: [...document.querySelectorAll('.mt-ig .ig-other')].map(x => x.textContent),
-    marks: document.querySelectorAll('.rgrid.tgrid .rcell .rl').length, list: (document.querySelector('.tgrid-left') || {}).innerText || '' }));
-  check(/^Left the test: 1× · [23] s · at V2-02$/.test(tv.ig[0]) && /^Left the test: 1× · \d s · at Review page$/.test(tv.ig[1]), 'teacher: "' + tv.ig.join('" / "') + '"');
+    marks: document.querySelectorAll('.rgrid.tgrid .rcell .rl').length, list: [...document.querySelectorAll('.tgrid-short')].map(x => x.innerText).join(' / ') }));
+  check(tv.ig.length === 0, '#46: leaves of 2–3 s → no "Left the test" headline');
   check(tv.other[0] === 'Copy attempts: 1 · Right-click attempts: ' + ig.RW2.ctx, 'teacher: "' + tv.other[0] + '"');
-  check(tv.marks === 1 && /V2-02 left 0:0[23]/.test(tv.list.replace(/\s+/g, ' ')), 'teacher question list: mark on V2-02 + "V2-02 left 0:02"');
+  check(tv.marks === 0 && /V2-02 0:0[23]/.test(tv.list) && /Review page 0:0\d/.test(tv.list), '#46: no mark, only the grey list: "' + tv.list + '"');
   await tp.locator('.sec-card').first().screenshot({ path: require('path').join(H.SHOTS, 'r44_teacher_left_line.png') });
   await E.close();
   process.exit(H.summary() ? 1 : 0);

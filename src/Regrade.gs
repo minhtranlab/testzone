@@ -66,13 +66,19 @@ function regradeAll_() {
     var st = parseState_(s) || {}, ans = {};
     Object.keys(st.parts || {}).forEach(function (p) { var a = (st.parts[p] || {}).ans || {}; Object.keys(a).forEach(function (q) { ans[q] = String(a[q]); }); });
     var hasState = !!st.parts;
-    var ttfa = {}; // qid → ms | null, from the Events of each part (same rule as at submit)
+    var ttfa = {}, lastT = {}, igP = {}, igCell = {}; // qid → ms | null (time to answer); qid → t of the final answer; part → integrity (#46)
     Object.keys(evAll[sid] || {}).forEach(function (p) {
       var pe = evAll[sid][p].map(function (e) { return { part: p, t_ms: Number(e.t_ms) || 0, qid: String(e.qid || ''), type: String(e.type), value: e.value === '' ? null : e.value }; })
         .sort(function (a, b) { return a.t_ms - b.t_ms; });
       var d = deriveMetrics_(pe, fd.questions.filter(function (q) { return q.part === p; }).map(function (q) { return q.qid; }));
-      Object.keys(d.metrics).forEach(function (q) { ttfa[q] = d.metrics[q].ttfa_ms; });
+      Object.keys(d.metrics).forEach(function (q) { ttfa[q] = d.metrics[q].ttfa_ms; lastT[q] = lastChangeT_(d.metrics[q].aev); });
+      var ig = integrityOfPart_(pe); // #44 / #46: leaving the test window, again from the Events
+      if (ig.on) { igP[p] = ig; igCell[p] = igCellOf_(ig); }
     });
+    if (Object.keys(igCell).length) { // Sessions.integrity with the length of every leave (#46)
+      var want = JSON.stringify(igCell);
+      if (String(s.integrity || '') !== want) { updateRow_('Sessions', s._row, { integrity: want }); s.integrity = want; }
+    }
     resp.filter(function (r) { return String(r.session_id) === sid; }).forEach(function (r) {
       var q = qmap[String(r.qid)];
       if (!q) return;
@@ -118,6 +124,13 @@ function regradeAll_() {
       var elim = String(r.eliminated || '').split(',').filter(String);
       if ((q.type || 'mcq') === 'mcq' && elim.some(function (l) { return keys.indexOf(l) >= 0; })) flags.push('ELIM_KEY');
       if (newCorr !== 1) flags = flags.filter(function (x) { return x !== 'LEFT_THEN_RIGHT'; }); // #44: only for a right answer
+      var igq = igP[String(r.part)];
+      if (igq) { // #46: ⚠ again with the current leave_flag_sec; left_sec from the Events
+        flags = flags.filter(function (x) { return x !== 'LEFT_THEN_RIGHT'; });
+        if (leftThenRight_(igq, q.qid, newCorr === 1, lastT[q.qid], flagSec_(S))) flags.push('LEFT_THEN_RIGHT');
+        var ls = leftByQ_(igq)[q.qid] || 0;
+        if (String(r.left_sec) === '' || Number(r.left_sec) !== ls) f.left_sec = ls;
+      }
       var order = ['CHANGED_R_TO_W', 'CHANGED_W_TO_R', 'GUESS_LIKELY', 'ELIM_KEY', 'LEFT_THEN_RIGHT'];
       flags.sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
       if (flags.join(',') !== String(r.flags || '')) f.flags = flags.join(',');
@@ -126,7 +139,7 @@ function regradeAll_() {
         Object.keys(f).forEach(function (k) { r[k] = f[k] === undefined ? r[k] : String(f[k]).replace(/^'/, ''); });
         r.correct = f.correct !== undefined ? f.correct : r.correct;
         if (f.profile) r.profile = f.profile;
-        var onlyTime = Object.keys(f).every(function (k) { return k === 'profile' || k === 'pace_ratio' || k === 'time_to_answer_sec'; });
+        var onlyTime = Object.keys(f).every(function (k) { return k === 'profile' || k === 'pace_ratio' || k === 'time_to_answer_sec' || k === 'left_sec' || k === 'flags'; });
         if (onlyTime) retimed++; else if (f.correct === undefined) cellsFixed++;
         touched[sid] = true;
       }

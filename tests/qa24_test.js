@@ -82,7 +82,7 @@ const js = JSON.stringify(res);
 check(res.estimate && res.estimate.total && res.estimate.RW && !/public score charts|Module 2 (was )?not counted|"note"|teacher_note|below the level|leads to the harder/i.test(js), 'student result payload: estimate numbers only, no method text');
 G.sheets.Settings.rows.push(['teacher_code', 'TEACH-24-XYZ', '']);
 const tr = G.call('teacherResult', ['TEACH-24-XYZ', sid]);
-check(/public score charts/.test(tr.estimate.teacher_note || ''), 'teacher result: a short method note');
+check(!/public score charts/.test(tr.estimate.teacher_note || ''), '#46 teacher result: no generic method sentence');
 check(res.sections.every(s => s.modules.length === 2) && res.sections.find(s => s.id === 'RW').modules.map(m => m.right + '/' + m.n).join() === '2/27,0/27', 'sections: raw + Module 1 / Module 2 scores');
 
 console.log('[C what to practise first: short tips + practice-app mode (Settings)]');

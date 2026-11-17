@@ -19,7 +19,7 @@ var RPT_COLOR = { bad: '#c62828', warn: '#a15c00', good: '#2e7d32', none: '#7575
 var RPT_SYMBOL = { RIGHT: '✓', SLOW_RIGHT: '◔', FAST_WRONG: '✗', SLOW_WRONG: '✗', WRONG: '✗', BLANK: '–' };
 var REPORT_TITLE_ = 'Attempt report · Test Zone';
 var REPORT_HINT_ = 'Pick an attempt in cell B2 (type a student name to filter). List out of date? Menu Test Zone → Refresh report.';
-var CHART_LEGEND_ = 'Bar colours: green = right · yellow = right but slow (longer than the usual time for the question type, Time_Norms tab) · red = wrong · grey = blank. Dashed line = usual time per question (module time ÷ number of questions).';
+var CHART_LEGEND_ = 'green = right · yellow = right but slow · red = wrong · grey = blank · dashed line = usual time'; // #46: legend only
 
 /* ============================== triggers + menu ============================== */
 
@@ -210,7 +210,7 @@ function renderReport_(sh, sessionId) {
   if (a.sittings) para(a.sittings + (a.n_sittings > 1 ? ' — not like the real test (done in ' + a.n_sittings + ' sittings); the score may be higher than on the real test.' : ''), { color: a.n_sittings > 1 ? RPT_COLOR.warn : '#424242', bold: a.n_sittings > 1 });
   if (a.sat) { // SAT: "RW 40/54 · Math 30/44 · total 70/98", the estimate, then the modules and the time per section
     para(a.score_line + ' (' + a.pct + '%)', { bold: true, size: 12 });
-    if (a.estimate_text) para('Estimated score: ' + a.estimate_text, { bold: true, size: 11 });
+    if (a.estimate_text && a.valid) para('Estimated score: ' + a.estimate_text, { bold: true, size: 11 }); // #46: no estimate when not reliable
     ['RW', 'Math'].forEach(function (k) { if (a.estimate && a.estimate[k] && a.estimate[k].note) para(k + ': ' + a.estimate[k].note, { color: RPT_COLOR.warn, size: 9 }); });
     para('Modules: ' + a.parts.map(function (p) { return p.part + ' ' + p.right + '/' + p.n; }).join(' · ') + ' · Time ' +
          a.sections.map(function (x) { return x.id + ' ' + x.used + '/' + x.limit + ' min'; }).join(', '), { color: '#424242' });
@@ -218,25 +218,22 @@ function renderReport_(sh, sessionId) {
   // 1b. time per module (#40 B): solving + checking / review + left = the module clock
   if (a.parts.some(function (p) { return p.time; })) {
     heading('Time per module');
-    para('Solving time = time until each final answer was chosen, added up · Checking / review = time used − solving time · Time on blank questions is part of checking / review.', { color: '#616161', size: 9 });
     add([a.sat ? 'Module (clock)' : 'Part (clock)', 'Solving time', 'Checking / review', 'Time left at submit', 'On blank questions'], { bold: true, bottom: true });
     a.parts.forEach(function (p) { var t = p.time; if (!t) return;
       add([partLbl_(p.part, a.sat) + ' (' + clk_(t.clock) + ')', clk_(t.solving), clk_(t.checking), clk_(t.left), clk_(t.blank)], { line: true, boldCols: [0] }); });
   }
-  // 1c. test window (#44 part 2): leaving the test window, copy / right-click; "—" = no data (before v1.15)
+  // 1c. test window (#44 part 2; #46: the headline counts only leaves ≥ leave_flag_sec, shorter ones in grey)
   heading('Test window');
-  para('Leaving the test window (tab hidden or another window for ≥ 2 s during a module), copy and right-click attempts. Signs, not proof. — = no data (attempt from before v1.15).', { color: '#616161', size: 9 });
-  add([a.sat ? 'Module' : 'Part', 'Left the test', 'Questions', 'Copy / right-click', '⚠ left ≥ 20 s, then right'], { bold: true, bottom: true });
+  add([a.sat ? 'Module' : 'Part', 'Left the test (≥ ' + a.flag_sec + ' s)', 'Shorter', 'Copy / right-click', '⚠'], { bold: true, bottom: true });
   a.parts.forEach(function (p) {
     var g = igView_(a, p), x = p.ig;
     var fl = g.qs.filter(function (q) { return q.flag; }).map(function (q) { return q.code; });
-    add([partLbl_(p.part, a.sat), x ? (x.n ? x.n + '× · ' + durText_(x.sec) : 'never') : '—', g.qs.length ? g.qs.map(function (q) { return q.code + ' (' + clk_(q.left) + ')'; }).join(', ') : (x ? '' : '—'),
-         x ? x.copy + ' / ' + x.ctx + (x.fs ? ' · left full screen ' + x.fs + '×' : '') : '—', fl.join(', ')], { line: true, boldCols: [0], wrap: true });
+    var r = add([partLbl_(p.part, a.sat), x ? (g.left ? g.left.replace(/^Left the test: /, '') : '') : '—', x ? g.short.map(function (q) { return q.code + ' ' + clk_(q.sec); }).join(' · ') : '—',
+         x ? x.copy + ' / ' + x.ctx + (x.fs ? ' · left full screen ' + x.fs + '×' : '') : '—', fl.join(', ')], { line: true, boldCols: [0], wrap: true, colorCol: { 2: RPT_GREY } });
   });
   // 2. validity
   gap();
-  if (a.valid) para('Reliable attempt: nearly the full time used, few rushed answers. The result can be used.', { color: RPT_COLOR.good, bold: true });
-  else para('Not reliable: ' + a.reasons.join(' · ') + '.', { color: RPT_COLOR.bad, bold: true });
+  if (!a.valid) para('Score not estimated — ' + a.reasons.join(' · ') + '.', { color: RPT_COLOR.bad, bold: true }); // #46: only the score is held back
   // 3. summary
   heading('Summary');
   para(stripTags_(a.summary));
@@ -246,15 +243,13 @@ function renderReport_(sh, sessionId) {
   // (#40's separate SAT Math Lib list is gone since #44: the practice line sits next to each weak skill below)
 
   var groups = [];
-  if (a.valid) {
+  { // #46: the analysis is shown for every attempt
     // 5. units → topics
     if (a.sat) {
       heading('By domain');
-      para('One row per SAT domain (RW and Math); press + / − on the left to open / close its skills. "Too few to judge" = the form has only one question there.', { color: '#616161', size: 9 });
       add(['Section', 'Domain', 'Right', 'Share', 'Verdict'], { bold: true, bottom: true });
     } else {
       heading('By unit');
-      para('One row per AP Calc unit; press + / − on the left to open / close its topics. "Too few to judge" = the form has only one question in that unit.', { color: '#616161', size: 9 });
       add(['Unit', 'Name', 'Right', 'Share', 'Verdict'], { bold: true, bottom: true });
     }
     var PS = getSettings_();
@@ -266,7 +261,7 @@ function renderReport_(sh, sessionId) {
       var first = null, last = null;
       U.topics.forEach(function (T) {
         // #44 part 3: the practice line next to each weak skill (teacher text: score + level for SAT Math Lib)
-        var pr = a.valid && T.k < T.t ? practiceFor_(PS, a.sat, T.code, { k: T.k, t: T.t }, true) : null;
+        var pr = T.k < T.t ? practiceFor_(PS, a.sat, T.code, { k: T.k, t: T.t }, true) : null;
         var r = add([a.sat ? '' : T.code, T.name, T.dots.map(function (d) { return RPT_SYMBOL[d.p] || '?'; }).join(' '), pr ? pr.text : '', ''], { size: 9, color: '#424242', wrap: true, line: true, mergeEF: !!pr });
         if (first === null) first = r; last = r;
       });
@@ -275,32 +270,28 @@ function renderReport_(sh, sessionId) {
     para('✓ right · ◔ right but slow · ✗ wrong · – blank', { color: '#616161', size: 9 });
     // 6. error types
     heading('Error types');
-    para('Slow / rushed = against the usual time for each question type and difficulty (tab Time_Norms).', { color: '#616161', size: 9 });
     add(['Type', '', 'Questions', 'Meaning', ''], { bold: true, bottom: true, mergeBC: true, mergeEF: true });
     ['SLOW_WRONG', 'FAST_WRONG', 'WRONG', 'BLANK', 'SLOW_RIGHT'].forEach(function (k) {
       add([a.types[k].t, '', a.counts[k], a.types[k].m, ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0], grey: !a.counts[k] });
     });
     if (a.r2w) add(['Changed right → wrong', '', a.r2w, 'Chose the right answer, then changed it: not confident.', ''], { mergeBC: true, mergeEF: true, wrap: true, line: true, boldCols: [0] });
-  } else {
-    heading('Analysis');
-    para('The analysis is hidden because the attempt is not reliable (no ' + (a.sat ? 'domain' : 'unit') + ' verdicts, no error types, no wrong-answer list). The time per question is still shown below so you can see how the student worked.', { color: '#616161' });
   }
 
   // 7. time per question (chart)
   heading('Time per question');
   para(CHART_LEGEND_, { size: 9, bold: true, wrap: true });
-  para('One bar per question: time to answer in minutes (blank: the time on it). Standard time: ' + paceTxt + '. A bar far above the line = slow; a very short red bar = rushed.', { color: '#616161', size: 9 });
+  para('Standard time: ' + paceTxt, { color: '#616161', size: 9 });
   var chartRow = add([], {});
   for (var i = 0; i < 15; i++) add([], {});
 
   // 8. wrong / blank list
-  if (a.valid) {
+  {
     heading('Wrong and blank answers (' + a.wrong.length + ')');
     if (!a.wrong.length) para('No wrong or blank answers.');
     else {
       add(['Question', a.sat ? 'Skill' : 'Topic', 'Type', 'Time to answer', 'Note'], { bold: true, bottom: true });
       a.wrong.forEach(function (q) {
-        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? '– (' + fmtSec_(q.s) + ' on it)' : fmtSec_(q.ta === null ? q.s : q.ta), q.note], { wrap: true, line: true });
+        add([q.part + ' ' + q.no, a.sat ? q.name : q.topic + ' ' + q.name, q.type, q.blank ? 'blank (' + fmtSec_(q.s) + ' on it)' : fmtSec_(q.ta === null ? q.s : q.ta), q.note], { wrap: true, line: true });
       });
     }
   }
@@ -314,7 +305,7 @@ function renderReport_(sh, sessionId) {
   fmt.forEach(function (f, i) {
     var w = [], c = [], z = [], wr = [];
     for (var k = 0; k < RPT_COLS; k++) {
-      var bold = !!f.bold || (f.boldCols && f.boldCols.indexOf(k) >= 0) || !!(f.colorCol && f.colorCol[k]);
+      var bold = !!f.bold || (f.boldCols && f.boldCols.indexOf(k) >= 0) || !!(f.colorCol && f.colorCol[k] && f.colorCol[k] !== RPT_GREY);
       w.push(bold ? 'bold' : 'normal');
       c.push((f.colorCol && f.colorCol[k]) || (f.grey ? RPT_GREY : (f.color || '#000000')));
       z.push(f.size || 10);
