@@ -54,9 +54,9 @@ const FORM = 'MOCK-SAT98', TCODE = 'TEACH-40-UI';
       await page.locator('.res-score').screenshot({ path: path.join(out, 'r40_teacher_module_time.png') });
       await page.locator('.res-part').nth(2).screenshot({ path: path.join(out, 'r40_teacher_grid_time.png') });
       await page.click('.rgrid.tgrid .rcell[data-qid]');
-      await page.waitForFunction(() => /answer/.test((document.getElementById('view-bar') || {}).innerText || ''), null, { timeout: 15000 }).catch(() => {});
-      const bar = await page.evaluate(() => (document.getElementById('view-bar') || {}).innerText || '');
-      check(/Time to answer: \d+ (min \d+ )?s · total \d+ (min \d+ )?s/.test(bar.replace(/\s+/g, ' ')), 'question bar: "' + bar.replace(/\s+/g, ' ').replace(/.*(Time to answer[^·]*· total [^A-Z]*).*/, '$1').trim() + '"');
+      await page.waitForSelector('#go-det', { timeout: 15000 }); await page.click('#go-det'); await page.waitForSelector('#go-drawer.on');
+      const bar = await page.evaluate(() => (document.getElementById('go-dr-body') || {}).innerText || '');
+      check(/Time \d+ (min \d+ )?s to answer · total \d+ (min \d+ )?s/.test(bar.replace(/\s+/g, ' ')), '#47 Details: "' + bar.replace(/\s+/g, ' ').replace(/.*(Time [^·]*· total [^A-Z]*).*/, '$1').trim() + '"');
     } else await page.locator('.sec-card').nth(1).screenshot({ path: path.join(out, 'r40_teacher_module_time_phone.png') });
     await page.context().close();
   }

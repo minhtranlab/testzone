@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 W=.work; rm -rf "$W/gas" "$W/gas_sat" "$W/gas_sat98" "$W/gas_real" "$W/gas_satreal"; mkdir -p "$W"
-[ -d node_modules/mathjax ] || npm install --no-audit --no-fund >/dev/null
+{ [ -d node_modules/mathjax ] && [ -d node_modules/mathquill ] && [ -d node_modules/jquery ]; } || npm install --no-audit --no-fund >/dev/null
 [ -s desmos.js ] || curl -sSfL -o desmos.js "https://www.desmos.com/api/v1.12/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"
 B="python3 ../tools/build_data.py"
 $B fixtures/mock --out $W/gas >/dev/null && $B fixtures/mock_ap45 --out $W/gas >/dev/null

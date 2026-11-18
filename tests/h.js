@@ -16,6 +16,14 @@ async function routes(ctx) {
     if (fs.existsSync(f)) r.fulfill({ path: f, contentType: f.endsWith('.js') ? 'application/javascript' : undefined }); else r.continue();
   });
   await ctx.route(/www\.desmos\.com\/api\/v1\.12\/calculator\.js/, r => r.fulfill({ path: DESMOS, contentType: 'application/javascript' }));
+  // #47 Notes pad: MathQuill + jQuery from cdnjs → the npm copies (as in SAT Math Lib)
+  await ctx.route('https://cdnjs.cloudflare.com/ajax/libs/**', r => {
+    const u = new URL(r.request().url()).pathname, nm = path.join(__dirname, 'node_modules');
+    const map = { '/ajax/libs/jquery/3.7.1/jquery.min.js': 'jquery/dist/jquery.min.js', '/ajax/libs/mathquill/0.10.1/mathquill.min.js': 'mathquill/build/mathquill.min.js',
+                  '/ajax/libs/mathquill/0.10.1/mathquill.min.css': 'mathquill/build/mathquill.css' };
+    let f = map[u] ? path.join(nm, map[u]) : (u.startsWith('/ajax/libs/mathquill/0.10.1/font/') ? path.join(nm, 'mathquill/build/font', path.basename(u)) : null);
+    if (f && fs.existsSync(f)) r.fulfill({ path: f, contentType: f.endsWith('.js') ? 'application/javascript' : f.endsWith('.css') ? 'text/css' : undefined }); else r.abort();
+  });
 }
 
 async function setup(opts = {}) {

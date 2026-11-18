@@ -63,7 +63,7 @@
   function word() { return (A.profile && A.profile.part_word) || 'part'; } // "part" (AP) / "module" (SAT)
 
   /* ---------------- screens ---------------- */
-  function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); }); igGuard(); }
+  function show(id) { $$('.screen').forEach(function (s) { s.classList.toggle('on', s.id === id); }); igGuard(); navMark(id); }
   function view(id) {
     $$('#tmain .view').forEach(function (v) { v.classList.toggle('on', v.id === id); });
     var inQ = id === 'v-question', inR = id === 'v-review', inTest = inQ || inR;
@@ -1193,8 +1193,12 @@
     call(teacher ? 'teacherReview' : 'getReview', A.code, sessionId).then(go).catch(function (e) { toast(errMsg(e), 4000); exitViewer(); });
   }
   function startViewer(d, sid, teacher, qid) {
+    if (teacher) { goStart(d, sid, qid); return; }                      // #47: the teacher goes over it (nothing shown on open)
+    viewerBuild(d, sid, false, qid, null);
+  }
+  function viewerBuild(d, sid, teacher, qid, go) {
     var keep = VW && VW.sid === sid && VW.teacher === teacher ? VW.keys : {};
-    VW = { d: d, sid: sid, teacher: teacher, keys: keep, pre: (teacher && d.answer_keys) || {} }; // #46: keys came with the questions (teacher only)
+    VW = { d: go ? go.d : d, sid: sid, teacher: teacher, keys: keep, pre: (teacher && d.answer_keys) || {}, go: go || null }; // #46: keys came with the questions (teacher only)
     var prof = { parts: d.parts.map(function (p) {
                    return { part: p.part, title: p.title, layout: p.layout, spr_layout: p.spr_layout, choices: p.choices, calculator: !!p.calculator,
                             reference: !!p.reference, annotate: p.annotate !== false, directions_html: p.directions_html || '', time_limit_sec: 0 }; }),
@@ -1208,13 +1212,13 @@
     Object.keys(A.qs).forEach(function (p) { A.qs[p].sort(function (a, b) { return a.display_no - b.display_no; }); });
     var parts = {};
     prof.parts.forEach(function (p) { parts[p.part] = { cur: 0, ans: {}, elim: {}, mark: {}, hl: {}, elimMode: false }; });
-    d.questions.forEach(function (q) { if (q.answer && parts[q.part]) parts[q.part].ans[q.qid] = q.answer; });
+    if (!go) d.questions.forEach(function (q) { if (q.answer && parts[q.part]) parts[q.part].ans[q.qid] = q.answer; }); // #47 go-over: no student answer on open
     var q0 = d.questions.filter(function (q) { return q.qid === qid; })[0] || d.questions[0];
     var seq = prof.parts.map(function (p) { return p.part; });
     A.st = { session_id: 'view:' + sid, form_id: d.form_id || '', seq_parts: seq, part_idx: seq.indexOf(q0.part), current_part: q0.part, phase: 'test',
              part_starts: {}, ended: {}, route: {}, warned: {}, parts: parts, timer_hidden: true, zoom: (A.viewZoom || 1) };
     var scr = $('#scr-test');
-    scr.classList.add('viewing'); scr.classList.toggle('ro', !teacher); scr.classList.toggle('serif', d.question_font === 'serif');
+    scr.classList.add('viewing'); scr.classList.toggle('ro', !teacher); scr.classList.toggle('serif', d.question_font === 'serif'); scr.classList.toggle('going', !!go);
     $('#tool-annot span').textContent = prof.annotate_label;
     $('#fb-name').textContent = teacher ? (d.student || '') : A.student.name; setSaveDot('');
     $('#btn-view-back').textContent = d.class_id ? 'Back to class' : 'Back to result'; // #44
@@ -1229,6 +1233,7 @@
   }
   /** The bar above the question: answer, right / wrong, time, badge; teacher: "Show answer". */
   function viewBar(q) {
+    if (VW.go) { goBar(q); return; }                                     // #47
     var bar = $('#view-bar'), rq = q, key = VW.keys[q.qid];
     if (rq.members) { // #44 class screen: every member's answer + time to answer
       bar.innerHTML = '<span><b>' + esc(rq.code || '') + '</b>' + (rq.skill ? ' · <span class="rv-skill">' + esc(rq.skill) + '</span>' : '') + '</span>' + rq.members.map(function (m) {
@@ -1271,14 +1276,531 @@
     try { hideCalc(true); } catch (e) {}
     $('#ref-panel').classList.remove('on'); closePops(); hideHlToolbar();
     if (A.st) A.viewZoom = A.st.zoom;
-    var scr = $('#scr-test'); scr.classList.remove('viewing', 'ro');
+    goClose();                                                          // #47: pen off, notes saved + closed, drawer shut
+    var scr = $('#scr-test'); scr.classList.remove('viewing', 'ro', 'going', 'pen-on');
     A.view = null; A.st = null; A.test = null; A.profile = null; built = null;
     show('scr-result');
     var sc = A.resScroll || [0, 0];
     $('#scr-result').scrollTop = sc[0]; if (sc[1]) window.scrollTo(0, sc[1]);
   }
   function fmtTime(s) { s = Math.round(s || 0); var m = Math.floor(s / 60), r = s % 60; return m ? m + ' min ' + r + ' s' : r + ' s'; }
-  function initReview() { $('#btn-view-back').onclick = exitViewer; }
+  function initReview() { $('#btn-view-back').onclick = exitViewer; $('#go-dr-x').onclick = function () { goDrawer(false); }; }
+
+  /* ================= #47 v1.16 teacher go-over (copied from SAT Math Lib #50 / #62, adapted to Test Zone) =================
+     The question as on the test (Desmos, Reference, highlight, choices clickable — nothing saved). Nothing on open tells the
+     answer: "Student's answer" marks what the student(s) entered (+ time to answer), "Show answer" the key (preloaded, #46).
+     Back / Next walk the questions; "Wrong only" (ON when opened from a result / class page: wrong + blank, class = wrong or
+     blank for at least one member) keeps the class section / part filter (#46). "Details" (drawer, closed): time, R/S,
+     left the test, skill; in a class every member. Notes pad + pen: teacher only, nothing sent to the server. */
+  function goStart(d, sid, qid) {
+    var cls = !!d.class_id, secOf = {}, sec = '';
+    if (cls && A.cls && A.cls.d) {                                      // the class screen's section switch (#46) → the same questions here
+      (A.cls.d.parts || []).forEach(function (p) { secOf[p.part] = p.sec; });
+      if (!A.cls.d.part && (A.cls.d.sections || []).some(function (x) { return x.id === A.cls.sec; })) sec = A.cls.sec || '';
+    }
+    var all = d.questions.filter(function (q) { return !sec || secOf[q.part] === sec; });
+    if (!all.length) all = d.questions;
+    var G = { d: d, sid: sid, cls: cls, all: all, bad: {}, wrong: true, shown: {}, drawer: false, keys: {}, pre: d.answer_keys || {}, who: cls ? '' : (d.student || 'Student') };
+    all.forEach(function (q) {
+      G.bad[q.qid] = cls ? (q.members || []).some(function (m) { return m.st === 'wrong' || m.st === 'blank'; }) : (q.status === 'wrong' || q.status === 'blank');
+    });
+    G.any = all.some(function (q) { return G.bad[q.qid]; });
+    if (!G.any || (qid && G.bad[qid] === false)) G.wrong = false;       // a right question was clicked → all questions
+    goShow(G, qid);
+  }
+  function goShow(G, qid) {
+    var qs = G.wrong ? G.all.filter(function (q) { return G.bad[q.qid]; }) : G.all;
+    var d2 = {}; Object.keys(G.d).forEach(function (k) { d2[k] = G.d[k]; });
+    d2.questions = qs; d2.parts = G.d.parts.filter(function (p) { return qs.some(function (q) { return q.part === p.part; }); });
+    var start = qs.some(function (q) { return q.qid === qid; }) ? qid : (qs[0] || {}).qid;
+    PEN.qid = null;
+    viewerBuild(d2, G.sid, true, start, G);
+    notesSync();
+    goDrawer(G.drawer);
+  }
+  function goWho(G, q) {                                               // [{name, st, a, ta, tot, b, left, lf}]
+    if (G.cls) return (q.members || []).map(function (m) { return { name: m.name, st: m.st, a: m.a, ta: m.ta, tot: m.tot, b: m.b, left: m.left, lf: m.lf }; });
+    return [{ name: G.who, st: q.status, a: q.answer || '', ta: q.ta_s, tot: q.time_s, b: q.badge, left: q.left_s, lf: q.left_flag }];
+  }
+  function goNum(x) { return x !== undefined && x !== null && x !== ''; }
+  function goTime(s) {
+    if (s.st === 'none') return '';
+    if (s.st === 'blank' || !s.a) return goNum(s.tot) ? fmtTime(s.tot) + ' on it' : '';
+    return goNum(s.ta) ? fmtTime(s.ta) + ' to answer' : '';
+  }
+  function goMark(st, k) { return !k ? '' : st === 'right' ? ' <span class="ok">✓</span>' : st === 'wrong' ? ' <span class="no">✗</span>' : ''; }
+  function goBar(q) {
+    var G = VW.go; if (PEN.qid !== q.qid) penNewQuestion(q.qid);      // a drawing belongs to one question only
+    var k = G.keys[q.qid], sh = !!G.shown[q.qid], box = qBox(q.qid);
+    $('#view-bar').innerHTML = '<span class="go-id"><b>' + esc(q.code || '') + '</b>' + (q.skill ? ' · <span class="rv-skill">' + esc(q.skill) + '</span>' : '') + '</span>' +
+      '<label class="go-wo' + (G.any ? '' : ' off') + '" title="' + (G.cls ? 'Questions wrong or blank for at least one student' : 'Wrong and blank questions') + '"><input type="checkbox" id="go-wrong"' + (G.wrong ? ' checked' : '') + (G.any ? '' : ' disabled') + '> Wrong only</label>' +
+      '<button type="button" class="btn-outline go-det" id="go-det" aria-expanded="' + !!G.drawer + '">' + (G.drawer ? 'Hide details' : 'Details') + '</button>';
+    $('#fb-go').innerHTML = '<button type="button" class="btn-outline" id="go-stu" aria-pressed="' + sh + '">Student\'s answer</button>' +
+      (k ? '<span class="go-key">Correct answer: <b>' + esc(k.join(' or ')) + '</b></span>' : '<button type="button" class="btn-blue" id="go-show">Show answer</button>');
+    $('#fb-name').textContent = G.cls ? (G.d.student || '') : G.who;
+    var picks = {}, sprv = [];
+    if (sh) {
+      $('#go-strip').innerHTML = goWho(G, q).map(function (s) {
+        if (s.st === 'none') return '<span class="gs-one muted"><b>' + esc(s.name) + '</b>: not taken</span>';
+        var a = s.st === 'blank' || !s.a ? '' : String(s.a), t = goTime(s), first = String(s.name || 'Student').split(/\s+/)[0];
+        if (a) { if (q.type === 'spr') sprv.push((G.cls ? esc(first) + ' ' : '') + '<b>' + esc(a) + '</b>'); else (picks[a.toUpperCase()] = picks[a.toUpperCase()] || []).push(first); }
+        return '<span class="gs-one"><b>' + esc(s.name) + '</b>: ' + (a ? '<b>' + esc(a) + '</b>' + goMark(s.st, k) : '<i>blank</i>') + (t ? ' · ' + t : '') + '</span>';
+      }).join('');
+    } else $('#go-strip').innerHTML = '';
+    if (box) {
+      $$('.stu-tag, .go-spr', box).forEach(function (x) { x.parentNode.removeChild(x); });
+      $$('.ch-row', box).forEach(function (row) {
+        var L = row.getAttribute('data-l'), p = picks[L], ch = $('.ch', row);
+        row.classList.toggle('stu-pick', !!p);
+        if (p) ch.appendChild(el('span', { class: 'stu-tag' }, esc(p.length > 3 ? p.slice(0, 3).join(', ') + ' +' + (p.length - 3) : p.join(', '))));
+        ch.classList.toggle('rv-key', !!(k && k.indexOf(L) >= 0));
+      });
+      var sb = $('.spr-box', box);
+      if (sb) {
+        if (sh) sb.appendChild(el('div', { class: 'go-spr' }, (G.cls ? 'Students: ' : 'Student\'s answer: ') + (sprv.length ? sprv.join(' · ') : '<i>blank</i>')));
+        if (k) sb.appendChild(el('div', { class: 'go-spr key' }, 'Correct: ' + esc(k.join(' or '))));
+      }
+    }
+    var w = $('#go-wrong'); if (w) w.onchange = function () { G.wrong = w.checked; goShow(G, q.qid); };
+    $('#go-det').onclick = function () { goDrawer(!G.drawer); };
+    $('#go-stu').onclick = function () { G.shown[q.qid] = !G.shown[q.qid]; goBar(q); };
+    var s2 = $('#go-show'); if (s2) s2.onclick = function () {
+      if (G.pre[q.qid]) { G.keys[q.qid] = G.pre[q.qid]; goBar(q); return; }   // #46: loaded with the questions (teacher only) → at once
+      s2.disabled = true;
+      (G.cls ? call('teacherFormAnswer', A.code, G.d.form_id, q.qid) : call('teacherAnswer', A.code, G.sid, q.qid)).then(function (r) {
+        G.keys[q.qid] = r.key; if (VW && VW.go === G) { var c = curQ(); if (c) goBar(c); }
+      }).catch(function (e) { s2.disabled = false; toast(errMsg(e)); });
+    };
+    if (G.drawer) { goDrPos(); goDrawerFill(q); }
+  }
+  function goDrPos() {
+    var dr = $('#go-drawer'), tm = $('#tmain'), sc = $('#scr-test');
+    dr.style.top = (tm.offsetTop || 0) + 'px'; dr.style.bottom = Math.max(0, sc.clientHeight - tm.offsetTop - tm.offsetHeight) + 'px';
+  }
+  function goDrawer(on) {
+    var G = VW && VW.go, dr = $('#go-drawer');
+    if (G) G.drawer = !!on;
+    dr.classList.toggle('on', !!on); dr.setAttribute('aria-hidden', on ? 'false' : 'true');
+    var b = $('#go-det'); if (b) { b.textContent = on ? 'Hide details' : 'Details'; b.setAttribute('aria-expanded', !!on); }
+    if (on && G) { goDrPos(); var q = curQ(); if (q) goDrawerFill(q); }
+  }
+  function goDrawerFill(q) {
+    var G = VW.go, k = G.keys[q.qid];
+    var h = '<dl><dt>Question</dt><dd><b>' + esc(q.code || '') + '</b> · ' + esc((pdef(q.part) || {}).title || q.part) + '</dd>' +
+      '<dt>Skill</dt><dd>' + (q.skill ? esc(q.skill) : '—') + '</dd>';
+    if (!G.cls) {
+      var blank = q.status === 'blank' || !q.answer;
+      h += '<dt>Time</dt><dd>' + (blank ? 'blank · ' + fmtTime(q.time_s) + ' on it' : goNum(q.ta_s) ? fmtTime(q.ta_s) + ' to answer · total ' + fmtTime(q.time_s) : 'total ' + fmtTime(q.time_s)) + '</dd>' +
+        '<dt>Pace</dt><dd>' + (q.badge ? bdg(q.badge) + ' ' + (q.badge === 'S' ? 'slow' : 'rushed') : '—') + '</dd>' +
+        '<dt>Left the test</dt><dd>' + (q.left_s ? '<span class="' + (q.left_flag ? 'gd-warn' : 'rv-left') + '">' + (q.left_flag ? '⚠ ' : '') + fmtTime(q.left_s) + ' on this question' + (q.left_flag ? ', then answered right' : '') + '</span>' : '—') + '</dd></dl>';
+    } else {
+      h += '</dl><table><tr><th>Student</th><th>Answer</th><th>Time</th><th></th></tr>' + (q.members || []).map(function (m) {
+        if (m.st === 'none') return '<tr><td>' + esc(m.name) + '</td><td colspan="3" class="muted">not taken</td></tr>';
+        var bl = m.st === 'blank' || !m.a;
+        return '<tr><td>' + esc(m.name) + '</td><td>' + (bl ? '<i>blank</i>' : '<b>' + esc(m.a) + '</b>' + goMark(m.st, k)) + '</td><td>' + (bl ? (goNum(m.tot) ? fmtTime(m.tot) + ' on it' : '') : (goNum(m.ta) ? fmtTime(m.ta) : '')) + '</td><td>' +
+          (m.b ? bdg(m.b) + ' ' + (m.b === 'S' ? 'slow' : 'rushed') + ' ' : '') + (m.left ? '<span class="' + (m.lf ? 'gd-warn' : 'rv-left') + '">' + (m.lf ? '⚠ ' : '') + 'left ' + fmtTime(m.left) + '</span>' : '') + '</td></tr>';
+      }).join('') + '</table>';
+    }
+    $('#go-dr-body').innerHTML = h;
+  }
+  function goClose() {
+    penSet(false); penRemove(); PEN.qid = null; notesOpen(false);
+    var dr = $('#go-drawer'); dr.classList.remove('on'); dr.setAttribute('aria-hidden', 'true');
+    $('#fb-go').innerHTML = ''; $('#go-strip').innerHTML = '';
+  }
+
+  /* ---------- #47 browser Back (copied from SAT Math Lib #43): teacher screens only ----------
+     Each teacher screen is one #hash entry (t · result · view). The browser Back button / back gesture goes up one level —
+     the question screen → its result or class page → the teacher list — and never leaves the app. Students: unchanged. */
+  var NAV = { cur: '' };
+  function navSet(h) {
+    if (!h || NAV.cur === h) return;
+    NAV.cur = h;
+    try { if (location.hash.slice(1) !== h) location.hash = h; } catch (e) {}
+  }
+  function navMark(id) {
+    if (!A.teacher) return;
+    navSet(id === 'scr-teacher' ? 't' : id === 'scr-result' ? 'result' : id === 'scr-test' && $('#scr-test').classList.contains('viewing') ? 'view' : '');
+  }
+  function navAgain() { var h = NAV.cur; NAV.cur = ''; navSet(h); }     // undo a Back: the same screen stays
+  function onHash() {
+    if (!A.teacher) return;
+    var h = location.hash.slice(1);
+    if (h === NAV.cur || !NAV.cur) return;                              // our own change
+    var on = ($$('.screen.on')[0] || {}).id;
+    if ($('#modal-root').classList.contains('on')) { navAgain(); return; }
+    if (on === 'scr-test' && A.view) { exitViewer(); return; }
+    if (on === 'scr-result') { var b = $('#res-home'); if (b) { b.click(); return; } }
+    navAgain();                                                          // the teacher list: stay in the app
+  }
+  function initNav() {
+    window.addEventListener('hashchange', onHash);
+    document.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (A.teacher && (e.key === 'Backspace' || e.keyCode === 8) && !(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable))) e.preventDefault();
+    }, true);
+  }
+
+  /* ---------- #47 pen on the question (SAT Math Lib #62): teacher go-over only ----------
+     A transparent canvas over the question area (the whole width, or the question side of a split screen); 4 colours
+     (yellow = highlighter), 2 widths, eraser, Undo, Clear. The drawing belongs to the question on screen and is gone when
+     another question opens. Pointer events → mouse, finger and the iPad pencil. */
+  var PEN = { on: false, color: 'blue', w: 1, tool: 'pen', strokes: [], hist: [], cv: null, host: null, qid: null, full: true };
+  var PEN_C = { blue: '#1f5fd6', red: '#d0263c', green: '#1f8a4c', yellow: 'rgba(245,196,0,0.38)' };
+  function penHost() {
+    var q = curQ(), b = q && qBox(q.qid); if (!b) return null;
+    PEN.full = !b.classList.contains('split');
+    return PEN.full ? $('#tmain') : ($('.q-side', b) || b);
+  }
+  function penRemove() { if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv); PEN.cv = null; PEN.host = null; PEN.strokes = []; PEN.hist = []; }
+  function penCanvas() {
+    var h = penHost(); if (!h) return null;
+    if (PEN.host !== h || !PEN.cv || !h.contains(PEN.cv)) {
+      if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv);
+      var c = document.createElement('canvas'); c.className = 'pen-cv'; h.classList.add('pen-host'); h.appendChild(c);
+      PEN.host = h; PEN.cv = c; penBind(c);
+    }
+    penSize(); return PEN.cv;
+  }
+  function penSize() {
+    var h = PEN.host, c = PEN.cv; if (!h || !c) return;
+    c.style.display = 'none'; var w = PEN.full ? h.clientWidth : h.scrollWidth, ht = Math.max(h.scrollHeight, h.clientHeight); c.style.display = '';
+    if (c._w === w && c._h === ht) return;
+    var r = window.devicePixelRatio || 1;
+    c._w = w; c._h = ht; c.style.width = w + 'px'; c.style.height = ht + 'px'; c.width = Math.round(w * r); c.height = Math.round(ht * r);
+    penDraw();
+  }
+  function penDraw() {
+    var c = PEN.cv; if (!c || !c._w) return;
+    var g = c.getContext('2d'), r = window.devicePixelRatio || 1;
+    g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, c._w, c._h);
+    PEN.strokes.forEach(function (s) {
+      var k = PEN.full ? 1 : c._w / s.W, p = s.pts, hl = s.c === 'yellow';
+      g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = PEN_C[s.c];
+      g.lineWidth = (hl ? (s.w === 2 ? 28 : 16) : (s.w === 2 ? 5 : 2.5)) * k;
+      g.beginPath(); g.moveTo(p[0][0] * k, p[0][1] * k);
+      if (p.length === 1) g.lineTo(p[0][0] * k + 0.1, p[0][1] * k);
+      for (var i = 1; i < p.length; i++) g.lineTo(p[i][0] * k, p[i][1] * k);
+      g.stroke(); g.restore();
+    });
+  }
+  function penBind(c) {
+    var cur = null;
+    var at = function (e) { var b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    var erase = function (p) {
+      var hit = PEN.strokes.filter(function (s) { var k = PEN.full ? 1 : c._w / s.W; return s.pts.some(function (q) { return Math.abs(q[0] * k - p[0]) < 12 && Math.abs(q[1] * k - p[1]) < 12; }); });
+      if (!hit.length) return;
+      if (!cur.saved) { PEN.hist.push(PEN.strokes.slice()); cur.saved = true; }
+      PEN.strokes = PEN.strokes.filter(function (s) { return hit.indexOf(s) < 0; }); penDraw();
+    };
+    c.addEventListener('pointerdown', function (e) {
+      if (!PEN.on || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault(); penSize();
+      try { c.setPointerCapture(e.pointerId); } catch (x) {}
+      var p = at(e);
+      if (PEN.tool === 'eraser') { cur = { erase: true }; erase(p); return; }
+      PEN.hist.push(PEN.strokes.slice());
+      cur = { c: PEN.color, w: PEN.w, W: c._w, pts: [p] }; PEN.strokes = PEN.strokes.concat([cur]); penDraw();
+    });
+    c.addEventListener('pointermove', function (e) {
+      if (!cur) return; e.preventDefault();
+      var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; if (!evs.length) evs = [e];
+      if (cur.erase) { erase(at(e)); return; }
+      evs.forEach(function (x) { cur.pts.push(at(x)); }); penDraw();
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { c.addEventListener(t, function () { cur = null; }); });
+  }
+  function penNewQuestion(qid) {
+    PEN.strokes = []; PEN.hist = []; PEN.qid = qid;
+    if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv);
+    PEN.cv = null; PEN.host = null;
+    if (PEN.on) setTimeout(function () { if (PEN.on) penCanvas(); }, 0);
+  }
+  function penSet(on) {
+    PEN.on = !!on;
+    $('#scr-test').classList.toggle('pen-on', PEN.on);
+    $('#pen-bar').hidden = !PEN.on; $('#tool-pen').classList.toggle('active', PEN.on);
+    if (PEN.on) { hideHlToolbar(); penCanvas(); }
+    if (VW && VW.go && VW.go.drawer) goDrPos();                         // the pen bar moves the question area down
+  }
+  function penBarSync() {
+    $$('#pen-bar [data-pc]').forEach(function (b) { b.classList.toggle('on', PEN.tool === 'pen' && b.getAttribute('data-pc') === PEN.color); });
+    $$('#pen-bar [data-pw]').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-pw') === PEN.w); });
+    $('#pen-bar [data-pt="eraser"]').classList.toggle('on', PEN.tool === 'eraser');
+  }
+  function initPen() {
+    $('#tool-pen').onclick = function () { penSet(!PEN.on); };
+    $$('#pen-bar [data-pc]').forEach(function (b) { b.onclick = function () { PEN.color = b.getAttribute('data-pc'); PEN.tool = 'pen'; penBarSync(); }; });
+    $$('#pen-bar [data-pw]').forEach(function (b) { b.onclick = function () { PEN.w = +b.getAttribute('data-pw'); if (PEN.tool === 'eraser') PEN.tool = 'pen'; penBarSync(); }; });
+    $$('#pen-bar [data-pt]').forEach(function (b) { b.onclick = function () {
+      var t = b.getAttribute('data-pt');
+      if (t === 'eraser') PEN.tool = PEN.tool === 'eraser' ? 'pen' : 'eraser';
+      else if (t === 'undo') { if (PEN.hist.length) { PEN.strokes = PEN.hist.pop(); penDraw(); } }
+      else if (t === 'clear') { if (PEN.strokes.length) { PEN.hist.push(PEN.strokes.slice()); PEN.strokes = []; penDraw(); } }
+      else if (t === 'off') penSet(false);
+      penBarSync();
+    }; });
+    window.addEventListener('resize', function () { if (PEN.cv) penSize(); if (VW && VW.go && VW.go.drawer) goDrPos(); });
+  }
+
+  /* ---------- #47 Notes pad (SAT Math Lib #62): teacher go-over only ----------
+     One pad per opened attempt / class review, kept in this browser (localStorage) across questions until Clear / End &
+     clear. Text + MathQuill math fields on one line ("/" fraction, "^" power, sqrt), bold, colours, highlight, bullets.
+     Copy = rich HTML (math as images) + plain text. Nothing here is sent to the server. */
+  var NT = { key: null, mq: null, loading: null, t: 0, svgDoc: null };
+  var MQ_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/', JQ_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js';
+  function loadJs(src) { return new Promise(function (ok, no) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = function () { no(new Error('Could not load ' + src)); }; document.head.appendChild(s); }); }
+  function loadMQ() {
+    if (NT.mq) return Promise.resolve(NT.mq);
+    if (NT.loading) return NT.loading;
+    var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = MQ_URL + 'mathquill.min.css'; document.head.appendChild(l);
+    var had$ = window.$, hadJ = window.jQuery;
+    NT.loading = loadJs(JQ_URL).then(function () { return loadJs(MQ_URL + 'mathquill.min.js'); }).then(function () {
+      NT.mq = window.MathQuill.getInterface(2);
+      try { window.jQuery.noConflict(true); } catch (e) {}                 // MathQuill keeps its own copy
+      if (had$ !== undefined) window.$ = had$; if (hadJ !== undefined) window.jQuery = hadJ;
+      return NT.mq;
+    });
+    NT.loading.catch(function () { NT.loading = null; });
+    return NT.loading;
+  }
+  function notesKey() { var G = VW && VW.go; return G ? 'tz_notes_' + G.sid : null; }
+  function inMq(n) { while (n && n.id !== 'nt-ed') { if (n.classList && n.classList.contains('mq')) return n; n = n.parentNode; } return null; }
+  function caretBy(sp, after) {
+    var ed = $('#nt-ed'); ed.focus();
+    var r = document.createRange(); if (after) r.setStartAfter(sp); else r.setStartBefore(sp); r.collapse(true);
+    var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+  function mqField(sp, latex) {
+    var f = NT.mq.MathField(sp, { spaceBehavesLikeTab: false, autoCommands: 'pi theta sqrt pm', autoOperatorNames: 'sin cos tan log ln',
+      handlers: {
+        edit: function () { notesSaveSoon(); },
+        enter: function () { caretBy(sp, true); },
+        moveOutOf: function (dir) { caretBy(sp, dir === NT.mq.R); },
+        upOutOf: function () { caretBy(sp, false); }, downOutOf: function () { caretBy(sp, true); },
+        deleteOutOf: function (dir) { if (!f.latex()) { caretBy(sp, false); sp.parentNode.removeChild(sp); notesSaveSoon(); } else caretBy(sp, dir === NT.mq.R); }
+      } });
+    if (latex) f.latex(latex);
+    sp._mq = f; sp.setAttribute('contenteditable', 'false');
+    sp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); caretBy(sp, true); } });
+    return f;
+  }
+  function insertMath() {
+    return loadMQ().then(function () {
+      var ed = $('#nt-ed'), sel = getSelection(), r = null;
+      if (sel.rangeCount && ed.contains(sel.getRangeAt(0).startContainer) && !inMq(sel.getRangeAt(0).startContainer)) r = sel.getRangeAt(0);
+      else { r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); }
+      r.deleteContents();
+      var sp = document.createElement('span'); sp.className = 'mq';
+      r.insertNode(document.createTextNode(' ')); r.insertNode(sp);
+      var f = mqField(sp, ''); f.focus(); notesSaveSoon(); return f;
+    }).catch(function (e) { toast('The math editor did not load: ' + errMsg(e)); });
+  }
+  function notesSerial() {
+    var ed = $('#nt-ed'), c = ed.cloneNode(true), real = $$('.mq', ed);
+    $$('.mq', c).forEach(function (sp, i) { var n = document.createElement('span'); n.className = 'mq'; n.setAttribute('data-latex', real[i] && real[i]._mq ? real[i]._mq.latex() : (sp.getAttribute('data-latex') || '')); sp.parentNode.replaceChild(n, sp); });
+    return c.innerHTML;
+  }
+  function notesSaveSoon() { clearTimeout(NT.t); NT.t = setTimeout(notesSaveNow, 400); }
+  function notesSaveNow() {
+    clearTimeout(NT.t); if (!NT.key) return;
+    var h = notesSerial();
+    try { if (h.replace(/<br>|\s|&nbsp;/g, '')) localStorage.setItem(NT.key, h); else localStorage.removeItem(NT.key); } catch (e) {}
+  }
+  function notesLoad(key) {
+    var ed = $('#nt-ed'), h = ''; NT.key = key;
+    try { h = localStorage.getItem(key) || ''; } catch (e) {}
+    ed.innerHTML = h;
+    var mqs = $$('.mq', ed); if (!mqs.length) return;
+    loadMQ().then(function () { if (NT.key !== key) return; mqs.forEach(function (sp) { var lx = sp.getAttribute('data-latex') || ''; sp.textContent = ''; mqField(sp, lx); }); })
+      .catch(function () { mqs.forEach(function (sp) { sp.textContent = sp.getAttribute('data-latex') || ''; }); });
+  }
+  function notesSync() { var k = notesKey(); if (k && NT.key !== k) { if (NT.key) notesSaveNow(); notesLoad(k); } }
+  function notesOpen(on) {
+    var panel = $('#notes-panel');
+    if (!on) { if (panel.classList.contains('on')) notesSaveNow(); panel.classList.remove('on'); $('#tool-notes').classList.remove('active'); return; }
+    notesSync();
+    if (!panel._sized) {
+      panel._sized = 1; var w = Math.round(Math.max(340, Math.min(480, window.innerWidth * 0.38)));
+      panel.style.width = w + 'px'; panel.style.height = Math.max(280, Math.min(460, $('#tmain').clientHeight - 24)) + 'px';
+      panel.style.left = Math.max(8, window.innerWidth - w - 16) + 'px'; panel.style.right = 'auto'; panel.style.top = ($('#tmain').offsetTop + 8) + 'px';
+    }
+    panel.classList.add('on'); $('#tool-notes').classList.add('active');
+    loadMQ().catch(function () {}); mjSvgDoc().catch(function () {});  // ready before the first "$" / Copy
+    setTimeout(function () { var ed = $('#nt-ed'); if (!ed.contains(document.activeElement)) { ed.focus(); var r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } }, 30);
+  }
+  function notesCmd(cmd, val) {
+    var ed = $('#nt-ed'), sel = getSelection();
+    if (!sel.rangeCount || !ed.contains(sel.getRangeAt(0).startContainer)) { ed.focus(); }
+    try { document.execCommand('styleWithCSS', false, true); } catch (e) {}
+    document.execCommand(cmd, false, val); notesSaveSoon();
+  }
+  /** LaTeX from MathQuill → readable text: \frac{3}{4}x → (3/4)x · x^{2} → x^2 · \sqrt{5} → √5. */
+  function texText(src) {
+    var SYM = { cdot: '·', times: '×', div: '÷', pm: '±', le: '≤', leq: '≤', ge: '≥', geq: '≥', ne: '≠', neq: '≠', pi: 'π', theta: 'θ', alpha: 'α', beta: 'β',
+                infty: '∞', approx: '≈', angle: '∠', triangle: '△', degree: '°', circ: '°', lt: '<', gt: '>', parallel: '∥', perp: '⊥', cong: '≅', sim: '∼' };
+    var wrap = function (x) { return /^([0-9.]+|[A-Za-zα-ωπθ])$/.test(x) ? x : '(' + x + ')'; };
+    var T = function (s) {
+      var i = 0, out = '';
+      var grp = function () {
+        while (s[i] === ' ') i++;
+        if (s[i] === '{') { var d = 0, st = i; for (; i < s.length; i++) { if (s[i] === '{') d++; else if (s[i] === '}' && !--d) { i++; return T(s.slice(st + 1, i - 1)); } } return T(s.slice(st + 1)); }
+        if (s[i] === '\\') { var m = /^\\([A-Za-z]+|.)/.exec(s.slice(i)); i += m[0].length; return cmd(m[1]); }
+        return s[i++] || '';
+      };
+      var cmd = function (c) {
+        if (c === 'frac' || c === 'dfrac' || c === 'tfrac') { var a = grp(), b = grp(); return wrap(a) + '/' + wrap(b); }
+        if (c === 'sqrt') { var n = ''; if (s[i] === '[') { var e = s.indexOf(']', i); n = T(s.slice(i + 1, e)); i = e + 1; } var x = grp(); return (n ? n : '') + '√' + wrap(x); }
+        if (c === 'left' || c === 'right') { var nx = grp(); return nx === '.' ? '' : nx; }
+        if (c === 'text' || c === 'mathrm' || c === 'operatorname' || c === 'mathbf') return grp();
+        if (c === ' ' || c === ',' || c === ';' || c === ':') return ' ';
+        if (c === '{' || c === '}' || c === '%' || c === '$' || c === '_' || c === '&') return c;
+        return SYM[c] !== undefined ? SYM[c] : c;
+      };
+      while (i < s.length) {
+        var ch = s[i];
+        if (ch === '^' || ch === '_') { i++; var g = grp(); out += ch + (g.length === 1 ? g : '(' + g + ')'); }
+        else if (ch === '{' || ch === '\\') out += grp();
+        else if (ch === '}') i++;
+        else { out += ch; i++; }
+      }
+      return out;
+    };
+    return T(String(src || '')).replace(/\s+/g, ' ').trim();
+  }
+  function notesPlain(root) {
+    var out = '';
+    var walk = function (n) {
+      if (n.nodeType === 3) { out += n.nodeValue.replace(/ /g, ' ').replace(/​/g, ''); return; }
+      if (n.nodeType !== 1) return;
+      if (n.classList.contains('mq')) { out += texText(n._mq ? n._mq.latex() : n.getAttribute('data-latex')); return; }
+      var tag = n.tagName, block = /^(DIV|P|LI|UL|OL)$/.test(tag);
+      if (tag === 'BR') { out += '\n'; return; }
+      if (block && out && !/\n$/.test(out)) out += '\n';
+      if (tag === 'LI') out += '• ';
+      Array.prototype.forEach.call(n.childNodes, walk);
+      if (block && !/\n$/.test(out)) out += '\n';
+    };
+    Array.prototype.forEach.call(root.childNodes, walk);
+    return out.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  /** MathJax SVG (a hidden frame; the page itself uses CHTML) → PNG, so pasted notes keep their fractions in Docs / Mail. */
+  function mjSvgDoc() {
+    if (NT.svgDoc) return NT.svgDoc;
+    NT.svgDoc = new Promise(function (ok, no) {
+      var f = document.createElement('iframe'); f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+      f.style.cssText = 'position:absolute;width:1px;height:1px;left:-9999px;top:0;border:0;visibility:hidden';
+      f.srcdoc = '<!doctype html><meta charset="utf-8"><script>window.MathJax={svg:{fontCache:"none"},startup:{typeset:false}};<\/script>' +
+                 '<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"><\/script>';
+      var tm = setTimeout(function () { no(new Error('MathJax SVG did not load')); }, 20000);
+      f.onload = function () {
+        var w = f.contentWindow, n = 0;
+        (function wait() {
+          if (w.MathJax && w.MathJax.startup && w.MathJax.startup.promise && w.MathJax.tex2svg) w.MathJax.startup.promise.then(function () { clearTimeout(tm); ok({ convert: function (tex) { return w.MathJax.tex2svg(tex, { display: false }); } }); });
+          else if (++n > 200) no(new Error('MathJax SVG missing')); else setTimeout(wait, 100);
+        })();
+      };
+      document.body.appendChild(f);
+    });
+    NT.svgDoc.catch(function () { NT.svgDoc = null; });
+    return NT.svgDoc;
+  }
+  function texPng(doc, tex) {
+    return new Promise(function (ok, no) {
+      var node = doc.convert(tex || '\\,'), svg = node.querySelector('svg');
+      if (!svg) { no(new Error('no svg')); return; }
+      var ex = 9.5, w = parseFloat(svg.getAttribute('width')) * ex, h = parseFloat(svg.getAttribute('height')) * ex, va = parseFloat(svg.style.verticalAlign || '0') * ex;
+      svg.setAttribute('width', w + 'px'); svg.setAttribute('height', h + 'px'); svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      var xml = new XMLSerializer().serializeToString(svg).replace(/currentColor/g, '#1b2a4a');
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement('canvas'), k = 2; c.width = Math.ceil(w * k); c.height = Math.ceil(h * k);
+        var g = c.getContext('2d'); g.scale(k, k); g.drawImage(img, 0, 0, w, h);
+        try { ok({ src: c.toDataURL('image/png'), w: Math.round(w), h: Math.round(h), va: Math.round(va * 10) / 10 }); } catch (e) { no(e); }
+      };
+      img.onerror = function () { no(new Error('svg image')); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+    });
+  }
+  function notesRich() {
+    var ed = $('#nt-ed'), c = ed.cloneNode(true), real = $$('.mq', ed), lx = real.map(function (sp) { return sp._mq ? sp._mq.latex() : (sp.getAttribute('data-latex') || ''); });
+    c.removeAttribute('contenteditable'); c.removeAttribute('id');
+    var fill = function (imgs) {
+      $$('.mq', c).forEach(function (sp, i) {
+        var t = texText(lx[i]), im = imgs && imgs[i], n;
+        if (im) { n = document.createElement('img'); n.src = im.src; n.alt = t; n.setAttribute('width', im.w); n.setAttribute('height', im.h); n.style.verticalAlign = im.va + 'px'; }
+        else { n = document.createElement('span'); n.style.fontFamily = 'Cambria Math, Times New Roman, serif'; n.style.fontStyle = 'italic'; n.textContent = t; }
+        sp.parentNode.replaceChild(n, sp);
+      });
+      return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1b2a4a">' + c.innerHTML + '</div>';
+    };
+    if (!lx.length) return Promise.resolve(fill(null));
+    return mjSvgDoc().then(function (doc) { return Promise.all(lx.map(function (t) { return texPng(doc, t).catch(function () { return null; }); })); })
+      .then(fill, function () { return fill(null); });
+  }
+  function notesCopy() {
+    notesSaveNow();
+    var plain = notesPlain($('#nt-ed')), htmlP = notesRich();
+    if (!plain) { toast('Nothing to copy yet.'); return Promise.resolve(false); }
+    var viaEvent = function () {
+      return htmlP.then(function (h) {
+        var fn = function (e) { e.clipboardData.setData('text/html', h); e.clipboardData.setData('text/plain', plain); e.preventDefault(); };
+        document.addEventListener('copy', fn); var ok = false; try { ok = document.execCommand('copy'); } catch (x) {}
+        document.removeEventListener('copy', fn);
+        toast(ok ? 'Copied the notes (text + math).' : 'Copy was blocked: select the notes and press Ctrl+C.', 2500); return ok;
+      });
+    };
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      var item = new ClipboardItem({ 'text/html': htmlP.then(function (h) { return new Blob([h], { type: 'text/html' }); }), 'text/plain': new Blob([plain], { type: 'text/plain' }) });
+      return navigator.clipboard.write([item]).then(function () { toast('Copied the notes (text + math).', 2000); return true; }).catch(viaEvent);
+    }
+    return viaEvent();
+  }
+  function notesClear(andEnd) {
+    modal(andEnd ? 'End and clear the notes?' : 'Clear the notes?', andEnd ? 'The question screen closes and these notes are deleted.' : 'These notes are deleted.',
+      [{ label: 'Cancel', value: false, cls: 'btn-outline' }, { label: andEnd ? 'End & clear' : 'Clear', value: true }]).then(function (ok) {
+      if (!ok) return;
+      $('#nt-ed').innerHTML = ''; try { if (NT.key) localStorage.removeItem(NT.key); } catch (e) {}
+      if (andEnd) { NT.key = null; notesOpen(false); exitViewer(); } else $('#nt-ed').focus();
+    });
+  }
+  function adjMq(ed, dir) {                                               // the math field right next to the caret (→ / ←)
+    var sel = getSelection(); if (!sel.rangeCount || !sel.isCollapsed) return null;
+    var r = sel.getRangeAt(0), n = r.startContainer, o = r.startOffset, x = null;
+    if (n.nodeType === 3) { if (dir > 0 && o >= n.nodeValue.length) x = n.nextSibling; else if (dir < 0 && o === 0) x = n.previousSibling; }
+    else x = dir > 0 ? n.childNodes[o] : n.childNodes[o - 1];
+    return x && x.nodeType === 1 && x.classList.contains('mq') && x._mq ? x : null;
+  }
+  function initNotes() {
+    var panel = $('#notes-panel'), ed = $('#nt-ed');
+    makeFloating(panel, $('#notes-head'), $('#notes-rs'));
+    $('#tool-notes').onclick = function () { notesOpen(!panel.classList.contains('on')); };
+    $('#notes-x').onclick = function () { notesOpen(false); };
+    $$('#nt-tools button').forEach(function (b) {
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); });   // keep the selection in the notes
+      b.onclick = function () {
+        var t = b.getAttribute('data-nt');
+        if (t === 'bold') notesCmd('bold'); else if (t === 'c') notesCmd('foreColor', b.getAttribute('data-c'));
+        else if (t === 'hl') notesCmd('hiliteColor', '#fde68a'); else if (t === 'ul') notesCmd('insertUnorderedList');
+        else if (t === 'math') insertMath(); else if (t === 'copy') notesCopy();
+        else if (t === 'clear') notesClear(false); else if (t === 'end') notesClear(true);
+      };
+    });
+    ed.addEventListener('keydown', function (e) {
+      if (inMq(e.target) && e.target !== ed) return;
+      var k = e.key, mod = e.ctrlKey || e.metaKey;
+      if (k === '$' || (e.ctrlKey && (k === 'm' || k === 'M'))) { e.preventDefault(); insertMath(); return; }
+      if (mod && (k === 'e' || k === 'E')) { e.preventDefault(); notesCmd('hiliteColor', '#fde68a'); return; }
+      if (mod && (k === 'b' || k === 'B')) { e.preventDefault(); notesCmd('bold'); return; }
+      if (k === 'ArrowRight' || k === 'ArrowLeft') {
+        var sp = adjMq(ed, k === 'ArrowRight' ? 1 : -1);
+        if (sp) { e.preventDefault(); sp._mq.focus(); if (k === 'ArrowRight') sp._mq.moveToLeftEnd(); else sp._mq.moveToRightEnd(); }
+      }
+    });
+    ed.addEventListener('input', notesSaveSoon);
+    window.addEventListener('beforeunload', notesSaveNow);
+  }
+
 
   /* ================= teacher mode (Settings → teacher_code) ================= */
   function showTeacher() {
@@ -1495,7 +2017,7 @@
       if (!e.target.closest('#nav-pop, #btn-nav, #dir-pop, #btn-dir, #more-menu, #tool-more')) closePops();
       if (!e.target.closest('#hl-toolbar, .hl, #tool-annot')) hideHlToolbar();
     });
-    initCalc(); initRef(); initAnnotate(); initReader(); initIntegrity();
+    initCalc(); initRef(); initAnnotate(); initReader(); initIntegrity(); initPen(); initNotes(); initNav();
     window.addEventListener('pagehide', function () {
       if (A.st && A.st.phase === 'test') { var q = curQ(); if (q) log('q_leave', q.qid, 'pagehide'); persist(); }
     });
@@ -1511,7 +2033,7 @@
   function setZoom(z) {
     A.st.zoom = Math.round(Math.max(0.8, Math.min(1.8, z)) * 10) / 10; persist(); applyZoom();
   }
-  function applyZoom() { var z = (A.st && A.st.zoom) || 1; document.documentElement.style.setProperty('--z', z); $('#zoom-val').textContent = Math.round(z * 100) + '%'; }
+  function applyZoom() { var z = (A.st && A.st.zoom) || 1; document.documentElement.style.setProperty('--z', z); $('#zoom-val').textContent = Math.round(z * 100) + '%'; if (PEN.cv) setTimeout(penSize, 60); }
   function showHelp() {
     modal('Help', '<ul style="padding-left:18px;margin:0">' +
       '<li><b>Timer</b> — top centre. <i>Hide</i> hides it (it keeps running). It turns red and stays visible in the last 5 minutes. At 0:00 the part ends and your answers are saved.</li>' +

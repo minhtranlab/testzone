@@ -64,6 +64,12 @@
         <button class="tool hidden" id="tool-ref" type="button" title="Reference">
           <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M9 10h7M9 14h7M9 18h4" stroke="currentColor" stroke-width="1.6"/></svg>
           <span>Reference</span></button>
+        <button class="tool go-only" id="tool-notes" type="button" title="Notes (teacher)">
+          <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span>Notes</span></button>
+        <button class="tool go-only" id="tool-pen" type="button" title="Pen: draw on the question (teacher)">
+          <svg viewBox="0 0 24 24"><path d="M15 4l5 5L9 20H4v-5z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M13 6l5 5" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span>Pen</span></button>
         <button class="tool" id="tool-annot" type="button" title="Annotate">
           <svg viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/><path d="M13 7l4 4" stroke="currentColor" stroke-width="1.8"/><path d="M14 20h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           <span>Annotate</span></button>
@@ -90,6 +96,21 @@
     </div>
 
     <div id="view-bar" class="rv-info"></div>
+    <div id="pen-bar" role="toolbar" aria-label="Pen" hidden>
+      <span class="pb-l">Pen</span>
+      <button type="button" class="pb-c on" data-pc="blue" title="Blue" style="--c:#1f5fd6"></button>
+      <button type="button" class="pb-c" data-pc="red" title="Red" style="--c:#d0263c"></button>
+      <button type="button" class="pb-c" data-pc="green" title="Green" style="--c:#1f8a4c"></button>
+      <button type="button" class="pb-c" data-pc="yellow" title="Yellow highlighter" style="--c:#f5c400"></button>
+      <i class="pb-sep"></i>
+      <button type="button" class="pb-w on" data-pw="1" title="Thin"><b style="height:2px"></b></button>
+      <button type="button" class="pb-w" data-pw="2" title="Thick"><b style="height:5px"></b></button>
+      <i class="pb-sep"></i>
+      <button type="button" class="pb-t" data-pt="eraser">Eraser</button>
+      <button type="button" class="pb-t" data-pt="undo">Undo</button>
+      <button type="button" class="pb-t" data-pt="clear">Clear drawing</button>
+      <button type="button" class="pb-t pb-off" data-pt="off">Pen off</button>
+    </div>
     <main id="tmain">
       <div class="view" id="v-directions"></div>
       <div class="view" id="v-question" style="height:100%"><div id="qwrap" style="height:100%"></div></div>
@@ -99,9 +120,10 @@
       <div class="view" id="v-wait"></div>
     </main>
 
+    <div id="go-strip" aria-live="polite"></div>
     <div class="dash"></div>
     <footer id="fbar">
-      <div id="fb-left"><div id="fb-name"></div><div id="save-dot"></div></div>
+      <div id="fb-left"><div id="fb-name"></div><div id="save-dot"></div><div id="fb-go"></div></div>
       <div class="fb-center"><button id="btn-nav" type="button"><span id="nav-label">Question 1 of 1</span><svg width="12" height="8" viewBox="0 0 12 8"><path d="M1 7l5-5 5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button></div>
       <div class="fb-right"><button class="btn-blue" id="btn-back" type="button">Back</button><button class="btn-blue" id="btn-next" type="button">Next</button></div>
     </footer>
@@ -125,6 +147,26 @@
       <div class="fp-body"><div id="ref-body"></div></div>
       <div class="fp-resize" id="ref-rs"></div>
     </div>
+    <div id="notes-panel" class="float-panel" style="right:24px;top:84px;width:460px;height:420px" aria-label="Notes">
+      <div class="fp-head" id="notes-head"><span class="ttl">Notes</span><span class="nt-hint">$ or Ctrl+M = math</span><button type="button" id="notes-x" aria-label="Close" style="font-size:20px;line-height:1">×</button></div>
+      <div class="nt-tools" id="nt-tools">
+        <button type="button" data-nt="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button type="button" data-nt="c" data-c="#1b2a4a" title="Navy" class="nt-dot" style="--c:#1b2a4a"></button>
+        <button type="button" data-nt="c" data-c="#d0263c" title="Red" class="nt-dot" style="--c:#d0263c"></button>
+        <button type="button" data-nt="c" data-c="#1f5fd6" title="Blue" class="nt-dot" style="--c:#1f5fd6"></button>
+        <button type="button" data-nt="c" data-c="#1f8a4c" title="Green" class="nt-dot" style="--c:#1f8a4c"></button>
+        <button type="button" data-nt="hl" title="Highlight (Ctrl+E)"><span class="nt-hl">ab</span></button>
+        <button type="button" data-nt="ul" title="Bullet line">• List</button>
+        <button type="button" data-nt="math" title="Math ($ or Ctrl+M)">∑ Math</button>
+        <i class="pb-sep"></i>
+        <button type="button" data-nt="copy">Copy</button>
+        <button type="button" data-nt="clear">Clear</button>
+        <button type="button" data-nt="end">End &amp; clear</button>
+      </div>
+      <div class="fp-body nt-body"><div id="nt-ed" contenteditable="true" spellcheck="false" data-ph="Type here. $ starts math: / fraction · ^ power · sqrt root · → leaves it."></div></div>
+      <div class="fp-resize" id="notes-rs"></div>
+    </div>
+    <aside id="go-drawer" aria-hidden="true"><div class="gd-head"><b>Details</b><button type="button" id="go-dr-x" aria-label="Close">×</button></div><div id="go-dr-body"></div></aside>
     <div id="hl-toolbar">
       <div class="hl-row">
         <button type="button" class="hl-dot hl-y" data-c="y" aria-label="Yellow"></button>
