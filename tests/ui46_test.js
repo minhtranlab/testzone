@@ -44,7 +44,7 @@ const SAT = 'MOCK-SAT98', TC = 'TEACH-46-UI';
   let { page } = await E.newPage('desktop1280');
   await H.login(page, E.url, 'T03'); await page.waitForSelector('.form-card .fc-view'); await page.click('.form-card .fc-view'); await page.waitForSelector('#scr-result.on .res-score');
   const st = await page.evaluate(() => ({ noest: (document.querySelector('.res-noest') || {}).textContent || '', est: !!document.querySelector('.est, .sec-est'), box: !!document.querySelector('.res-box.bad'),
-    tips: [...document.querySelectorAll('.res-list > li')].map(li => li.innerText.replace(/\s+/g, ' ')), skills: document.querySelectorAll('.skill-card').length, types: !!document.querySelector('.res-types') }));
+    tips: [...document.querySelectorAll('.res-list > li')].map(li => li.textContent.replace(/\s+/g, ' ')), skills: document.querySelectorAll('.skill-card').length, types: !!document.querySelector('.res-types') }));
   check(/^Score not estimated — RW: only \d+ of 64 minutes used/.test(st.noest) && !st.est && !st.box, 'one short line: "' + st.noest.slice(0, 70) + '…", no estimate, no red box');
   check(st.tips.length >= 2 && st.tips.some(t => /Practise: /.test(t)) && !st.tips.some(t => /Take the test again/.test(t)) && st.skills === 2 && st.types, 'tips with practice lines, Results by skill (2 sections), Types of mistakes all shown');
   await page.context().close();

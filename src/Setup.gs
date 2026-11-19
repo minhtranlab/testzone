@@ -75,7 +75,7 @@ var EXPECTED_HEADERS = {
           // SAT round 2: Drive file of the form (filled automatically when blank; may also be typed to point at another file)
           'data_file_id'],
   Settings: ['key', 'value', 'meaning'],
-  Assignments: ['student_code', 'form', 'parts', 'active', 'note', 'class_id'], // = ASSIGN_HEADERS (Assign.gs); class_id #44
+  Assignments: ['student_code', 'form', 'parts', 'active', 'note', 'class_id', 'due'], // = ASSIGN_HEADERS (Assign.gs); class_id #44, due #48
   Classes: ['class_id', 'name', 'student_codes', 'active', 'note'], // = CLASS_HEADERS (Classes.gs, #44)
   Dictionary: ['tab', 'column', 'meaning', 'example'],
   Score_Scale: null

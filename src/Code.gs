@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.16 (2026-11-18, teacher go-over copied from SAT Math Lib: answers on demand, Wrong only, Details, Notes pad, pen)';
+var APP_VERSION = 'v1.17 (2026-11-19, lesson feedback: result bars, Assign tab, pen over both panes, teacher highlight tools)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -478,13 +478,15 @@ function listForms(code) {
   assignmentsFor_(codeN).forEach(function (a) {
     var f = forms[a.form_id];
     // an assignment is shown even outside the student's track; the whole form only when it is not already a normal card
-    if (!f || (a.scope === 'full' && trackAllows_(st.track, f.exam, a.form_id))) return;
+    if (f && a.scope === 'full' && trackAllows_(st.track, f.exam, a.form_id)) { // #48: the whole test assigned → its normal card is the assignment
+      var card = out.filter(function (x) { return x.form_id === a.form_id; })[0]; if (card) card.assign_full = { note: a.note, due: a.due }; return; }
+    if (!f) return;
     var fe = regEntry_(a.form_id), sp = fe ? scopedProfile_(profileFor_(a.form_id), a.scope) : null;
     var parts = f.parts.filter(function (p) { return a.parts.indexOf(p.part) >= 0; });
     var n = parts.reduce(function (x, p) { return x + p.n; }, 0);
     var brk = sp && sp.sections ? Math.round(sp.parts.reduce(function (m, p) { return Math.max(m, Number(p.break_after_sec) || 0); }, 0) / 60) : 0;
     var label = a.label || 'Full test'; // #32 t1: the whole form assigned (student outside the track)
-    asg.push({ form_id: a.form_id, exam: f.exam, scope: a.scope, assigned: true, label: label, available: !!fe,
+    asg.push({ form_id: a.form_id, exam: f.exam, scope: a.scope, assigned: true, label: label, available: !!fe, note: a.note, due: a.due,
                title: fe ? (fe.profile.title || '') + ' — ' + label : label, parts: parts, n: n, break_min: brk,
                minutes: parts.reduce(function (x, p) { return x + p.minutes; }, 0),
                attempts: attemptsOf_(sessions, a.form_id, a.scope, fe, n) });

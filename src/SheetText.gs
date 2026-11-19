@@ -235,6 +235,7 @@ var SETTINGS_MEANING_ = {
   valid_min_time_ratio: 'Not reliable if the time used < this × the test time (SAT: per section)',
   valid_quick_ratio: 'Not reliable if ≥ this share of the answers took < guess_min_time_sec',
   valid_blank_ratio: 'Not used since v1.15.1 (#46): blank questions no longer make an attempt "not reliable"; they count as wrong',
+  lucky_guess_sec: 'Result page: a right answer with a time to answer under this many seconds is listed as "Could be a lucky guess" (not Standard English Conventions skills)',
   leave_flag_sec: 'Teacher pages: only leaves of the test window this long (seconds) count in "Left the test" and for ⚠; shorter ones are listed in grey',
   unit_slow_ratio: 'A unit / domain with ≥ this share of slow questions = Slow',
   teacher_code: 'Teacher sign-in code for the app (teacher view + Show answer). Empty = teacher view off. Use a long, hard-to-guess code',
@@ -275,6 +276,7 @@ var SETTINGS_NEW_ROWS_ = [['teacher_code', ''],
   ['integrity_on', 'Yes'],
   ['integrity_toast', 'Yes'],
   ['leave_flag_sec', '20'], // #46
+  ['lucky_guess_sec', '5'], // #48
   ['practice_mode CAS.WIC', 'Vocabulary'],
   ['practice_mode CAS.TSP', 'Text Structure & Purpose'],
   ['practice_mode CAS.CTC', 'Cross-Text Connections'],

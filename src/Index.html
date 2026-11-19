@@ -107,6 +107,7 @@
       <button type="button" class="pb-w" data-pw="2" title="Thick"><b style="height:5px"></b></button>
       <i class="pb-sep"></i>
       <button type="button" class="pb-t" data-pt="eraser">Eraser</button>
+      <button type="button" class="pb-t" data-pt="select" title="Select: draw a loop around strokes, then drag them (Delete removes them)">Select</button>
       <button type="button" class="pb-t" data-pt="undo">Undo</button>
       <button type="button" class="pb-t" data-pt="clear">Clear drawing</button>
       <button type="button" class="pb-t pb-off" data-pt="off">Pen off</button>
@@ -157,7 +158,8 @@
         <button type="button" data-nt="c" data-c="#1f8a4c" title="Green" class="nt-dot" style="--c:#1f8a4c"></button>
         <button type="button" data-nt="hl" title="Highlight (Ctrl+E)"><span class="nt-hl">ab</span></button>
         <button type="button" data-nt="ul" title="Bullet line">• List</button>
-        <button type="button" data-nt="math" title="Math ($ or Ctrl+M)">∑ Math</button>
+        <button type="button" data-nt="math" title="New math field ($ or Ctrl+M)">∑ Math</button>
+        <button type="button" data-nt="text" title="Words (Ctrl+T): on an empty line the line becomes words; inside math, upright words in the math. Esc = leave the math">Aa Text</button>
         <i class="pb-sep"></i>
         <button type="button" data-nt="copy">Copy</button>
         <button type="button" data-nt="clear">Clear</button>
@@ -172,7 +174,9 @@
         <button type="button" class="hl-dot hl-y" data-c="y" aria-label="Yellow"></button>
         <button type="button" class="hl-dot hl-b" data-c="b" aria-label="Blue"></button>
         <button type="button" class="hl-dot hl-p" data-c="p" aria-label="Pink"></button>
+        <button type="button" class="hl-dot hl-g hl-teach" data-c="g" aria-label="Green"></button>
         <button type="button" class="hl-btn" data-c="u" style="text-decoration:underline" title="Underline" aria-label="Underline">U</button>
+        <button type="button" class="hl-btn hl-teach" data-c="s" style="text-decoration:line-through" title="Cross out" aria-label="Cross out">S</button>
         <button type="button" class="hl-btn" id="hl-note-btn" title="Add note" aria-label="Add note">✎ Note</button>
         <button type="button" class="hl-btn" id="hl-del" title="Delete highlight" aria-label="Delete highlight">🗑</button>
         <button type="button" class="hl-btn" id="hl-close" title="Close" aria-label="Close">×</button>
@@ -192,7 +196,7 @@
       <div><button class="btn-plain" id="t-logout">Sign out</button></div>
     </div>
     <div class="home-body">
-      <div class="t-tabs" role="tablist"><button type="button" role="tab" id="t-tab-st" class="on">Students</button><button type="button" role="tab" id="t-tab-cl">Classes</button></div>
+      <div class="t-tabs" role="tablist"><button type="button" role="tab" id="t-tab-st" class="on">Students</button><button type="button" role="tab" id="t-tab-cl">Classes</button><button type="button" role="tab" id="t-tab-as">Assign</button></div>
       <div id="t-pane-st">
         <h1>Students</h1>
         <p class="sub">Open an attempt to see the result page the student saw, then every question with the student's answer.</p>
@@ -203,6 +207,10 @@
         <h1>Classes</h1>
         <p class="sub">Go over one test with several students at once: open a class, pick a test (and a part).</p>
         <div id="t-classes"><div class="spinner"></div></div>
+      </div>
+      <div id="t-pane-as" hidden>
+        <h1>Assign</h1>
+        <div id="t-assign"><div class="spinner"></div></div>
       </div>
     </div>
   </section>

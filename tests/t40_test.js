@@ -42,13 +42,13 @@ const FORM = 'MOCK-SAT98', TCODE = 'TEACH-40-UI';
     const v = await page.evaluate(() => ({
       blocks: [...document.querySelectorAll('.sec-card .mod-time')].map(b => b.innerText.replace(/\s+/g, ' ')),
       rt: [...document.querySelectorAll('.rgrid.tgrid .rcell .rt')].map(x => x.textContent),
-      sml: [...document.querySelectorAll('.it-pr .pr-app[data-sec="Math"]')].map(x => x.innerText.replace(/\s+/g, ' ')),
+      sml: [...document.querySelectorAll('.it-pr .pr-app[data-sec="Math"]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
       sw: document.documentElement.scrollWidth <= innerWidth }));
     const sums = v.blocks.map(b => { const n = [...b.matchAll(/(\d+):(\d\d)/g)].map(m => +m[1] * 60 + +m[2]); return n[0] === n[1] + n[2] + n[3]; });
     check(v.blocks.length === 4 && /^Module 1 · 32:00 Solving time \d+:\d\d Checking \/ review time \d+:\d\d Time left at submit \d+:\d\d Time on blank questions \d+:\d\d( Left the test: —)?$/.test(v.blocks[0]) && sums.every(Boolean),
       `${dev}: 4 module blocks ("${v.blocks[2]}"), solving + checking + left = clock`);
     check(v.rt.length === 98 && v.rt.filter(t => t === '–').length === 4 && v.rt.every(t => /^(\d+:\d\d|–)$/.test(t)), `${dev}: time to answer under each of the 98 numbers (blank: –)`);
-    check(v.sml.length >= 3 && v.sml.every(t => /^Practise: .+ in SAT Math Lib — \d+\/\d+ right · assign (Easy|Medium|Hard)/.test(t)), `${dev}: #44: a SAT Math Lib line + level under each weak Math skill ("${v.sml[0]}")`);
+    check(v.sml.length >= 3 && v.sml.every(t => /^Practise: .+ in SAT Math Lib — assign (Easy|Medium|Hard)/.test(t)), `${dev}: #44: a SAT Math Lib line + level under each weak Math skill ("${v.sml[0]}")`);
     check(v.sw, `${dev}: no sideways scroll`);
     if (dev === 'desktop1280') {
       await page.locator('.res-score').screenshot({ path: path.join(out, 'r40_teacher_module_time.png') });
@@ -61,13 +61,13 @@ const FORM = 'MOCK-SAT98', TCODE = 'TEACH-40-UI';
     await page.context().close();
   }
 
-  console.log('[student: no times (the practice lines are tested in pr_test since #44)]');
+  console.log('[student: no module times; #48: time to answer under each number]');
   for (const dev of ['desktop1280', 'phone']) {
     const { page } = await E.newPage(dev);
     await H.login(page, E.url, 'T03'); await page.waitForSelector('.form-card .fc-view');
     await page.click('.form-card .fc-view'); await page.waitForSelector('#scr-result.on .res-score', { timeout: 20000 });
-    const v = await page.evaluate(() => ({ times: !!document.querySelector('.mod-time, .rgrid .rt, .it-pr'), body: document.getElementById('result-body').innerText, sw: document.documentElement.scrollWidth <= innerWidth }));
-    check(!v.times && !/Solving time|Checking|assign (Easy|Medium|Hard)|time to answer/i.test(v.body) && v.sw, `${dev}: no module times, no time to answer, no level hint; no sideways scroll`);
+    const v = await page.evaluate(() => ({ times: !!document.querySelector('.mod-time, .it-pr'), rt: document.querySelectorAll('.rgrid .rt').length, body: document.getElementById('result-body').innerText, sw: document.documentElement.scrollWidth <= innerWidth }));
+    check(!v.times && v.rt === 98 && !/Solving time|Checking|assign (Easy|Medium|Hard)/i.test(v.body) && v.sw, `${dev}: no module times, no level hint; #48: time under each of the 98 numbers; no sideways scroll`);
     await page.context().close();
   }
   await E.close();

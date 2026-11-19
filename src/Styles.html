@@ -593,7 +593,7 @@ a.pr-link { text-decoration: none; } a.pr-link:hover mark { text-decoration: und
 .stu-tag { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 700 11.5px/1 "Noto Sans", Arial, sans-serif; background: #f2c46d; color: #3b2a00; border-radius: 10px; padding: 4px 8px; pointer-events: none; white-space: nowrap; }
 .go-spr { margin-top: 12px; font-size: 15px; background: #fff7e6; border: 1.5px solid #f2c46d; border-radius: 8px; padding: 6px 10px; display: inline-block; }
 .go-spr.key { background: #eef8f1; border-color: var(--green); color: var(--green); font-weight: 600; margin-left: 8px; }
-#scr-test.going { position: relative; }
+#scr-test.going { position: relative; overflow: hidden; } /* #48: the closed drawer (off to the right) never widens the page */
 #scr-test.going #go-drawer { display: flex; flex-direction: column; position: absolute; right: 0; top: 0; bottom: 0; width: min(420px, 92vw); background: #fff; border-left: 1.5px solid var(--line);
   box-shadow: -8px 0 24px rgba(0,0,0,.08); z-index: 60; transform: translateX(105%); transition: transform .2s ease; visibility: hidden; }
 #scr-test.going #go-drawer.on { transform: none; visibility: visible; }
@@ -621,8 +621,7 @@ a.pr-link { text-decoration: none; } a.pr-link:hover mark { text-decoration: und
 .pb-w.on, .pb-t.on { border-color: var(--blue); background: var(--blue-soft); }
 .pb-t { border: 1.5px solid var(--line); border-radius: 8px; background: #fff; padding: 5px 10px; font: 600 13.5px "Noto Sans", Arial, sans-serif; cursor: pointer; }
 .pb-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; font-style: normal; }
-.pen-host { position: relative; }
-canvas.pen-cv { position: absolute; left: 0; top: 0; z-index: 30; pointer-events: none; }
+canvas.pen-cv { position: absolute; left: 0; top: 0; z-index: 30; pointer-events: none; } /* #48: over the whole question area (#tmain) */
 #scr-test.pen-on canvas.pen-cv { pointer-events: auto; touch-action: none; cursor: crosshair; }
 #notes-panel { z-index: 70; }
 .nt-hint { font-size: 12px; font-weight: 500; opacity: .75; margin-right: 6px; }
@@ -638,4 +637,50 @@ canvas.pen-cv { position: absolute; left: 0; top: 0; z-index: 30; pointer-events
 #nt-ed .mq.mq-editable-field { border: 1px solid #c9d3ea; border-radius: 4px; padding: 0 3px; min-width: 18px; }
 #nt-ed .mq.mq-focused { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); }
 @media (max-width: 860px) { #pen-bar { padding: 6px 12px; } #scr-test.going #go-strip:not(:empty) { padding: 8px 12px; } #fb-go .btn-outline, #fb-go .btn-blue { padding: 7px 10px; font-size: 13.5px; } }
+
+/* ======================= #48 v1.17 result page: long green bars, practice lines on a click, one legend ======================= */
+.skill summary { grid-template-columns: minmax(150px, 30%) 1fr 64px; gap: 14px; }
+.skill .bar, .skill li .bar { display: block; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden; }
+.skill .bar i { display: block; height: 100%; background: #16a34a; border-radius: 6px 0 0 6px; min-width: 0; }
+.skill .xy { text-align: right; }
+.skill ul { padding-left: 18px; }
+.skill li { display: grid; grid-template-columns: minmax(132px, calc(30% - 18px)) 1fr 64px; gap: 4px 14px; align-items: center; padding: 6px 0; }
+.skill li .bar { height: 9px; }
+.skill li .it-name { flex: none; min-width: 0; }
+.skill li .chips { grid-column: 1 / -1; margin: 0; justify-content: flex-start; }
+.skill li .it-pr { grid-column: 1 / -1; }
+.pr-tog { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.pr-tog::after { content: " ▸"; color: var(--muted); font-size: .85em; }
+.pr-tog[aria-expanded="true"]::after { content: " ▾"; }
+.pr-tog:hover { color: var(--blue); }
+.res-list .pr-box .pr-app { margin: 4px 0 2px; }
+.grid-key.top { margin: -4px 0 14px; }
+@media (max-width: 760px) {
+  .skill summary { grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .skill .bar { display: block; grid-column: 1 / -1; grid-row: 2; }
+  .skill li { grid-template-columns: 1fr auto; }
+  .skill li .bar { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* #48 Assign tab */
+.as-new h3 { margin: 0 0 4px; }
+.as-parts, .as-cls { display: flex; flex-wrap: wrap; gap: 8px; }
+.as-chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); border-radius: 18px; padding: 6px 12px; font-size: 14px; cursor: pointer; background: #fff; }
+.as-chip:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); font-weight: 600; }
+.as-chip input { margin: 0; accent-color: var(--blue); }
+.as-row { display: grid; grid-template-columns: 200px 1fr; gap: 0 16px; }
+.as-stu[hidden] { display: none; }
+#as-go { margin-top: 6px; }
+.as-list { padding: 4px 14px; overflow-x: auto; }
+.as-list td { vertical-align: top; } .as-act { text-align: right; white-space: nowrap; }
+.as-past { margin-top: 14px; } .as-past summary { cursor: pointer; font-weight: 700; color: var(--muted); }
+.hz-due { font-weight: 700; }
+.as-new .t-filter { margin: 6px 0 0; }
+@media (max-width: 600px) { .as-row { grid-template-columns: 1fr; } }
+
+/* #48 teacher highlight: green + cross out (students keep 3 colours + underline, like Bluebook) */
+.hl-g { background: #bbf7d0; }
+.hl-s { background: none; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #b91c1c; }
+#hl-toolbar .hl-teach { display: none; }
+#scr-test.going #hl-toolbar .hl-teach { display: inline-block; }
 </style>

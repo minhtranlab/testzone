@@ -60,7 +60,7 @@ const FORM = 'MOCK-SAT98';
       past: [...document.querySelectorAll('.hz-past .hz-prow')].map(r => r.innerText.replace(/\s+/g, ' ')), home: document.getElementById('home-list').innerText,
       side: document.querySelector('.hz-next').getBoundingClientRect().height }));
     check(v.hello === 'Hi Alex. Here is your next test.' || /^Hi \S+\. Here is your next test\.$/.test(v.hello), `${dev}: greeting "${v.hello}"`);
-    check(v.eb === 'Assigned by your teacher' && v.h1 === 'Math Module 2' && v.clock === '35:00minutes' && v.btn === 'Start Math Module 2' && !v.solo, `${dev}: hero = the assignment "Math Module 2", ring 35:00, "Start Math Module 2", pick-up beside it`);
+    check(/^Assigned: .+ · Math Module 2$/.test(v.eb) && v.h1 === 'Math Module 2' && v.clock === '35:00minutes' && v.btn === 'Start Math Module 2' && !v.solo, `${dev}: hero = #48 "Assigned: <test> · Math Module 2" (${v.eb}) "Math Module 2", ring 35:00, "Start Math Module 2", pick-up beside it`);
     check(v.pick.length === 1 && /Reading and Writing · Module 1/.test(v.pick[0]) && /2\/27 answered · 3[12]:\d\d left/.test(v.pick[0]) && v.bar === '7%', `${dev}: pick-up "${v.pick[0]}"`);
     check(v.tiles.length === 1 && /In progress/.test(v.tiles[0]) && !/estimat|\d{3}–\d{3}/i.test(v.home), `${dev}: All tests tile "${v.tiles[0]}" (the assignment is the big block), no estimate on the page`);
     check(v.past.length === 1 && /Math Module 1/.test(v.past[0]) && /View result/.test(v.past[0]), `${dev}: Past assignments "${v.past[0]}"`);

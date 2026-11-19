@@ -33,7 +33,7 @@ const SAT = 'MOCK-SAT98', TC = 'TEACH-44-PR';
   await H.login(page, E.url, 'T03'); await page.waitForSelector('.form-card .fc-view');
   await page.click('.form-card .fc-view'); await page.waitForSelector('#scr-result.on .res-list');
   const v = await page.evaluate(() => ({ tips: [...document.querySelectorAll('.res-list > li')].map(li => ({ text: li.firstChild.textContent, lines: [...li.querySelectorAll('.pr-app')].map(p => ({
-      t: p.innerText.replace(/\s+/g, ' '), sec: p.getAttribute('data-sec'), href: (p.querySelector('a.pr-link') || {}).href || '', target: (p.querySelector('a.pr-link') || {}).target,
+      t: p.textContent.replace(/\s+/g, ' ').trim(), sec: p.getAttribute('data-sec'), href: (p.querySelector('a.pr-link') || {}).href || '', target: (p.querySelector('a.pr-link') || {}).target,
       chipInLink: !!p.querySelector('a.pr-link > mark.app-mode'), appPlain: !p.querySelector('mark.app-mode + *') })) })),
     box: !!document.querySelector('.sml-recs, .sml-line'), hint: /assign (Easy|Medium|Hard)|\d+\/\d+ right/.test(document.querySelector('.res-list').innerText) }));
   const rwTip = v.tips.find(t => t.lines[0] && t.lines[0].sec === 'RW'), mTip = v.tips.find(t => t.lines[0] && t.lines[0].sec === 'Math');
@@ -59,14 +59,14 @@ const SAT = 'MOCK-SAT98', TC = 'TEACH-44-PR';
   console.log('[teacher: line under each weak skill, skill on the question bar]');
   const { page: tp } = await E.newPage('desktop1280');
   await H.login(tp, E.url, TC.toLowerCase()); await tp.waitForSelector('#scr-teacher.on .t-card');
-  await tp.click('.t-open'); await tp.waitForSelector('#scr-result.on .it-pr');
-  const t = await tp.evaluate(() => ({ items: [...document.querySelectorAll('.skill li')].map(li => ({ name: li.querySelector('.it-name').textContent, xy: (li.querySelector('.xy') || li).textContent, pr: (li.querySelector('.it-pr') || {}).innerText || '' })),
+  await tp.click('.t-open'); await tp.waitForSelector('#scr-result.on .it-pr', { state: 'attached' });
+  const t = await tp.evaluate(() => ({ items: [...document.querySelectorAll('.skill li')].map(li => ({ name: li.querySelector('.it-name').textContent, xy: (li.querySelector('.xy') || li).textContent, pr: ((li.querySelector('.it-pr') || {}).textContent || '').replace(/\s+/g, ' ') })),
     box: !!document.querySelector('.sml-recs') }));
   const weak = t.items.filter(i => i.pr), allRightWithLine = t.items.filter(i => i.pr && /(\d+)\/\1/.test(i.xy));
-  check(weak.length >= 2 && weak.some(i => /in SAT Math Lib — \d+\/\d+ right · assign (Easy|Medium|Hard)/.test(i.pr)) && weak.some(i => /in SAT Vocab Practice — \d+\/\d+ right$/.test(i.pr.trim())) && !t.box,
-    'teacher: "' + weak.map(i => i.pr.trim()).slice(0, 2).join('" / "') + '"');
+  check(weak.length >= 2 && weak.some(i => /in SAT Math Lib — assign (Easy|Medium|Hard)[A-Za-z\/]*$/.test(i.pr.trim())) && weak.some(i => /in SAT Vocab Practice$/.test(i.pr.trim())) && !t.box,
+    '#48 teacher (no second x/y): "' + weak.map(i => i.pr.trim()).slice(0, 2).join('" / "') + '"');
   check(!allRightWithLine.length, 'no line under an all-right skill');
-  await tp.evaluate(() => { const li = document.querySelector('.it-pr').closest('li'); const d = li.closest('details'); if (d) d.open = true; document.querySelectorAll('.it-pr').forEach(x => { const dd = x.closest('details'); if (dd) dd.open = true; }); li.scrollIntoView({ block: 'center' }); });
+  await tp.evaluate(() => { const li = document.querySelector('.it-pr').closest('li'); const d = li.closest('details'); if (d) d.open = true; document.querySelectorAll('.it-pr').forEach(x => { x.hidden = false; const dd = x.closest('details'); if (dd) dd.open = true; }); li.scrollIntoView({ block: 'center' }); });
   await sleep(200);
   const cb = await tp.evaluate(() => { const c = document.querySelector('.it-pr').closest('.card') || document.querySelector('.it-pr').closest('ul'); const r = c.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
   await tp.screenshot({ path: path.join(out, 'r44_teacher_weak_skills.png'), clip: { x: Math.max(0, cb.x - 8), y: Math.max(0, cb.y - 8), width: cb.w + 16, height: Math.min(cb.h + 16, 790) } });

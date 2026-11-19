@@ -13,7 +13,7 @@
  */
 
 var ASSIGN_TAB = 'Assignments';
-var ASSIGN_HEADERS = ['student_code', 'form', 'parts', 'active', 'note', 'class_id'];
+var ASSIGN_HEADERS = ['student_code', 'form', 'parts', 'active', 'note', 'class_id', 'due']; // due: #48 (optional date, shown on the home)
 var PART_ALIASES_ = { RW: ['RW1', 'RW2'], MATH: ['M1', 'M2'] };
 var PARTS_CHOICES_ = ['RW', 'MATH', 'RW1', 'RW2', 'M1', 'M2', 'M1, M2', 'RW1, M1', 'A', 'B'];
 
@@ -112,7 +112,7 @@ function assignmentsFor_(codeN) {
     var scope = scopeKey_(prof, parts);
     if (seen[fid + '|' + scope]) return;
     seen[fid + '|' + scope] = 1;
-    out.push({ form_id: fid, scope: scope, parts: parts, label: scopeLabel_(prof, scope), note: String(r.note || '') });
+    out.push({ form_id: fid, scope: scope, parts: parts, label: scopeLabel_(prof, scope), note: String(r.note || ''), due: dueOf_(r.due) });
   });
   return out;
 }
@@ -172,4 +172,74 @@ function checkAssignments_() {
   });
   out.unshift('· Assignments: ' + rows.length + ' rows, ' + act + ' active');
   return { lines: out, problems: problems };
+}
+
+/* ============================== #48 the Assign tab on the teacher page ============================== */
+/** due cell → 'yyyy-MM-dd' ('' when blank / not a date). */
+function dueOf_(v) {
+  if (v === null || v === undefined || v === '') return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') { try { return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd'); } catch (e) { return ''; } }
+  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(String(v).replace(/^'/, '').trim());
+  return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : '';
+}
+/** The part choices of a form: whole test, each section (SAT), each part, same codes as the Assignments tab. */
+function assignChoices_(prof) {
+  var all = prof.parts.map(function (p) { return p.part; }), out = [{ v: isSat_(prof) ? 'RW, MATH' : all.join(', '), t: 'Whole test' }];
+  if (isSat_(prof)) {
+    (prof.sections || []).forEach(function (sec) { out.push({ v: sec.id === 'Math' ? 'MATH' : sec.id, t: sec.title || SECTION_EN_[sec.id] || sec.id }); });
+    (prof.sections || []).forEach(function (sec) { sec.parts.forEach(function (p, i) { out.push({ v: p, t: (sec.title || SECTION_EN_[sec.id] || sec.id) + ' · Module ' + (i + 1) }); }); });
+  } else all.forEach(function (p) { out.push({ v: p, t: 'Part ' + p }); });
+  return out.filter(function (c) { return parseParts_(prof, c.v); });
+}
+/** Everything the Assign tab shows: forms + part choices, students, classes, the rows of the Assignments tab. */
+function teacherAssignData(code) {
+  requireTeacher_(code);
+  if (!ss_().getSheetByName(ASSIGN_TAB)) ensureAssignments_();
+  var forms = formIds_().map(function (f) { var pf = profileFor_(f, true); return pf ? { form_id: f, title: String(pf.title || f), choices: assignChoices_(pf) } : null; }).filter(Boolean);
+  var students = []; try { students = readTable_('Students').rows.filter(function (r) { return String(r.student_code).trim() && isYes_(r.active); })
+    .map(function (r) { return { code: normCode_(r.student_code), name: String(r.name || r.student_code), track: String(r.track || '') }; }); } catch (e) {}
+  var names = studentNames_(), cls = classesAll_();
+  var rows = readTable_(ASSIGN_TAB).rows.filter(function (r) { return String(r.form || '').trim() && (String(r.student_code || '').trim() || String(r.class_id || '').trim()); }).map(function (r) {
+    var pf = profileFor_(String(r.form).trim(), true), parts = pf ? parseParts_(pf, r.parts) : null, cid = String(r.class_id || '').trim(), c = cid ? classById_(cid) : null;
+    return { row: r._row, form_id: String(r.form).trim(), form_title: pf ? String(pf.title || r.form) : String(r.form), parts: String(r.parts || ''),
+             label: parts ? (scopeKey_(pf, parts) === 'full' ? 'Whole test' : scopeLabel_(pf, scopeKey_(pf, parts))) : String(r.parts || '') + ' (does not fit)',
+             who: cid ? (c ? c.name : cid) + ' (class)' : (names[normCode_(r.student_code)] || String(r.student_code)), class_id: cid, student_code: cid ? '' : normCode_(r.student_code),
+             active: isYes_(r.active), note: String(r.note || ''), due: dueOf_(r.due) };
+  });
+  return { ok: true, forms: forms, students: students, classes: cls.filter(function (c) { return c.active; }).map(function (c) { return { class_id: c.class_id, name: c.name, n: c.codes.length }; }), rows: rows };
+}
+/** spec {form_id, parts, codes: [...], class_id, due, note} → one row per student, or one row for the class (class_id). */
+function teacherAssign(code, spec) {
+  requireTeacher_(code);
+  spec = spec || {};
+  var fid = String(spec.form_id || '').trim(), pf = fid ? profileFor_(fid, true) : null;
+  if (!pf) return { ok: false, msg: 'Pick a test.' };
+  var parts = parseParts_(pf, spec.parts);
+  if (!parts) return { ok: false, msg: 'Pick the parts.' };
+  var names = studentNames_(), cid = String(spec.class_id || '').trim(), c = cid ? classById_(cid) : null;
+  var codes = cid ? [] : (spec.codes || []).map(normCode_).filter(function (x, i, a) { return x && names[x] && a.indexOf(x) === i; });
+  if (cid && !c) return { ok: false, msg: 'Class not found.' };
+  if (!cid && !codes.length) return { ok: false, msg: 'Pick at least one student or a class.' };
+  var due = dueOf_(spec.due), note = String(spec.note || '').trim().slice(0, 200), scope = scopeKey_(pf, parts);
+  if (spec.due && !due) return { ok: false, msg: 'The due date is not a date.' };
+  if (!ss_().getSheetByName(ASSIGN_TAB)) ensureAssignments_();
+  var have = {}; readTable_(ASSIGN_TAB).rows.forEach(function (r) {
+    if (!isYes_(r.active) || String(r.form).trim() !== fid) return;
+    var p2 = parseParts_(pf, r.parts); if (!p2 || scopeKey_(pf, p2) !== scope) return;
+    have[String(r.class_id || '').trim() ? 'C:' + String(r.class_id).trim().toUpperCase() : 'S:' + normCode_(r.student_code)] = 1;
+  });
+  var partsText = scope === 'full' ? (isSat_(pf) ? 'RW, MATH' : parts.join(', ')) : String(spec.parts).toUpperCase().split(/[\s,;+\/&]+/).filter(String).join(', '); // the code the teacher picked (RW, MATH, M1 …)
+  var rows = [], skipped = [];
+  if (c) { if (have['C:' + c.class_id.toUpperCase()]) skipped.push(c.name); else rows.push({ student_code: '', form: fid, parts: partsText, active: 'Yes', note: note, class_id: c.class_id, due: txt_(due) }); }
+  codes.forEach(function (x) { if (have['S:' + x]) skipped.push(names[x]); else rows.push({ student_code: x, form: fid, parts: partsText, active: 'Yes', note: note, class_id: '', due: txt_(due) }); });
+  if (rows.length) appendObjects_(ASSIGN_TAB, rows);
+  return { ok: true, n: rows.length, skipped: skipped };
+}
+/** Turn an Assignments row off (active = No; the student's attempts stay under "Past assignments") or on again. */
+function teacherSetAssignment(code, row, active) {
+  requireTeacher_(code);
+  var r = readTable_(ASSIGN_TAB).rows.filter(function (x) { return x._row === Number(row); })[0];
+  if (!r || !String(r.form || '').trim()) return { ok: false, msg: 'Assignment not found.' };
+  updateRow_(ASSIGN_TAB, r._row, { active: active ? 'Yes' : 'No' });
+  return { ok: true };
 }

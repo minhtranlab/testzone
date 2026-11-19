@@ -18,6 +18,9 @@ run node pr_test.js                             # #44 v1.15 part 3: one practice
 run node qa46_test.js                           # #46 v1.15.1: blanks ≠ not reliable, advice always, leaves ≥ 20 s headline, keys only for the teacher
 run node ui46_test.js                           # #46 v1.15.1: browser — Score not estimated line, no teacher explanation text, quiet short leaves, instant Show answer, class switch + ⚠
 run node go47_test.js                           # #47 v1.16: teacher go-over copied from SAT Math Lib (nothing on open, Student's answer, Wrong only Back/Next, Details, Notes pad, pen, browser Back, iPad)
+run node ui48_test.js                           # #48 v1.17 part 1: result page bars, practice lines on click, lucky guess, one legend, student times
+run node assign48_test.js                       # #48 v1.17 part 2: Assign tab writes Assignments rows, home "Assigned:"
+run node go48_test.js                           # #48 v1.17 part 3: pen over both panes + lasso, teacher green / cross out, notes math first on Math
 run node qa40_test.js                           # #40 v1.14: time to final answer, module times, R/S from it (+ re-grade), SAT Math Lib recs
 run node t40_test.js                            # #40 v1.14: teacher time block + time to answer, student SAT Math Lib lines (desktop + phone)
 run node hl_test.js                             # #36 v1.13: highlight toolbar at the selection (colours, underline, note, delete, reload, review)

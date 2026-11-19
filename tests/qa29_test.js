@@ -20,7 +20,7 @@ const C = G.ctx;
 
 console.log('[the Assignments tab]');
 const A = G.sheets.Assignments;
-check(A && A.rows[0].join() === 'student_code,form,parts,active,note,class_id', 'Sheet update created the tab: student_code · form · parts · active · note (+ class_id, #44)');
+check(A && A.rows[0].join() === 'student_code,form,parts,active,note,class_id,due', 'Sheet update created the tab: student_code · form · parts · active · note (+ class_id #44, due #48)');
 check(A.rows[1] && A.rows[1][0] === 'T10' && A.rows[1][2] === 'M1' && A.rows[1][3] === 'No', 'one example row for Minh (test): parts M1, active = No');
 const dv = c => A.dv['2:' + c] || {};
 check(dv(2).kind === 'list' && dv(2).list.includes(SAT) && dv(2).list.includes(AP) && dv(2).allowInvalid === false, 'form = dropdown of the form ids');
@@ -82,7 +82,7 @@ check(a1.row().scope === 'RW1' && a1.row().status === 'completed' && Number(a1.r
 check(G.table('Responses').filter(r => r.session_id === a1.sid).length === 27, 'Responses: only the 27 questions of RW1');
 let r = a1.res();
 check(!r.estimate && r.sections.length === 1 && r.sections[0].id === 'RW' && r.sections[0].modules.length === 1 && r.total.n === 27, 'result: no estimated score, RW 20/27 with Module 1 only');
-check(r.groups.length === 1 && r.types.length === 5 && r.practise.length >= 1 && r.review.length === 1, 'result: skills, mistake types, What to practise first, one question grid');
+check(r.groups.length === 1 && r.types.length === 6 && r.practise.length >= 1 && r.review.length === 1, 'result: skills, mistake types, What to practise first, one question grid');
 check(r.title === 'SAT · Mock SAT 98 — Reading and Writing Module 1' || /— Reading and Writing Module 1$/.test(r.title), 'result title "… — Reading and Writing Module 1" (' + r.title + ')');
 home = G.call('listForms', ['T03']);
 check(home.forms[0].attempts.length === 1 && home.forms[0].attempts[0].total_questions === 27 && home.forms.find(f => f.form_id === SAT && !f.assigned).attempts.length === 0, 'the attempt is on the assignment card only');

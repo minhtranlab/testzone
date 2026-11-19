@@ -390,6 +390,12 @@ function qCode_(part, no, sat) {
   return String(part) + '-' + n;
 }
 /** Badge of a question type (#24 E): S = slow (right or wrong), R = rushed (and wrong), '' = none. */
+/** #48: right answers with a time to answer under lucky_guess_sec (Settings, 5), except Standard English Conventions. */
+function luckySec_(S) { var v = Number((S || {}).lucky_guess_sec); return v > 0 ? v : 5; }
+function luckyQs_(qs, S) {
+  var lim = luckySec_(S);
+  return qs.filter(function (q) { return isRightP_(q.p) && q.ta !== null && q.ta !== undefined && q.ta !== '' && Number(q.ta) < lim && q.unit !== 'SEC' && String(q.topic || '').indexOf('SEC.') !== 0; });
+}
 function qBadge_(p) { return p === 'SLOW_RIGHT' || p === 'SLOW_WRONG' ? 'S' : p === 'FAST_WRONG' ? 'R' : ''; }
 function qStatus_(p) { return p === 'BLANK' ? 'blank' : (isRightP_(p) ? 'right' : 'wrong'); }
 function qRef_(q, sat) { return { qid: q.qid, code: qCode_(q.part, q.no, sat), status: qStatus_(q.p), badge: qBadge_(q.p) }; }
@@ -489,6 +495,10 @@ function studentView_(a, profile, asTeacher) {
              status: k === 'BLANK' ? 'blank' : (k === 'SLOW_RIGHT' ? 'right' : 'wrong'),
              qs: a.qs.filter(function (q) { return q.p === k; }).map(function (q) { return qRef_(q, sat); }) };
   });
+  // #48: "Could be a lucky guess" = right with time to answer < lucky_guess_sec (not the grammar skills: fast can be real there)
+  var lucky = luckyQs_(a.qs, S);
+  out.types.splice(4, 0, { type: 'LUCKY', label: 'Could be a lucky guess', n: lucky.length, status: 'right', badge: '',
+    meaning: 'Right, but answered in under ' + luckySec_(S) + ' seconds. Check you can really do it.', qs: lucky.map(function (q) { return qRef_(q, sat); }) });
   // what to practise first (≤ 4 short tips; SAT verbal skills point to the practice app mode, #24 C)
   var practise = [];
   // #44 part 3: a tip that names a skill gets that skill's practice line right under it (RW → the vocab app, Math → SAT Math Lib)
@@ -522,7 +532,7 @@ function studentView_(a, profile, asTeacher) {
     var g = asTeacher ? igView_(a, p) : null, longQ = {};
     if (g) g.qs.forEach(function (x) { longQ[x.qid] = 1; });
     var o2 = { part: p.part, title: p.title, questions: a.qs.filter(function (q) { return q.part === p.part; }).map(function (q) {
-      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (asTeacher && q.ta !== null) o.ta_s = Math.round(q.ta);
+      var o = qRef_(q, sat); o.no = q.no; o.time_s = Math.round(q.s); if (q.ta !== null && q.ta !== undefined) o.ta_s = Math.round(q.ta); // #48: students see the time too
       if (asTeacher && q.left && longQ[q.qid]) o.left_s = Math.round(q.left); if (asTeacher && q.left_flag) o.left_flag = true; // #44 / #46: only leaves ≥ 20 s
       return o;
     }) };

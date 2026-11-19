@@ -57,7 +57,7 @@ check(!A.res.practise.some(t => /Take the test again/.test(t.text)), 'no "take t
 console.log('[not reliable by time: only the score estimate goes]');
 const B = take((i) => i % 2 ? 'r' : 'w', 5);
 check(B.res.valid === false && /only 5(\.\d)? of 35 minutes used/.test(B.res.reasons.join()), 'used 5 of 35 min → not reliable (' + B.res.reasons.join('; ') + ')');
-check(!B.res.estimate && skillLines(B.res).length >= 1 && B.res.groups.length >= 1 && B.res.types.length === 5, 'student: no estimate, but tips + practice lines + skills + types');
+check(!B.res.estimate && skillLines(B.res).length >= 1 && B.res.groups.length >= 1 && B.res.types.length === 6, 'student: no estimate, but tips + practice lines + skills + types');
 const tB = T('teacherResult', B.sid);
 check(weakLines(tB).length >= 1 && weakLines(tB).every(it => /right/.test(it.practice.text)) && tB.sections[0].modules[0].time && /^Math \d+\/22\. Score not estimated — Math: only/.test(G.table('Student_Report').find(r => r.session_id === B.sid).summary),
   'teacher: weak-skill lines with level, time per module; Student_Report summary "Math 11/22. Score not estimated — Math: only …"');

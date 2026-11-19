@@ -91,7 +91,7 @@ check(rq[0].ta_s === 30 && rq[0].time_s === 400 && rq[2].ta_s === undefined, 'te
 const tr = G.call('teacherReview', ['teach-40-ui', x.session.session_id]);
 check(tr.questions.find(z => z.qid === qs.M1[0].qid).ta_s === 30, 'teacher review bar: time to answer 30 s');
 const sv = G.call('getResult', ['T03', x.session.session_id]), sj = JSON.stringify(sv);
-check(!/"time":\{|ta_s|"hint"|solving|checking/.test(sj), 'student result: no module times, no time to answer, no difficulty hint');
+check(!/"time":\{|"hint"|solving|checking/.test(sj) && sv.review.some(p => p.questions.some(q => q.ta_s === 30)), 'student result: no module times, no difficulty hint; #48: time to answer per question (30 s)');
 check(!/ta_s/.test(JSON.stringify(G.call('getReview', ['T03', x.session.session_id]))), 'student review: no time to answer');
 
 console.log('[C: re-grade recomputes past attempts]');

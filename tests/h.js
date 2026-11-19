@@ -85,7 +85,7 @@ async function badgeLayout(page) {
   return page.evaluate(() => {
     const cells = [...document.querySelectorAll('#result-body .rgrid .rcell')];
     const out = { cells: cells.length, size: true, sym: true, R: 0, S: 0, dy: [], badgeH: [], chipsWithBadge: document.querySelectorAll('#result-body .qchip .bdg, #result-body .qchip svg').length,
-                  keys: document.querySelectorAll('#result-body .res-part .grid-key').length, parts: document.querySelectorAll('#result-body .res-part').length,
+                  keys: document.querySelectorAll('#result-body .grid-key').length, /* #48: one legend above the question lists */ parts: document.querySelectorAll('#result-body .res-part').length,
                   oldKey: document.querySelectorAll('#result-body .bdg-key, #result-body .res-legend').length, types: [] };
     cells.forEach(c => {
       const r = c.getBoundingClientRect(); if (Math.abs(r.width - 40) > 0.5 || Math.abs(r.height - (c.closest('.tgrid') ? 60 : 46)) > 0.5) out.size = false;

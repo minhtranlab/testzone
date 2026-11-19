@@ -24,7 +24,7 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   await H.login(page, E.url, 'T03'); await page.waitForSelector('#hero-start');
   const first = await page.evaluate(() => ({ eb: document.querySelector('.hz-eyebrow').textContent, h: document.querySelector('#hero h1').textContent, clock: document.querySelector('.hz-clock').textContent,
     btn: document.getElementById('hero-start').textContent, lines: /Section|Module 1:/.test(document.getElementById('hero').innerText) }));
-  check(first.eb === 'Assigned by your teacher' && first.h === 'Reading and Writing Module 1' && first.clock === '32:00minutes' && first.btn === 'Start Reading and Writing Module 1' && !first.lines,
+  check(/^Assigned: .+ · Reading and Writing Module 1$/.test(first.eb) && first.h === 'Reading and Writing Module 1' && first.clock === '32:00minutes' && first.btn === 'Start Reading and Writing Module 1' && !first.lines,
     `#35 big block: "${first.eb}" · "${first.h}" · ring 32:00 · "${first.btn}", no module lines`);
   check((await page.$$('.form-card:not(.assigned)')).length === 1 && /Not started/.test(await page.textContent('.form-card:not(.assigned)')), 'the full SAT tile is still there');
   await shot(page, 'r29_home');
@@ -106,7 +106,7 @@ const FORM = 'MOCK-SAT98', AP = 'MOCK-APCAB';
   add('T01', AP, 'B');
   const { page: p2 } = await E.newPage();
   await H.login(p2, E.url, 'T01'); await p2.waitForSelector('#hero-start');
-  check((await p2.textContent('#hero h1')) === 'Part B' && (await p2.textContent('.hz-eyebrow')) === 'Assigned by your teacher', 'AP big block "Part B" (assigned)');
+  check((await p2.textContent('#hero h1')) === 'Part B' && /^Assigned: .+ · Part B$/.test(await p2.textContent('.hz-eyebrow')), '#48 AP big block "Assigned: … · Part B"');
   await p2.click('#hero-start'); await p2.waitForSelector('#btn-begin');
   check((await p2.textContent('#v-directions h1')).trim() === 'Section I, Part B', 'opens on Part B');
   await p2.click('#btn-begin'); await p2.waitForSelector('#qwrap .q.on');

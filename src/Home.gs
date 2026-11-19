@@ -24,12 +24,13 @@ function heroOf_(f, kind) {
   var ref = prof ? prof.parts.some(function (p) { return p.reference; }) : false;
   var facts = [{ b: String(f.n), t: 'questions' }];
   var title, of, start;
+  var asgInfo = kind === 'assignment' ? (f.assign_full || { note: f.note, due: f.due }) : null;
   if (kind === 'assignment') {
-    title = f.label; of = String(f.title || '').replace(/ — .*$/, '');
+    title = f.label || 'Whole test'; of = String(f.title || '').replace(/ — .*$/, '');
     if (sat && prof.sections.length > 1) facts.push({ t: prof.sections.map(function (s) { return s.title || s.id; }).join(', then ') });
     if (calc) facts.push({ t: 'Desmos calculator' });
     if (ref) facts.push({ t: 'Reference sheet' });
-    start = 'Start ' + f.label;
+    start = 'Start ' + (f.label || 'test');
   } else {
     var full = String(f.title || '');
     title = sat ? full.replace(/^SAT\s*·\s*/, '') : full;
@@ -39,8 +40,10 @@ function heroOf_(f, kind) {
     start = 'Start ' + (sat ? full : 'test');
   }
   var clock = minutes >= 60 ? Math.floor(minutes / 60) + ':' + ('0' + (minutes % 60)).slice(-2) : minutes + ':00';
-  return { kind: kind, form_id: f.form_id, scope: f.scope || 'full', title: title, of: of, facts: facts,
+  var h = { kind: kind, form_id: f.form_id, scope: f.scope || 'full', title: title, of: of, facts: facts,
            clock: clock, clock_unit: minutes >= 60 ? 'hours' : 'minutes', start: start };
+  if (asgInfo) { h.test = String(f.title || '').replace(/ — .*$/, '').replace(/^SAT\s*·\s*/, 'SAT · '); h.due = asgInfo.due || ''; h.note = asgInfo.note || ''; } // #48 "Assigned: <test> · <parts>"
+  return h;
 }
 
 /** Pick-up line of one open attempt. */
@@ -84,6 +87,7 @@ function homeExtras_(st, asg, out, sessions) {
   sessions.forEach(function (s) { byId[String(s.session_id)] = s; });
   var hero = null;
   asg.forEach(function (f) { if (!hero && f.available && !f.attempts.some(isDone_) && !f.attempts.some(isOpen_)) hero = heroOf_(f, 'assignment'); });
+  out.forEach(function (f) { if (!hero && f.assign_full && f.available && !f.attempts.some(isDone_) && !f.attempts.some(isOpen_)) hero = heroOf_(f, 'assignment'); }); // #48 whole test assigned
   out.forEach(function (f) { if (!hero && f.available && !f.attempts.some(isDone_) && !f.attempts.some(isOpen_)) hero = heroOf_(f, 'next'); });
   var pickup = [];
   asg.concat(out).forEach(function (f) {

@@ -186,8 +186,9 @@
     var f = forms.filter(function (x) { return x.form_id === h.form_id && (x.scope || 'full') === h.scope; })[0];
     if (f) formInfo(f);
     var a = el('article', { class: 'hz-focus', id: 'hero' });
-    a.innerHTML = '<div><p class="hz-eyebrow' + (h.kind === 'assignment' ? '' : ' nx') + '">' + (h.kind === 'assignment' ? 'Assigned by your teacher' : 'Next test') + '</p>' +
-      '<h1>' + esc(h.title) + '</h1><p class="hz-of">' + esc(h.of) + '</p><ul class="hz-facts">' +
+    var asg = h.kind === 'assignment'; // #48: "Assigned: <test> · <parts>" (+ due date) instead of "Next test"
+    a.innerHTML = '<div><p class="hz-eyebrow' + (asg ? '' : ' nx') + '">' + (asg ? 'Assigned: ' + esc(h.test || h.of) + ' · ' + esc(h.title) + (h.due ? ' <span class="hz-due">· Due ' + esc(dueTxt(h.due)) + '</span>' : '') : 'Next test') + '</p>' +
+      '<h1>' + esc(h.title) + '</h1><p class="hz-of">' + esc(asg && h.note ? h.note : h.of) + '</p><ul class="hz-facts">' +
       h.facts.map(function (x) { return '<li>' + (x.b ? '<b>' + esc(x.b) + '</b> ' : '') + esc(x.t) + '</li>'; }).join('') + '</ul></div>' +
       '<div class="hz-clock"><div>' + esc(h.clock) + '<small>' + esc(h.clock_unit) + '</small></div></div>';
     var b = el('button', { class: 'hz-btn big', type: 'button', id: 'hero-start' }, esc(h.start));
@@ -1081,14 +1082,17 @@
   function modShort(m) { return String(m.title || m.part).replace(/^Section \w+, /, '').replace(/:.*$/, ''); }
   function practiseHtml(x) {
     if (typeof x === 'string') return esc(x);
-    return esc(x.text) + practiceLine(x.practice);
+    if (!x.practice) return esc(x.text);
+    return '<button type="button" class="pr-tog" aria-expanded="false">' + esc(x.text) + '</button><div class="pr-box" hidden>' + practiceLine(x.practice) + '</div>'; // #48: hidden until clicked
   }
+  /** #48: a long bar, green = right, grey track = the rest. */
+  function barHtml(r, n) { return '<span class="bar" role="img" aria-label="' + r + ' of ' + n + ' right"><i style="width:' + pct(r, n) + '%"></i></span>'; }
   /** #44 part 3: "Practise: [skill] in App — 10 questions"; the [skill] chip is the link (new tab); teacher: "— 1/3 right · assign Easy/Medium". */
   function practiceLine(p) {
     if (!p) return '';
     var chip = '<mark class="app-mode">' + esc(p.chip) + '</mark>';
     if (p.url) chip = '<a class="pr-link" href="' + esc(p.url) + '" target="_blank" rel="noopener">' + chip + '</a>';
-    var tail = p.of ? ' — ' + p.right + '/' + p.of + ' right' + (p.hint ? ' · assign ' + esc(p.hint) : '') : (p.n ? ' — ' + p.n + ' questions' : '');
+    var tail = p.of ? (p.hint ? ' — assign ' + esc(p.hint) : '') : (p.n ? ' — ' + p.n + ' questions' : ''); // #48: x/y is already on the bar
     return '<div class="pr-app" data-sec="' + esc(p.section || '') + '">Practise: ' + chip + ' in ' + esc(p.app) + tail + '</div>';
   }
   /** res = studentView_ (server, Report.gs): estimate, sections, skills, error types, practise, review grids. Never a key. */
@@ -1138,12 +1142,12 @@
         var gr = g.rows.reduce(function (a, r) { return a + r.right; }, 0), gn = g.rows.reduce(function (a, r) { return a + r.n; }, 0);
         h += '<div class="card skill-card"><h3><span>' + esc(g.title) + '</span>' + xy(gr, gn) + '</h3>' + g.rows.map(function (r) {
           var miss = r.items.reduce(function (a, it) { return a + (it.missed || []).length; }, 0);
-          return '<details class="skill"' + (miss ? ' open' : '') + '><summary><span class="sk-name">' + esc(r.name) + '</span>' + xy(r.right, r.n) +
-            '<span class="bar"><i style="width:' + pct(r.right, r.n) + '%"></i></span></summary>' +
+          return '<details class="skill"' + (miss ? ' open' : '') + '><summary><span class="sk-name">' + esc(r.name) + '</span>' + barHtml(r.right, r.n) + xy(r.right, r.n) + '</summary>' +
             '<ul>' + r.items.map(function (it) {
               var chips = (it.missed || []).concat(it.slow || []);
-              return '<li><span class="it-name">' + esc(it.name) + '</span><span class="chips">' + chips.map(qchip).join('') + '</span>' + xy(it.right, it.n) +
-                (it.practice ? '<div class="it-pr">' + practiceLine(it.practice) + '</div>' : '') + '</li>';
+              return '<li><span class="it-name">' + (it.practice ? '<button type="button" class="pr-tog" aria-expanded="false">' + esc(it.name) + '</button>' : esc(it.name)) + '</span>' + barHtml(it.right, it.n) + xy(it.right, it.n) +
+                (chips.length ? '<span class="chips">' + chips.map(qchip).join('') + '</span>' : '') +
+                (it.practice ? '<div class="it-pr pr-box" hidden>' + practiceLine(it.practice) + '</div>' : '') + '</li>';
             }).join('') + '</ul></details>';
         }).join('') + '</div>';
       });
@@ -1156,13 +1160,12 @@
     }
     // question grids per module
     if (res.review && res.review.length) {
-      h += '<h2 class="res-h">' + (teacher ? 'Questions' : 'Review your questions') + '</h2>' +
-        (teacher ? '' : '<p class="muted" style="margin-top:-6px">Open a question to see it again with your answer and whether it was right. The correct answers are not shown.</p>');
+      h += '<h2 class="res-h">' + (teacher ? 'Questions' : 'Review your questions') + '</h2>' + gridKeyHtml().replace('grid-key', 'grid-key top'); // #48: one legend, no narrator line
       res.review.forEach(function (p) {
         var r = p.questions.filter(function (q) { return q.status === 'right'; }).length;
-        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid' + (teacher ? ' tgrid' : '') + '">' +
-          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + (teacher ? (q.ta_s !== undefined ? ' · time to answer ' + clk(q.ta_s) : ' · blank, ' + clk(q.time_s) + ' on it') : '') + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i>' +
-            (teacher ? '<span class="rt">' + (q.ta_s !== undefined ? clk(q.ta_s) : '–') + '</span>' + (q.left_s ? '<span class="rl' + (q.left_flag ? ' fl' : '') + '" title="left the test window ' + clk(q.left_s) + ' on this question' + (q.left_flag ? ', then answered right' : '') + '">' + (q.left_flag ? '!' : '↗') + '</span>' : '') : '') + '</button>'; }).join('') + '</div>' + gridKeyHtml() +
+        h += '<div class="card res-part"><h3><span>' + esc(p.title || 'Part ' + p.part) + '</span><span>' + r + ' / ' + p.questions.length + '</span></h3><div class="rgrid tgrid">' + // #48: time to answer under each number for students too
+          p.questions.map(function (q) { return '<button type="button" class="rcell ' + q.status + '" data-qid="' + esc(q.qid) + '" data-badge="' + (q.badge || '') + '" title="' + esc(q.code) + (q.ta_s !== undefined ? ' · time to answer ' + clk(q.ta_s) : ' · blank, ' + clk(q.time_s) + ' on it') + '"><span class="rn">' + q.no + '</span><i class="rs">' + cellSym(q.status, q.badge) + '</i>' +
+            '<span class="rt">' + (q.ta_s !== undefined ? clk(q.ta_s) : '–') + '</span>' + (teacher ? (q.left_s ? '<span class="rl' + (q.left_flag ? ' fl' : '') + '" title="left the test window ' + clk(q.left_s) + ' on this question' + (q.left_flag ? ', then answered right' : '') + '">' + (q.left_flag ? '!' : '↗') + '</span>' : '') : '') + '</button>'; }).join('') + '</div>' +
 
           (teacher && p.questions.some(function (q) { return q.left_s; }) ? '<p class="tgrid-left">Left the test window on: ' + p.questions.filter(function (q) { return q.left_s; }).map(function (q) {
             return '<span class="lq' + (q.left_flag ? ' fl' : '') + '"><b>' + esc(q.code) + '</b> ' + clk(q.left_s) + (q.left_flag ? ' ⚠' : '') + '</span>'; }).join('') + '</p>' : '') +
@@ -1174,6 +1177,9 @@
     $('#scr-result').scrollTop = 0;
     $('#res-home').onclick = teacher ? showTeacher : showHome;
     $$('#result-body [data-qid]').forEach(function (c) { c.onclick = function (ev) { ev.preventDefault(); openReview(res.session_id, teacher, c.getAttribute('data-qid')); }; });
+    $$('#result-body .pr-tog').forEach(function (t) { t.onclick = function (ev) {               // #48: the practice line opens on a click
+      ev.preventDefault(); var box = t.closest('li').querySelector('.pr-box'); if (!box) return;
+      box.hidden = !box.hidden; t.setAttribute('aria-expanded', String(!box.hidden)); }; });
   }
 
   /* ================= review = the real test screen (#24 G) =================
@@ -1441,85 +1447,152 @@
     }, true);
   }
 
-  /* ---------- #47 pen on the question (SAT Math Lib #62): teacher go-over only ----------
-     A transparent canvas over the question area (the whole width, or the question side of a split screen); 4 colours
-     (yellow = highlighter), 2 widths, eraser, Undo, Clear. The drawing belongs to the question on screen and is gone when
-     another question opens. Pointer events → mouse, finger and the iPad pencil. */
-  var PEN = { on: false, color: 'blue', w: 1, tool: 'pen', strokes: [], hist: [], cv: null, host: null, qid: null, full: true };
+  /* ---------- #47 / #48 pen on the question (SAT Math Lib #62, made bigger): teacher go-over only ----------
+     One transparent layer over the whole question area — both panes of a split screen (passage + question) or the single
+     page. A stroke belongs to the pane it starts on and is kept in that pane's content coordinates, so it scrolls with the
+     pane and stays when the divider is dragged or the pen is put away. 4 colours (yellow = highlighter), 2 widths, eraser,
+     Select (draw a loop → dashed box → drag to move, Delete to remove), Undo, Clear. Gone when another question opens.
+     Pointer events → mouse, finger and the iPad pencil. */
+  var PEN = { on: false, color: 'blue', w: 1, tool: 'pen', strokes: [], hist: [], cv: null, qid: null, sel: [], lasso: null, raf: 0, ro: null };
   var PEN_C = { blue: '#1f5fd6', red: '#d0263c', green: '#1f8a4c', yellow: 'rgba(245,196,0,0.38)' };
-  function penHost() {
-    var q = curQ(), b = q && qBox(q.qid); if (!b) return null;
-    PEN.full = !b.classList.contains('split');
-    return PEN.full ? $('#tmain') : ($('.q-side', b) || b);
+  function penPanes() {
+    var q = curQ(), b = q && qBox(q.qid); if (!b) return [];
+    return b.classList.contains('split') ? [$('.q-pass', b), $('.q-side', b)].filter(Boolean) : [$('#tmain')];
   }
-  function penRemove() { if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv); PEN.cv = null; PEN.host = null; PEN.strokes = []; PEN.hist = []; }
+  function penZ() { return (A.st && A.st.zoom) || 1; }
+  function penPaneAt(x, y) {
+    var ps = penPanes();
+    for (var i = 0; i < ps.length; i++) { var r = ps[i].getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return i; }
+    return ps.length - 1;
+  }
+  function penLocal(i, x, y) { var p = penPanes()[i], r = p.getBoundingClientRect(); return [x - r.left + p.scrollLeft, y - r.top + p.scrollTop]; }
+  /** stroke → screen points (null when its pane is gone) */
+  function penScreen(s) {
+    var p = penPanes()[s.pane]; if (!p) return null;
+    var r = p.getBoundingClientRect(), k = penZ() / (s.z || 1);
+    return s.pts.map(function (q) { return [r.left + (q[0] * k) - p.scrollLeft, r.top + (q[1] * k) - p.scrollTop]; });
+  }
+  function penRemove() {
+    if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv);
+    if (PEN.ro) { try { PEN.ro.disconnect(); } catch (e) {} PEN.ro = null; }
+    PEN.cv = null; PEN.strokes = []; PEN.hist = []; PEN.sel = []; PEN.lasso = null;
+  }
   function penCanvas() {
-    var h = penHost(); if (!h) return null;
-    if (PEN.host !== h || !PEN.cv || !h.contains(PEN.cv)) {
-      if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv);
-      var c = document.createElement('canvas'); c.className = 'pen-cv'; h.classList.add('pen-host'); h.appendChild(c);
-      PEN.host = h; PEN.cv = c; penBind(c);
+    if (!PEN.cv || !PEN.cv.parentNode) {
+      var c = document.createElement('canvas'); c.className = 'pen-cv'; $('#scr-test').appendChild(c); PEN.cv = c; penBind(c);
+      if (window.ResizeObserver) { PEN.ro = new ResizeObserver(function () { penSoon(); }); PEN.ro.observe($('#tmain')); }
     }
-    penSize(); return PEN.cv;
+    penObserve(); penSize(); return PEN.cv;
+  }
+  function penObserve() {                                              // the panes of the question on screen (divider drag = a resize)
+    if (!PEN.ro) return;
+    penPanes().forEach(function (p) { if (!p._penObs) { p._penObs = 1; try { PEN.ro.observe(p); } catch (e) {} } });
   }
   function penSize() {
-    var h = PEN.host, c = PEN.cv; if (!h || !c) return;
-    c.style.display = 'none'; var w = PEN.full ? h.clientWidth : h.scrollWidth, ht = Math.max(h.scrollHeight, h.clientHeight); c.style.display = '';
-    if (c._w === w && c._h === ht) return;
-    var r = window.devicePixelRatio || 1;
-    c._w = w; c._h = ht; c.style.width = w + 'px'; c.style.height = ht + 'px'; c.width = Math.round(w * r); c.height = Math.round(ht * r);
+    var c = PEN.cv; if (!c) return;
+    var tm = $('#tmain'), sr = $('#scr-test').getBoundingClientRect(), r = tm.getBoundingClientRect();
+    var w = tm.clientWidth, h = tm.clientHeight, dpr = window.devicePixelRatio || 1;
+    c.style.left = (r.left - sr.left) + 'px'; c.style.top = (r.top - sr.top) + 'px';
+    if (c._w !== w || c._h !== h) { c._w = w; c._h = h; c.style.width = w + 'px'; c.style.height = h + 'px'; c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
     penDraw();
+  }
+  function penSoon() { if (PEN.raf) return; PEN.raf = requestAnimationFrame(function () { PEN.raf = 0; if (PEN.cv) penSize(); }); }
+  function penBox(list) {                                              // screen bounding box of strokes
+    var b = null;
+    list.forEach(function (s) { (penScreen(s) || []).forEach(function (q) {
+      if (!b) b = { l: q[0], t: q[1], r: q[0], b: q[1] }; else { b.l = Math.min(b.l, q[0]); b.t = Math.min(b.t, q[1]); b.r = Math.max(b.r, q[0]); b.b = Math.max(b.b, q[1]); } }); });
+    return b && { l: b.l - 8, t: b.t - 8, r: b.r + 8, b: b.b + 8 };
   }
   function penDraw() {
     var c = PEN.cv; if (!c || !c._w) return;
-    var g = c.getContext('2d'), r = window.devicePixelRatio || 1;
-    g.setTransform(r, 0, 0, r, 0, 0); g.clearRect(0, 0, c._w, c._h);
+    var g = c.getContext('2d'), dpr = window.devicePixelRatio || 1, cr = c.getBoundingClientRect();
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, c._w, c._h);
+    var k = penZ();
     PEN.strokes.forEach(function (s) {
-      var k = PEN.full ? 1 : c._w / s.W, p = s.pts, hl = s.c === 'yellow';
+      var p = penScreen(s); if (!p || !p.length) return;
+      var hl = s.c === 'yellow', z = k / (s.z || 1);
       g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = PEN_C[s.c];
-      g.lineWidth = (hl ? (s.w === 2 ? 28 : 16) : (s.w === 2 ? 5 : 2.5)) * k;
-      g.beginPath(); g.moveTo(p[0][0] * k, p[0][1] * k);
-      if (p.length === 1) g.lineTo(p[0][0] * k + 0.1, p[0][1] * k);
-      for (var i = 1; i < p.length; i++) g.lineTo(p[i][0] * k, p[i][1] * k);
+      g.lineWidth = (hl ? (s.w === 2 ? 28 : 16) : (s.w === 2 ? 5 : 2.5)) * z;
+      g.beginPath(); g.moveTo(p[0][0] - cr.left, p[0][1] - cr.top);
+      if (p.length === 1) g.lineTo(p[0][0] - cr.left + 0.1, p[0][1] - cr.top);
+      for (var i = 1; i < p.length; i++) g.lineTo(p[i][0] - cr.left, p[i][1] - cr.top);
       g.stroke(); g.restore();
     });
+    var bx = PEN.sel.length ? penBox(PEN.sel) : null;
+    if (bx) { g.save(); g.setLineDash([6, 4]); g.strokeStyle = '#1f5fd6'; g.lineWidth = 1.5; g.strokeRect(bx.l - cr.left, bx.t - cr.top, bx.r - bx.l, bx.b - bx.t); g.restore(); }
+    if (PEN.lasso && PEN.lasso.length > 1) {
+      g.save(); g.setLineDash([4, 4]); g.strokeStyle = '#555'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(PEN.lasso[0][0] - cr.left, PEN.lasso[0][1] - cr.top);
+      PEN.lasso.forEach(function (q) { g.lineTo(q[0] - cr.left, q[1] - cr.top); }); g.stroke(); g.restore();
+    }
+  }
+  function penSnap() { PEN.hist.push(JSON.parse(JSON.stringify(PEN.strokes))); if (PEN.hist.length > 60) PEN.hist.shift(); }
+  function inPoly(pt, poly) {
+    var x = pt[0], y = pt[1], ins = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      var xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-9) + xi)) ins = !ins;
+    }
+    return ins;
   }
   function penBind(c) {
     var cur = null;
-    var at = function (e) { var b = c.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
-    var erase = function (p) {
-      var hit = PEN.strokes.filter(function (s) { var k = PEN.full ? 1 : c._w / s.W; return s.pts.some(function (q) { return Math.abs(q[0] * k - p[0]) < 12 && Math.abs(q[1] * k - p[1]) < 12; }); });
+    var erase = function (x, y) {
+      var hit = PEN.strokes.filter(function (s) { return (penScreen(s) || []).some(function (q) { return Math.abs(q[0] - x) < 12 && Math.abs(q[1] - y) < 12; }); });
       if (!hit.length) return;
-      if (!cur.saved) { PEN.hist.push(PEN.strokes.slice()); cur.saved = true; }
-      PEN.strokes = PEN.strokes.filter(function (s) { return hit.indexOf(s) < 0; }); penDraw();
+      if (!cur.saved) { penSnap(); cur.saved = true; }
+      PEN.strokes = PEN.strokes.filter(function (s) { return hit.indexOf(s) < 0; }); PEN.sel = []; penDraw();
     };
     c.addEventListener('pointerdown', function (e) {
       if (!PEN.on || (e.pointerType === 'mouse' && e.button !== 0)) return;
       e.preventDefault(); penSize();
       try { c.setPointerCapture(e.pointerId); } catch (x) {}
-      var p = at(e);
-      if (PEN.tool === 'eraser') { cur = { erase: true }; erase(p); return; }
-      PEN.hist.push(PEN.strokes.slice());
-      cur = { c: PEN.color, w: PEN.w, W: c._w, pts: [p] }; PEN.strokes = PEN.strokes.concat([cur]); penDraw();
+      var x = e.clientX, y = e.clientY;
+      if (PEN.tool === 'eraser') { cur = { erase: true }; erase(x, y); return; }
+      if (PEN.tool === 'select') {
+        var bx = PEN.sel.length ? penBox(PEN.sel) : null;
+        if (bx && x >= bx.l && x <= bx.r && y >= bx.t && y <= bx.b) { penSnap(); cur = { move: true, x: x, y: y }; return; }
+        PEN.sel = []; PEN.lasso = [[x, y]]; cur = { lasso: true }; penDraw(); return;
+      }
+      penSnap(); PEN.sel = [];
+      var i = penPaneAt(x, y);
+      cur = { c: PEN.color, w: PEN.w, pane: i, z: penZ(), pts: [penLocal(i, x, y)] }; PEN.strokes = PEN.strokes.concat([cur]); penDraw();
     });
     c.addEventListener('pointermove', function (e) {
       if (!cur) return; e.preventDefault();
+      if (cur.erase) { erase(e.clientX, e.clientY); return; }
+      if (cur.move) {
+        var dx = e.clientX - cur.x, dy = e.clientY - cur.y; cur.x = e.clientX; cur.y = e.clientY;
+        PEN.sel.forEach(function (s) { var k = (s.z || 1) / penZ(); s.pts.forEach(function (q) { q[0] += dx * k; q[1] += dy * k; }); });
+        penDraw(); return;
+      }
+      if (cur.lasso) { PEN.lasso.push([e.clientX, e.clientY]); penDraw(); return; }
       var evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; if (!evs.length) evs = [e];
-      if (cur.erase) { erase(at(e)); return; }
-      evs.forEach(function (x) { cur.pts.push(at(x)); }); penDraw();
+      evs.forEach(function (v) { cur.pts.push(penLocal(cur.pane, v.clientX, v.clientY)); }); penDraw();
     });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { c.addEventListener(t, function () { cur = null; }); });
+    var end = function () {
+      if (cur && cur.lasso && PEN.lasso) {
+        var poly = PEN.lasso;
+        PEN.sel = poly.length > 2 ? PEN.strokes.filter(function (s) { var p = penScreen(s) || []; var n = p.filter(function (q) { return inPoly(q, poly); }).length; return p.length && n >= Math.max(1, p.length / 2); }) : [];
+        PEN.lasso = null; penDraw();
+      }
+      cur = null;
+    };
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (t) { c.addEventListener(t, end); });
+    c.addEventListener('wheel', function (e) {                         // the pane under the pointer still scrolls with the pen on
+      var p = penPanes()[penPaneAt(e.clientX, e.clientY)]; if (!p) return;
+      e.preventDefault(); p.scrollTop += e.deltaY; p.scrollLeft += e.deltaX;
+    }, { passive: false });
   }
   function penNewQuestion(qid) {
-    PEN.strokes = []; PEN.hist = []; PEN.qid = qid;
-    if (PEN.cv && PEN.cv.parentNode) PEN.cv.parentNode.removeChild(PEN.cv);
-    PEN.cv = null; PEN.host = null;
+    PEN.strokes = []; PEN.hist = []; PEN.sel = []; PEN.lasso = null; PEN.qid = qid;
+    if (PEN.cv) setTimeout(function () { if (PEN.cv) { penObserve(); penSize(); } }, 0);
     if (PEN.on) setTimeout(function () { if (PEN.on) penCanvas(); }, 0);
   }
   function penSet(on) {
     PEN.on = !!on;
     $('#scr-test').classList.toggle('pen-on', PEN.on);
     $('#pen-bar').hidden = !PEN.on; $('#tool-pen').classList.toggle('active', PEN.on);
+    if (!PEN.on) { PEN.sel = []; PEN.lasso = null; if (PEN.cv) penSize(); }   // the drawing stays visible (pen put away)
     if (PEN.on) { hideHlToolbar(); penCanvas(); }
     if (VW && VW.go && VW.go.drawer) goDrPos();                         // the pen bar moves the question area down
   }
@@ -1527,20 +1600,29 @@
     $$('#pen-bar [data-pc]').forEach(function (b) { b.classList.toggle('on', PEN.tool === 'pen' && b.getAttribute('data-pc') === PEN.color); });
     $$('#pen-bar [data-pw]').forEach(function (b) { b.classList.toggle('on', +b.getAttribute('data-pw') === PEN.w); });
     $('#pen-bar [data-pt="eraser"]').classList.toggle('on', PEN.tool === 'eraser');
+    $('#pen-bar [data-pt="select"]').classList.toggle('on', PEN.tool === 'select');
   }
+  function penDelSel() { if (!PEN.sel.length) return; penSnap(); PEN.strokes = PEN.strokes.filter(function (s) { return PEN.sel.indexOf(s) < 0; }); PEN.sel = []; penDraw(); }
   function initPen() {
     $('#tool-pen').onclick = function () { penSet(!PEN.on); };
-    $$('#pen-bar [data-pc]').forEach(function (b) { b.onclick = function () { PEN.color = b.getAttribute('data-pc'); PEN.tool = 'pen'; penBarSync(); }; });
-    $$('#pen-bar [data-pw]').forEach(function (b) { b.onclick = function () { PEN.w = +b.getAttribute('data-pw'); if (PEN.tool === 'eraser') PEN.tool = 'pen'; penBarSync(); }; });
+    $$('#pen-bar [data-pc]').forEach(function (b) { b.onclick = function () { PEN.color = b.getAttribute('data-pc'); PEN.tool = 'pen'; PEN.sel = []; penDraw(); penBarSync(); }; });
+    $$('#pen-bar [data-pw]').forEach(function (b) { b.onclick = function () { PEN.w = +b.getAttribute('data-pw'); if (PEN.tool !== 'pen') PEN.tool = 'pen'; penBarSync(); }; });
     $$('#pen-bar [data-pt]').forEach(function (b) { b.onclick = function () {
       var t = b.getAttribute('data-pt');
-      if (t === 'eraser') PEN.tool = PEN.tool === 'eraser' ? 'pen' : 'eraser';
-      else if (t === 'undo') { if (PEN.hist.length) { PEN.strokes = PEN.hist.pop(); penDraw(); } }
-      else if (t === 'clear') { if (PEN.strokes.length) { PEN.hist.push(PEN.strokes.slice()); PEN.strokes = []; penDraw(); } }
+      if (t === 'eraser' || t === 'select') { PEN.tool = PEN.tool === t ? 'pen' : t; PEN.sel = []; penDraw(); }
+      else if (t === 'undo') { if (PEN.hist.length) { PEN.strokes = PEN.hist.pop(); PEN.sel = []; penDraw(); } }
+      else if (t === 'clear') { if (PEN.strokes.length) { penSnap(); PEN.strokes = []; PEN.sel = []; penDraw(); } }
+      else if (t === 'del') penDelSel();
       else if (t === 'off') penSet(false);
       penBarSync();
     }; });
-    window.addEventListener('resize', function () { if (PEN.cv) penSize(); if (VW && VW.go && VW.go.drawer) goDrPos(); });
+    document.addEventListener('keydown', function (e) {
+      if (!PEN.on || !PEN.sel.length || (e.key !== 'Delete' && e.key !== 'Backspace')) return;
+      var t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+      e.preventDefault(); penDelSel();
+    });
+    $('#tmain').addEventListener('scroll', function () { if (PEN.cv && PEN.strokes.length) penSoon(); }, true); // panes scroll → strokes follow
+    window.addEventListener('resize', function () { if (PEN.cv) penSoon(); if (VW && VW.go && VW.go.drawer) goDrPos(); });
   }
 
   /* ---------- #47 Notes pad (SAT Math Lib #62): teacher go-over only ----------
@@ -1575,16 +1657,62 @@
     var f = NT.mq.MathField(sp, { spaceBehavesLikeTab: false, autoCommands: 'pi theta sqrt pm', autoOperatorNames: 'sin cos tan log ln',
       handlers: {
         edit: function () { notesSaveSoon(); },
-        enter: function () { caretBy(sp, true); },
+        enter: function () { if (notesMath()) newMathLine(lineOf(sp)); else caretBy(sp, true); }, // #48: Enter = a new math line on a Math question
         moveOutOf: function (dir) { caretBy(sp, dir === NT.mq.R); },
         upOutOf: function () { caretBy(sp, false); }, downOutOf: function () { caretBy(sp, true); },
         deleteOutOf: function (dir) { if (!f.latex()) { caretBy(sp, false); sp.parentNode.removeChild(sp); notesSaveSoon(); } else caretBy(sp, dir === NT.mq.R); }
       } });
     if (latex) f.latex(latex);
     sp._mq = f; sp.setAttribute('contenteditable', 'false');
-    sp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); caretBy(sp, true); } });
+    sp.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (k === 'Escape') { e.preventDefault(); toText(sp); }                                                     // Esc → words after the math
+      else if ((e.ctrlKey || e.metaKey) && (k === 't' || k === 'T')) { e.preventDefault(); mqWords(sp); }         // Ctrl+T / "Aa Text" → words
+      else if (k === ' ' && !e.ctrlKey && !e.metaKey && !mqInText(sp)) { e.preventDefault(); f.write('\\ '); }    // a space stays a space
+    });
     return f;
   }
+  /* #48 (copied from SAT Math Lib #68): on a Math question the pad is math first — every line starts in a math field; words
+     when wanted (Esc / Ctrl+T / "Aa Text"); the next line is math again. On a Reading and Writing question: words first. */
+  function notesMath() {
+    var q = curQ(); if (!q) return false;
+    return !/^RW/i.test(String(q.part));                                 // SAT RW1 / RW2 → words; Math modules and AP Calculus → math
+  }
+  function lineOf(n) { var ed = $('#nt-ed'); while (n && n.parentNode && n.parentNode !== ed) n = n.parentNode; return n && n.parentNode === ed ? n : null; }
+  function newMathLine(after) {
+    return loadMQ().then(function () {
+      var ed = $('#nt-ed'), line = document.createElement('div'), sp = document.createElement('span');
+      sp.className = 'mq'; line.appendChild(sp); line.appendChild(document.createTextNode('\u00a0'));
+      if (after && after.parentNode === ed) { if (after.nodeType === 3) { var w = document.createElement('div'); ed.insertBefore(w, after); w.appendChild(after); after = w; } ed.insertBefore(line, after.nextSibling); }
+      else ed.appendChild(line);
+      var f = mqField(sp, ''); f.focus(); notesSaveSoon(); return f;
+    }).catch(function (e) { toast('The math editor did not load: ' + errMsg(e)); });
+  }
+  function toText(sp) {
+    if (sp._mq && !sp._mq.latex()) { var ln = lineOf(sp), nx = sp.nextSibling; sp.parentNode.removeChild(sp); var ed = $('#nt-ed'); ed.focus();
+      var r = document.createRange(); if (nx) r.setStartBefore(nx); else if (ln) { r.selectNodeContents(ln); r.collapse(true); } else { r.selectNodeContents(ed); r.collapse(false); }
+      var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    else caretBy(sp, true);
+    notesSaveSoon();
+  }
+  function mqInText(sp) { return !!sp.querySelector('.mq-text-mode.mq-hasCursor, .mq-text-mode .mq-cursor'); }
+  function mqWords(sp) {
+    var f = sp._mq; if (!f) return;
+    if (!f.latex()) return toText(sp);
+    if (mqInText(sp)) { f.keystroke('End'); f.keystroke('Right'); }
+    else f.cmd('\\text');
+    notesSaveSoon();
+  }
+  function notesMathStart() {                                           // open on a Math question → the cursor in an empty math line at the end
+    var ed = $('#nt-ed'), last = ed.lastElementChild, lsp = last && $('.mq', last);
+    if (lsp && lsp._mq && !lsp._mq.latex() && last.textContent.replace(/\s|\u00a0/g, '') === '') { lsp._mq.focus(); return; }
+    newMathLine(ed.lastChild);
+  }
+  function notesTextStart() {
+    var ed = $('#nt-ed'); if (ed.contains(document.activeElement)) return;
+    ed.focus(); var r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+  function notesHint() { var h = $('#notes-panel .nt-hint'); if (h) h.textContent = notesMath() ? 'Math first · Ctrl+T = words' : '$ or Ctrl+M = math'; }
   function insertMath() {
     return loadMQ().then(function () {
       var ed = $('#nt-ed'), sel = getSelection(), r = null;
@@ -1598,7 +1726,7 @@
   }
   function notesSerial() {
     var ed = $('#nt-ed'), c = ed.cloneNode(true), real = $$('.mq', ed);
-    $$('.mq', c).forEach(function (sp, i) { var n = document.createElement('span'); n.className = 'mq'; n.setAttribute('data-latex', real[i] && real[i]._mq ? real[i]._mq.latex() : (sp.getAttribute('data-latex') || '')); sp.parentNode.replaceChild(n, sp); });
+    $$('.mq', c).forEach(function (sp, i) { var lx = real[i] && real[i]._mq ? real[i]._mq.latex() : (sp.getAttribute('data-latex') || ''); if (!lx) { sp.parentNode.removeChild(sp); return; } var n = document.createElement('span'); n.className = 'mq'; n.setAttribute('data-latex', lx); sp.parentNode.replaceChild(n, sp); });
     return c.innerHTML;
   }
   function notesSaveSoon() { clearTimeout(NT.t); NT.t = setTimeout(notesSaveNow, 400); }
@@ -1621,13 +1749,15 @@
     if (!on) { if (panel.classList.contains('on')) notesSaveNow(); panel.classList.remove('on'); $('#tool-notes').classList.remove('active'); return; }
     notesSync();
     if (!panel._sized) {
-      panel._sized = 1; var w = Math.round(Math.max(340, Math.min(480, window.innerWidth * 0.38)));
+      panel._sized = 1; var W = $('#scr-test').clientWidth || window.innerWidth, w = Math.round(Math.max(340, Math.min(480, W * 0.38)));
       panel.style.width = w + 'px'; panel.style.height = Math.max(280, Math.min(460, $('#tmain').clientHeight - 24)) + 'px';
-      panel.style.left = Math.max(8, window.innerWidth - w - 16) + 'px'; panel.style.right = 'auto'; panel.style.top = ($('#tmain').offsetTop + 8) + 'px';
+      panel.style.left = Math.max(8, W - w - 16) + 'px'; panel.style.right = 'auto'; panel.style.top = ($('#tmain').offsetTop + 8) + 'px';
     }
     panel.classList.add('on'); $('#tool-notes').classList.add('active');
-    loadMQ().catch(function () {}); mjSvgDoc().catch(function () {});  // ready before the first "$" / Copy
-    setTimeout(function () { var ed = $('#nt-ed'); if (!ed.contains(document.activeElement)) { ed.focus(); var r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } }, 30);
+    mjSvgDoc().catch(function () {});                                  // ready before the first Copy
+    notesHint();
+    if (notesMath()) loadMQ().then(function () { setTimeout(notesMathStart, 30); }).catch(function () { setTimeout(notesTextStart, 30); }); // #48 math first on Math
+    else { loadMQ().catch(function () {}); setTimeout(notesTextStart, 30); }                                                                    // words first on RW
   }
   function notesCmd(cmd, val) {
     var ed = $('#nt-ed'), sel = getSelection();
@@ -1782,7 +1912,7 @@
         var t = b.getAttribute('data-nt');
         if (t === 'bold') notesCmd('bold'); else if (t === 'c') notesCmd('foreColor', b.getAttribute('data-c'));
         else if (t === 'hl') notesCmd('hiliteColor', '#fde68a'); else if (t === 'ul') notesCmd('insertUnorderedList');
-        else if (t === 'math') insertMath(); else if (t === 'copy') notesCopy();
+        else if (t === 'math') insertMath(); else if (t === 'text') { var fm = document.activeElement && inMq(document.activeElement); if (fm) mqWords(fm); else $('#nt-ed').focus(); } else if (t === 'copy') notesCopy();
         else if (t === 'clear') notesClear(false); else if (t === 'end') notesClear(true);
       };
     });
@@ -1790,6 +1920,7 @@
       if (inMq(e.target) && e.target !== ed) return;
       var k = e.key, mod = e.ctrlKey || e.metaKey;
       if (k === '$' || (e.ctrlKey && (k === 'm' || k === 'M'))) { e.preventDefault(); insertMath(); return; }
+      if (k === 'Enter' && !e.shiftKey && !mod && notesMath()) { e.preventDefault(); var sl = getSelection(); newMathLine(sl.rangeCount ? lineOf(sl.getRangeAt(0).startContainer) : null); return; } // #48 next line: math again
       if (mod && (k === 'e' || k === 'E')) { e.preventDefault(); notesCmd('hiliteColor', '#fde68a'); return; }
       if (mod && (k === 'b' || k === 'B')) { e.preventDefault(); notesCmd('bold'); return; }
       if (k === 'ArrowRight' || k === 'ArrowLeft') {
@@ -1805,7 +1936,7 @@
   /* ================= teacher mode (Settings → teacher_code) ================= */
   function showTeacher() {
     show('scr-teacher');
-    if (A.tTab === 'classes') { tTab('classes'); return; }
+    if (A.tTab === 'classes' || A.tTab === 'assign') { tTab(A.tTab); return; }
     $('#t-list').innerHTML = '<div class="spinner"></div>';
     call('teacherOverview', A.code).then(function (r) {
       A.tdata = r.students;
@@ -1840,11 +1971,76 @@
     $('#t-filter').addEventListener('input', renderTeacher);
     $('#t-tab-st').onclick = function () { A.tTab = 'students'; tTab('students'); if (!A.tdata) showTeacher(); };
     $('#t-tab-cl').onclick = function () { A.tTab = 'classes'; tTab('classes'); };
+    $('#t-tab-as').onclick = function () { A.tTab = 'assign'; tTab('assign'); };
   }
   function tTab(t) {
-    $('#t-tab-st').classList.toggle('on', t !== 'classes'); $('#t-tab-cl').classList.toggle('on', t === 'classes');
-    $('#t-pane-st').hidden = t === 'classes'; $('#t-pane-cl').hidden = t !== 'classes';
+    var st = t !== 'classes' && t !== 'assign';
+    $('#t-tab-st').classList.toggle('on', st); $('#t-tab-cl').classList.toggle('on', t === 'classes'); $('#t-tab-as').classList.toggle('on', t === 'assign');
+    $('#t-pane-st').hidden = !st; $('#t-pane-cl').hidden = t !== 'classes'; $('#t-pane-as').hidden = t !== 'assign';
     if (t === 'classes') showClasses();
+    if (t === 'assign') showAssign();
+  }
+
+  /* ================= #48 Assign tab: write the Assignments rows from the teacher page (no Sheet needed) ================= */
+  function dueTxt(d) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); if (!m) return '';
+    var x = new Date(+m[1], +m[2] - 1, +m[3]);
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][x.getDay()] + ' ' + x.getDate() + ' ' + ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][x.getMonth()];
+  }
+  function showAssign() {
+    $('#t-assign').innerHTML = '<div class="spinner"></div>';
+    call('teacherAssignData', A.code).then(function (r) { A.adata = r; renderAssign(); })
+      .catch(function (e) { $('#t-assign').innerHTML = '<div class="empty">' + esc(errMsg(e)) + '</div>'; });
+  }
+  function renderAssign() {
+    var r = A.adata, F = A.asForm = A.asForm || {};
+    var form = r.forms.filter(function (f) { return f.form_id === F.form_id; })[0];
+    var h = '<div class="card as-new"><h3>New assignment</h3>' +
+      '<label class="cl-lbl">Test<select id="as-form" class="field t-filter"><option value="">Pick a test…</option>' + r.forms.map(function (f) {
+        return '<option value="' + esc(f.form_id) + '"' + (f.form_id === F.form_id ? ' selected' : '') + '>' + esc(f.title) + '</option>'; }).join('') + '</select></label>' +
+      (form ? '<div class="cl-lbl">Parts</div><div class="as-parts" role="radiogroup">' + form.choices.map(function (c, i) {
+        return '<label class="as-chip"><input type="radio" name="as-part" value="' + esc(c.v) + '"' + (F.parts === c.v || (!F.parts && !i) ? ' checked' : '') + '> ' + esc(c.t) + '</label>'; }).join('') + '</div>' : '') +
+      '<div class="cl-lbl">Who</div>' +
+      (r.classes.length ? '<div class="as-cls">' + r.classes.map(function (c) {
+        return '<label class="as-chip"><input type="radio" name="as-cls" value="' + esc(c.class_id) + '"' + (F.class_id === c.class_id ? ' checked' : '') + '> Class ' + esc(c.name) + ' <span class="muted">(' + c.n + ')</span></label>'; }).join('') +
+        '<label class="as-chip"><input type="radio" name="as-cls" value=""' + (!F.class_id ? ' checked' : '') + '> Students below</label></div>' : '') +
+      '<div class="cl-pick as-stu"' + (F.class_id ? ' hidden' : '') + '>' + r.students.map(function (s) {
+        return '<label><input type="checkbox" class="as-st" value="' + esc(s.code) + '"' + ((F.codes || []).indexOf(s.code) >= 0 ? ' checked' : '') + '> ' + esc(s.name) + '</label>'; }).join('') + '</div>' +
+      '<div class="as-row"><label class="cl-lbl">Due date <span class="muted">(optional)</span><input type="date" id="as-due" class="field t-filter" value="' + esc(F.due || '') + '"></label>' +
+      '<label class="cl-lbl as-note">Note <span class="muted">(optional)</span><input id="as-note" class="field t-filter" maxlength="200" value="' + esc(F.note || '') + '" placeholder="e.g. Do it before Saturday\'s class"></label></div>' +
+      '<p class="cl-err" id="as-err"></p><button type="button" class="btn-blue" id="as-go">Assign</button></div>';
+    var on = r.rows.filter(function (x) { return x.active; }).reverse(), off = r.rows.filter(function (x) { return !x.active; }).reverse();
+    var line = function (x) {
+      return '<tr data-row="' + x.row + '"><td><b>' + esc(x.who) + '</b></td><td>' + esc(x.form_title) + '</td><td>' + esc(x.label) + '</td><td>' + (x.due ? 'Due ' + esc(dueTxt(x.due)) : '') + (x.note ? '<div class="muted">' + esc(x.note) + '</div>' : '') + '</td>' +
+        '<td class="as-act">' + (x.active ? '<button type="button" class="btn-plain as-off">Turn off</button>' : '<button type="button" class="btn-plain as-on">Turn on</button>') + '</td></tr>';
+    };
+    h += '<h2 class="res-h">Current assignments</h2>' + (on.length ? '<div class="card as-list"><table class="attempts">' + on.map(line).join('') + '</table></div>' : '<div class="empty">No assignment is on.</div>');
+    if (off.length) h += '<details class="as-past"><summary>Turned off (' + off.length + ')</summary><div class="card as-list"><table class="attempts">' + off.map(line).join('') + '</table></div></details>';
+    $('#t-assign').innerHTML = h;
+    var keep = function () {
+      F.form_id = $('#as-form').value; var pr = $('#t-assign input[name="as-part"]:checked'); F.parts = pr ? pr.value : '';
+      var cr = $('#t-assign input[name="as-cls"]:checked'); F.class_id = cr ? cr.value : '';
+      F.codes = $$('#t-assign .as-st:checked').map(function (x) { return x.value; }); F.due = $('#as-due').value; F.note = $('#as-note').value;
+    };
+    $('#as-form').onchange = function () { keep(); F.parts = ''; renderAssign(); };
+    $$('#t-assign input[name="as-cls"]').forEach(function (x) { x.onchange = function () { keep(); $('#t-assign .as-stu').hidden = !!F.class_id; }; });
+    $('#as-go').onclick = function () {
+      keep(); var b = $('#as-go'), err = $('#as-err'); err.textContent = '';
+      if (!F.form_id) { err.textContent = 'Pick a test.'; return; }
+      if (!F.class_id && !F.codes.length) { err.textContent = 'Pick a class or at least one student.'; return; }
+      b.disabled = true;
+      call('teacherAssign', A.code, { form_id: F.form_id, parts: F.parts, codes: F.class_id ? [] : F.codes, class_id: F.class_id, due: F.due, note: F.note }).then(function (x) {
+        b.disabled = false;
+        if (!x.ok) { err.textContent = x.msg; return; }
+        toast(x.n ? 'Assigned (' + x.n + (x.n === 1 ? ' row' : ' rows') + ').' + (x.skipped.length ? ' Already assigned: ' + x.skipped.join(', ') + '.' : '') : 'Already assigned: ' + x.skipped.join(', ') + '.', 3500);
+        A.asForm = { form_id: F.form_id }; showAssign();
+      }).catch(function (e) { b.disabled = false; err.textContent = errMsg(e); });
+    };
+    $$('#t-assign .as-off, #t-assign .as-on').forEach(function (b) { b.onclick = function () {
+      var row = +b.closest('tr').getAttribute('data-row'); b.disabled = true;
+      call('teacherSetAssignment', A.code, row, b.classList.contains('as-on')).then(function (x) { if (!x.ok) { toast(x.msg); b.disabled = false; return; } showAssign(); })
+        .catch(function (e) { b.disabled = false; toast(errMsg(e)); });
+    }; });
   }
 
   /* ================= classes (#44 part 1): review a test with 2+ students at once ================= */
