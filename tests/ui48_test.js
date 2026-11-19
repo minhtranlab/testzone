@@ -1,4 +1,4 @@
-// #48 part 1 (v1.17) the result page, student AND teacher: long green bars on a grey track (skills + domains), practice
+// #48 part 1 (v1.17) the result page, student AND teacher: long green bars on a grey track (only the main groups / domains; a skill = name · missed codes · x/y), practice
 // lines hidden until the skill name / tip is clicked (no second "x/y right"), "Could be a lucky guess" (right, time to
 // answer < lucky_guess_sec, not Standard English Conventions), no narrator / repeated legend lines, students see the time
 // to answer under each question number (but no leave / SAT Math Lib level data). Phone: the bar under the label.
@@ -68,8 +68,9 @@ const SAT = 'MOCK-SAT98', TC = 'TEACH-48-RES';
     const bars = await page.evaluate(() => [...document.querySelectorAll('#result-body .skill summary')].map(s => { const b = s.querySelector('.bar'), i = b.querySelector('i'), bs = getComputedStyle(b), is = getComputedStyle(i);
       return { w: b.getBoundingClientRect().width / s.getBoundingClientRect().width, h: b.getBoundingClientRect().height, track: bs.backgroundColor, fill: is.backgroundColor, xyRight: s.querySelector('.xy').getBoundingClientRect().left > b.getBoundingClientRect().right }; }));
     check(bars.length >= 4 && bars.every(b => b.w > 0.5 && b.h >= 11 && b.fill === 'rgb(22, 163, 74)' && b.track === 'rgb(229, 231, 235)' && b.xyRight), who + ': ' + bars.length + ' domain bars, ' + Math.round(bars[0].w * 100) + '% of the row, ' + bars[0].h + ' px, green on grey, x/y on the right');
-    const skb = await page.evaluate(() => [...document.querySelectorAll('#result-body .skill li')].map(li => { const b = li.querySelector('.bar'); return b ? b.getBoundingClientRect().width / li.getBoundingClientRect().width : 0; }));
-    check(skb.length > 10 && skb.every(w => w > 0.4), who + ': every skill has a bar too (≥ ' + Math.round(Math.min(...skb) * 100) + '% of the row)');
+    const skb = await page.evaluate(() => [...document.querySelectorAll('#result-body .skill li')].map(li => { const n = li.querySelector('.it-name').getBoundingClientRect(), c = li.querySelector('.chips'), cr = c.getBoundingClientRect();
+      return { bar: !!li.querySelector('.bar'), miss: c.children.length, beside: !c.children.length || (cr.left >= n.right - 1 && Math.abs(cr.top - n.top) < 8) }; }));
+    check(skb.length > 10 && skb.every(x => !x.bar) && skb.filter(x => x.miss).length >= 5 && skb.every(x => x.beside), who + ': Minh: bars only on the 4 main groups; each skill = name · its missed codes right next to it · x/y (' + skb.filter(x => x.miss).length + ' skills with misses)');
     const pr = await page.evaluate(() => ({ boxes: [...document.querySelectorAll('#result-body .pr-box')].map(b => b.hidden), txt: [...document.querySelectorAll('#result-body .pr-box')].map(b => b.textContent).join(' | ') }));
     check(pr.boxes.length >= 1 && pr.boxes.every(Boolean), who + ': ' + pr.boxes.length + ' practice lines, all hidden');
     check(!/\d+\/\d+ right/.test(pr.txt), who + ': no "x/y right" inside a practice line');

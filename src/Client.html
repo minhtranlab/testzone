@@ -1145,8 +1145,9 @@
           return '<details class="skill"' + (miss ? ' open' : '') + '><summary><span class="sk-name">' + esc(r.name) + '</span>' + barHtml(r.right, r.n) + xy(r.right, r.n) + '</summary>' +
             '<ul>' + r.items.map(function (it) {
               var chips = (it.missed || []).concat(it.slow || []);
-              return '<li><span class="it-name">' + (it.practice ? '<button type="button" class="pr-tog" aria-expanded="false">' + esc(it.name) + '</button>' : esc(it.name)) + '</span>' + barHtml(it.right, it.n) + xy(it.right, it.n) +
-                (chips.length ? '<span class="chips">' + chips.map(qchip).join('') + '</span>' : '') +
+              // #48 (Minh): no bar per skill — the skill, its missed questions spread out next to it, x/y; all-right skills quiet
+              return '<li class="' + (it.right === it.n ? 'sk-ok' : 'sk-miss') + '"><span class="it-name">' + (it.practice ? '<button type="button" class="pr-tog" aria-expanded="false">' + esc(it.name) + '</button>' : esc(it.name)) + '</span>' +
+                '<span class="chips">' + chips.map(qchip).join('') + '</span>' + xy(it.right, it.n) +
                 (it.practice ? '<div class="it-pr pr-box" hidden>' + practiceLine(it.practice) + '</div>' : '') + '</li>';
             }).join('') + '</ul></details>';
         }).join('') + '</div>';

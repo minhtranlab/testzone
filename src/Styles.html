@@ -644,10 +644,12 @@ canvas.pen-cv { position: absolute; left: 0; top: 0; z-index: 30; pointer-events
 .skill .bar i { display: block; height: 100%; background: #16a34a; border-radius: 6px 0 0 6px; min-width: 0; }
 .skill .xy { text-align: right; }
 .skill ul { padding-left: 18px; }
-.skill li { display: grid; grid-template-columns: minmax(132px, calc(30% - 18px)) 1fr 64px; gap: 4px 14px; align-items: center; padding: 6px 0; }
-.skill li .bar { height: 9px; }
-.skill li .it-name { flex: none; min-width: 0; }
-.skill li .chips { grid-column: 1 / -1; margin: 0; justify-content: flex-start; }
+.skill li { display: grid; grid-template-columns: minmax(132px, calc(30% - 18px)) 1fr 64px; gap: 4px 14px; align-items: start; padding: 7px 0; border-top: 1px dashed var(--line-2); }
+.skill li:first-child { border-top: 0; }
+.skill li .it-name { flex: none; min-width: 0; padding-top: 3px; }
+.skill li .chips { margin: 0; justify-content: flex-start; gap: 5px; }
+.skill li .xy { padding-top: 3px; }
+.skill li.sk-ok { color: var(--muted); padding: 4px 0; } .skill li.sk-ok .xy { font-weight: 600; }
 .skill li .it-pr { grid-column: 1 / -1; }
 .pr-tog { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
 .pr-tog::after { content: " ▸"; color: var(--muted); font-size: .85em; }
@@ -659,7 +661,7 @@ canvas.pen-cv { position: absolute; left: 0; top: 0; z-index: 30; pointer-events
   .skill summary { grid-template-columns: 1fr auto; gap: 6px 12px; }
   .skill .bar { display: block; grid-column: 1 / -1; grid-row: 2; }
   .skill li { grid-template-columns: 1fr auto; }
-  .skill li .bar { grid-column: 1 / -1; grid-row: 2; }
+  .skill li .chips { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* #48 Assign tab */
