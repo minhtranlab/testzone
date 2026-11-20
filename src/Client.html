@@ -736,7 +736,8 @@
     '<li>If more than one answer is correct, enter just one of them.</li>' +
     '<li>The box holds up to 5 characters for a positive answer and up to 6 characters (the minus sign included) for a negative answer.</li>' +
     '<li>A fraction that does not fit in the box can be entered as its decimal value instead.</li>' +
-    '<li>A decimal that does not fit can be cut off or rounded after the fourth digit, as long as it fills the whole box.</li>' +
+    '<li>A decimal that does not fit can be cut off (truncated) or rounded, but it must fill the whole box: for \\(\\tfrac{2}{3}\\) enter .6666, .6667, 0.666 or 0.667, not .66, .67, 0.66 or 0.67.</li>' +
+    '<li>A decimal shorter than the box counts only when it is the exact answer. A fraction with a decimal point in it (such as 1.5/3) is not accepted.</li>' +
     '<li>Write a mixed number such as \\(2\\tfrac{1}{2}\\) as an improper fraction (5/2) or as a decimal (2.5).</li>' +
     '<li>Do not type symbols such as %, $ or a comma.</li></ul>' +
     '<table class="spr-ex"><tr><th>Answer</th><th>Accepted entries</th><th>Not accepted (no credit)</th></tr>' +

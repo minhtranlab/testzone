@@ -285,7 +285,7 @@ function teacherClassReview(code, classId, opts) {
     return o;
   });
   addSkills_(d.form_id, qs); // "Nonlinear functions (P.C)" on the question bar
-  var keys = {}; fd.questions.forEach(function (q) { if (want[q.qid]) keys[q.qid] = (Array.isArray(q.key) ? q.key : [q.key]).map(String); }); // #46: Show answer with no wait
+  var keys = {}; fd.questions.forEach(function (q) { if (want[q.qid]) keys[q.qid] = keyShow_(q); }); // #52: SPR = typeable forms // #46: Show answer with no wait
   return { ok: true, answer_keys: keys, class_id: d.class_id, class_name: d.name, form_id: d.form_id, title: formTitle_(prof, d.form_id), parts: parts, questions: qs,
            question_font: prof.question_font || '', reference_sheet: prof.reference_sheet || '', reference_html: prof.reference_html || '',
            annotate_label: prof.annotate_label || '', settings: { desmos_api_key: desmosKey_() } };
@@ -297,6 +297,5 @@ function teacherFormAnswer(code, formId, qid) {
   var fd = formData_(String(formId));
   var q = fd && fd.questions.filter(function (x) { return x.qid === String(qid); })[0];
   if (!q) throw new Error('SESSION: Question not found.');
-  var keys = Array.isArray(q.key) ? q.key : [q.key];
-  return { ok: true, qid: q.qid, type: q.type || 'mcq', key: keys.map(String) };
+  return { ok: true, qid: q.qid, type: q.type || 'mcq', key: keyShow_(q) }; // #52
 }

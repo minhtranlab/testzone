@@ -89,7 +89,7 @@ function doUpdate_() {
         var m = /Imported (\d+)/.exec(msg), rs = /resynced for (\d+)/.exec(msg);
         notes.push('questions added: ' + (m ? m[1] : '?') + (rs ? ', resynced forms: ' + rs[1] : ''));
       }
-      if (s[0] === 'reports') { var rg = /Re-graded (\d+) answers \(key changes\) in (\d+) attempts; repaired (\d+)/.exec(msg); notes.push('reports rebuilt' + (rg ? ' (re-graded ' + rg[1] + ' answers in ' + rg[2] + ' attempts, ' + rg[3] + ' rows repaired)' : '')); }
+      if (s[0] === 'reports') { var rg = /Re-graded (\d+) answers \(key changes\) in (\d+) attempts; repaired (\d+)/.exec(msg); var cg = / — changed: (.*)$/.exec(msg); notes.push('reports rebuilt' + (rg ? ' (re-graded ' + rg[1] + ' answers in ' + rg[2] + ' attempts, ' + rg[3] + ' rows repaired' + (cg ? '; changed: ' + cg[1] : '') + ')' : '')); }
       if (s[0] === 'report tab') notes.push(msg);
       if (s[0] === 'check') { var p = /→ (\d+) problem/.exec(msg); notes.push(p ? 'checkSheet: ' + p[1] + ' problem(s), see log' : 'checkSheet: all good'); }
     } catch (err) {

@@ -12,7 +12,7 @@
 
 var SHEET_ID = '1J4hiHL4qq-lcSlMZtzAwssIYpX36Wgff5NGhAYUZekY';           // "Test Zone – Data" (minhtranipad@gmail.com)
 var FORM_FILES_FOLDER_ID = '1Nd3X_obFvl8Tkw_zweZA4sNp0-ITtLAo';      // Drive: Test Zone › Test Zone - Form Files (private)
-var APP_VERSION = 'v1.17.1 (2026-11-19, result page: one bar per main group, missed questions beside each skill)';
+var APP_VERSION = 'v1.17.2 (2026-11-20, grid-in answers by the official SAT entry rules)';
 var APP_BUILD = 'dev';  // replaced by the GitHub Action with the commit id → the Sheet update (Update.gs) runs once per deploy
 
 /* ============================== web app ============================== */
@@ -1010,45 +1010,54 @@ function isCorrect_(q, answer) {
 }
 
 /**
- * Student-produced response (SAT rules):
- *  - the box holds 5 characters (6 when the answer starts with "-"); anything longer is not a valid entry;
- *  - any form with exactly the key's value counts: 3/4 = .75 = 0.75 = 0.750 = 6/8;
- *  - a decimal that does not fit (2/3 = 0.666…) may be truncated or rounded, but must then FILL the box:
- *    .6666 .6667 0.666 0.667 are right, 0.66 / .67 are not; negatives likewise with 6 characters (-.3333, -0.333).
- *  keys = the key list (printed answer + accepted forms). EXACT values = fractions / integers in the list (and a decimal
- *  equal to one of them; if the list has only decimals and they all have one value, that value). A decimal key that is not
- *  exact (e.g. 0.651 next to 441/677) is a ROUNDED form: it only matches as typed text, never by value — so ".651"
- *  (too short) is wrong while "0.651" and ".6514" are right (QK 2026-11-09).
+ * Student-produced response — the official SAT / Bluebook entry rules (#52, v1.17.2):
+ *  - at most 5 characters for a positive answer, 6 for a negative one (the "-" counts); only digits, ".", "/" and a leading "-";
+ *  - a fraction counts when it fits and equals the answer (equivalent fractions too: 2/4 for 1/2); no decimal inside a fraction;
+ *  - a decimal counts when it is exactly the answer; a decimal that is NOT exact must fill every character of the box and be
+ *    the truncation or the rounding of the exact value: 2/3 → .6666 .6667 0.666 0.667 right; .66 .67 0.66 0.67 wrong;
+ *  - several correct answers → any one of them.
+ *  The key list holds EXACT values (fractions, integers, exact decimals). A rounded decimal in the list (0.651 next to 441/677)
+ *  is only a display form: it never makes a shorter entry count (".651" is wrong, "0.651" and ".6514" are right).
  */
 function sprCorrect_(answer, keys) {
-  var a = String(answer).trim().replace(/\u2212/g, '-');
-  if (!a) return false;
+  var a = String(answer).trim().replace(/−/g, '-');
+  if (!a || !/^-?[0-9.\/]+$/.test(a)) return false;
   var neg = a.charAt(0) === '-', room = neg ? 6 : 5;
   if (a.length > room) return false;
-  var ks = keys.map(function (k) { return String(k).trim().replace(/\u2212/g, '-'); }).filter(String);
-  if (ks.indexOf(a) >= 0) return true; // typed exactly as a listed form
-  var exact = sprExactValues_(ks);
   var av = sprParse_(a);
   if (!av) return false;
-  return exact.some(function (kv) {
-    if (av.n * kv.d === kv.n * av.d) return true; // same exact value
-    if (av.dec === null || av.dec < 1 || a.length !== room) return false; // only a box-filling decimal may be cut off
-    var p10 = Math.pow(10, av.dec), num = Math.abs(kv.n) * p10, sign = kv.n < 0 ? -1 : 1;
-    var trunc = sign * Math.floor(num / kv.d), rnd = sign * Math.floor((2 * num + kv.d) / (2 * kv.d));
-    return av.n === trunc || av.n === rnd;
-  });
+  var ks = keys.map(function (k) { return String(k).trim().replace(/\u2212/g, '-'); }).filter(String);
+  if (sprRounded_(ks).indexOf(a) >= 0) return true;                  // a listed box-filling rounded form, typed as listed
+  return sprExactValues_(ks).some(function (kv) { return sprMatch_(a, av, room, kv); });
+}
+/** A list of decimals only, with different values, that fill the box (0.651 | .6514): rounded forms of a value the list
+ *  does not give — accepted only as typed. */
+function sprRounded_(ks) {
+  var parsed = ks.map(sprParse_);
+  if (!parsed.length || parsed.some(function (p) { return !p || p.dec === null || p.dec === 0; })) return [];
+  var same = parsed.every(function (p) { return p.n * parsed[0].d === parsed[0].n * p.d; });
+  return same ? [] : ks.filter(function (k) { return k.length === (k.charAt(0) === '-' ? 6 : 5); });
+}
+/** One entry (already parsed, fits the box) against one exact value {n, d}. */
+function sprMatch_(a, av, room, kv) {
+  if (av.n * kv.d === kv.n * av.d) return true;                       // the same exact value (any form that fits)
+  if (av.dec === null || av.dec < 1 || a.length !== room) return false; // only a box-filling decimal may be cut off / rounded
+  if ((av.n < 0) !== (kv.n < 0)) return false;
+  var p10 = Math.pow(10, av.dec), num = Math.abs(kv.n) * p10, sign = kv.n < 0 ? -1 : 1;
+  var trunc = sign * Math.floor(num / kv.d), rnd = sign * Math.floor((2 * num + kv.d) / (2 * kv.d));
+  return av.n === trunc || av.n === rnd;
 }
 
-/** Exact values (as {n, d}) of an SPR key list — see sprCorrect_. */
+/** Exact values (as {n, d}) of an SPR key list: fractions / integers, and decimals equal to one of them; a list of decimals
+ *  only = each value is exact. A decimal next to a fraction it is not equal to = a rounded display form (not a value). */
 function sprExactValues_(ks) {
   var parsed = ks.map(sprParse_).filter(Boolean);
   var exact = parsed.filter(function (k) { return k.dec === null || k.dec === 0; });
   var decs = parsed.filter(function (k) { return k.dec !== null && k.dec > 0; });
-  if (!exact.length && decs.length) {
-    var same = decs.every(function (k) { return k.n * decs[0].d === decs[0].n * k.d; });
-    return same ? [decs[0]] : [];
-  }
-  return exact;
+  if (!exact.length) { var rd = sprRounded_(ks); exact = decs.filter(function (k) { return !rd.some(function (x) { var p = sprParse_(x); return p.n === k.n && p.d === k.d; }); }); }
+  var out = [];
+  exact.forEach(function (k) { if (!out.some(function (o) { return o.n * k.d === k.n * o.d; })) out.push(k); });
+  return out;
 }
 
 /** Exact value of an SPR entry as n/d (integers); dec = digits after the point for decimals, null for fractions. */
@@ -1059,6 +1068,44 @@ function sprParse_(s) {
   if (!m || !(m[2] + (m[3] || '')).length) return null;
   var frac = m[3] || '';
   return { n: (m[1] ? -1 : 1) * Number((m[2] || '0') + frac), d: Math.pow(10, frac.length), dec: frac.length };
+}
+
+/** #52: what "Show answer" prints for an SPR key list — only entries a student can type in the box. Per exact value: its
+ *  first form from the list that fits (+ at most one decimal form from the list); when no form fits (441/677), the
+ *  box-filling decimals (".6514", "0.651"). */
+function sprShow_(keys) {
+  var ks = keys.map(function (k) { return String(k).trim().replace(/−/g, '-'); }).filter(String), out = [];
+  var fits = function (k) { return /^-?[0-9.\/]+$/.test(k) && k.length <= (k.charAt(0) === '-' ? 6 : 5); };
+  sprExactValues_(ks).forEach(function (kv) {
+    var ok = ks.filter(function (k) { var p = sprParse_(k); return fits(k) && p && sprMatch_(k, p, k.charAt(0) === '-' ? 6 : 5, kv); });
+    var main = ok.filter(function (k) { var p = sprParse_(k); return p.n * kv.d === kv.n * p.d; })[0];
+    if (main) {
+      out.push(main);
+      var dec = ok.filter(function (k) { return k !== main && k.indexOf('/') < 0 && main.indexOf('/') >= 0; })[0];
+      if (dec) out.push(dec);
+    } else sprFill_(kv).forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+  });
+  return out.length ? out : ks;
+}
+/** The decimals that fill the box for an exact value that does not fit (truncated and rounded; ".dddd" and "0.ddd"). */
+function sprFill_(kv) {
+  var neg = kv.n < 0, room = neg ? 6 : 5, n = Math.abs(kv.n), d = kv.d, ip = Math.floor(n / d), out = [];
+  var forms = ip === 0 ? [['.', room - (neg ? 1 : 0) - 1], ['0.', room - (neg ? 1 : 0) - 2]] : [[ip + '.', room - (neg ? 1 : 0) - String(ip).length - 1]];
+  forms.forEach(function (f) {
+    if (f[1] < 1) return;
+    var p10 = Math.pow(10, f[1]), rest = (n % d) * p10;
+    [Math.floor(rest / d), Math.floor((2 * rest + d) / (2 * d))].forEach(function (x) {
+      if (x >= p10) return; // rounding carried into the whole number: that form is the next whole number's
+      var k = (neg ? '-' : '') + f[0] + String(x + p10).slice(1);
+      if (out.indexOf(k) < 0) out.push(k);
+    });
+  });
+  return out;
+}
+/** Key list → the text "Show answer" prints (MCQ: the letters; SPR: sprShow_). */
+function keyShow_(q) {
+  var keys = (Array.isArray(q.key) ? q.key : [q.key]).map(String);
+  return (q.type || 'mcq') === 'spr' ? sprShow_(keys) : keys;
 }
 
 /** Tags: Questions tab (Minh may confirm/edit there) over the data file. */
@@ -1458,7 +1505,7 @@ function teacherReview(code, sessionId) {
   addSkills_(String(s.form_id), r.questions); // #44 part 3: the skill on the teacher question bar
   // #46: the keys come with the questions (teacher call, teacher code checked) → "Show answer" shows them at once
   var fdk = formData_(String(s.form_id)), inR = {}; r.questions.forEach(function (q) { inR[q.qid] = 1; });
-  r.answer_keys = {}; if (fdk) fdk.questions.forEach(function (q) { if (inR[q.qid]) r.answer_keys[q.qid] = (Array.isArray(q.key) ? q.key : [q.key]).map(String); });
+  r.answer_keys = {}; if (fdk) fdk.questions.forEach(function (q) { if (inR[q.qid]) r.answer_keys[q.qid] = keyShow_(q); }); // #52: SPR = typeable forms only
   var st = findStudent_(s.student_code); r.student = st ? String(st.name || '') : String(s.student_code);
   return r;
 }
@@ -1480,7 +1527,6 @@ function teacherAnswer(code, sessionId, qid) {
   var fd = formData_(String(s.form_id));
   var q = fd && fd.questions.filter(function (x) { return x.qid === String(qid); })[0];
   if (!q) throw new Error('SESSION: Question not found.');
-  var keys = Array.isArray(q.key) ? q.key : [q.key];
-  return { ok: true, qid: q.qid, type: q.type || 'mcq', key: keys.map(String) };
+  return { ok: true, qid: q.qid, type: q.type || 'mcq', key: keyShow_(q) }; // #52
 }
 

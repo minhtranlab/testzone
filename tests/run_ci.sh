@@ -32,6 +32,7 @@ run node assign_test.js                         # #29 v1.10: assignment cards + 
 run node qa24_test.js                           # #24 v1.9: Time_Norms from CSV, codes + badges, no method text, practise tips
 run node sync_test.js                            # per-deploy Sheet update on the old Sheet layout + Questions-tab keys
 run node spr_test.js
+run node spr52_test.js                          # #52 v1.17.2: grid-in answers by the official SAT entry rules, input box, Show answer text, re-grade
 run node guard_test.js
 run node grid_proof.js
 run node report_sheet_test.js

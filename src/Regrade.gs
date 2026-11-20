@@ -56,6 +56,7 @@ function regradeAll_() {
     ((evBy[sid] = evBy[sid] || {})[String(e.qid)] = evBy[sid][String(e.qid)] || []).push(e);
   });
   var log = [], evFixed = 0, cellsFixed = 0, regraded = 0, retimed = 0, touched = {};
+  var chg = [], names = {}; try { names = studentNames_(); } catch (e) {}  // #52: who changed, for the update log
   sessions.forEach(function (s) {
     var sid = String(s.session_id), fid = String(s.form_id);
     var fd = formData_(fid);
@@ -114,6 +115,7 @@ function regradeAll_() {
       if (oldCorr !== newCorr) {
         f.correct = newCorr;
         log.push(sid + ' · ' + q.qid + ': ' + (oldCorr === 1 ? 'right' : oldCorr === 0 ? 'wrong' : 'blank') + ' → ' + (newCorr === 1 ? 'right' : newCorr === 0 ? 'wrong' : 'blank') + ' (answer ' + (fin || '–') + ')');
+        chg.push((names[normCode_(s.student_code)] || s.student_code) + ' ' + q.qid.replace(/^SAT-/, '') + ' "' + (fin || '–') + '" ' + (oldCorr === 1 ? 'right' : oldCorr === 0 ? 'wrong' : 'blank') + '→' + (newCorr === 1 ? 'right' : newCorr === 0 ? 'wrong' : 'blank')); // #52
         regraded++;
       }
       // flags that depend on the key / the answers
@@ -163,6 +165,7 @@ function regradeAll_() {
   });
   _formCache = {};
   var msg = 'Re-graded ' + regraded + ' answers (key changes) in ' + totals + ' attempts; repaired ' + cellsFixed + ' answer rows, ' + evFixed + ' event cells; re-timed ' + retimed + ' rows (time to answer + Time_Norms)';
+  if (chg.length) msg += ' — changed: ' + chg.slice(0, 12).join('; ') + (chg.length > 12 ? '; +' + (chg.length - 12) + ' more' : '');
   console.log('REGRADE: ' + msg + (log.length ? '\n' + log.join('\n') : ''));
   return msg;
 }
